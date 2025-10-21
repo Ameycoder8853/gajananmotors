@@ -1,3 +1,4 @@
+
 import type { StaticImageData } from "next/image";
 import { Timestamp } from "firebase/firestore";
 
@@ -6,6 +7,7 @@ export type User = {
   name: string;
   phone: string;
   email: string;
+  emailVerified?: boolean; // Added from FirebaseUser
   role: 'dealer' | 'admin';
   isPro: boolean;
   proExpiresAt: Date | null;

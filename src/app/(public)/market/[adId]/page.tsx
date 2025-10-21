@@ -1,3 +1,4 @@
+
 import { notFound } from "next/navigation";
 import { MOCK_ADS } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ImageCarousel } from "@/components/market/ImageCarousel";
-import { Calendar, Gauge, GitCommitHorizontal, Fuel, MapPin, Phone, User } from "lucide-react";
+import { Calendar, Gauge, GitCommitHorizontal, Fuel, MapPin, Phone, User, ShieldCheck } from "lucide-react";
 
 export async function generateStaticParams() {
   return MOCK_ADS.map((ad) => ({
@@ -71,7 +72,12 @@ export default function AdDetailPage({ params }: { params: { adId: string } }) {
                         <CardTitle className="text-lg flex items-center gap-2"><User /> Dealer Information</CardTitle>
                     </CardHeader>
                     <CardContent>
-                         <p className="font-semibold">{ad.dealer.name}</p>
+                         <div className="flex items-center gap-2">
+                            <p className="font-semibold">{ad.dealer.name}</p>
+                            {ad.dealer.verificationStatus === 'verified' && (
+                                <ShieldCheck className="w-5 h-5 text-blue-500" />
+                            )}
+                         </div>
                          <div className="flex items-center gap-2 mt-2 text-primary font-bold text-lg">
                             <Phone className="w-5 h-5" />
                             <span>{ad.dealer.phone}</span>
@@ -100,3 +106,4 @@ export default function AdDetailPage({ params }: { params: { adId: string } }) {
     </div>
   );
 }
+
