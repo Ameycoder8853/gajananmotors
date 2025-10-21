@@ -37,6 +37,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const router = useRouter();
 
   useEffect(() => {
+    const ensureAdminExists = async () => {
+      // This is a simplified way to ensure an admin user exists.
+      // In a real-world application, you would manage this through a secure admin interface or a setup script.
+      const adminEmail = 'admin@gmail.com';
+      const adminPassword = 'gajananmotors';
+      try {
+        // We try to sign in. If it fails, the user likely doesn't exist, so we create it.
+        await signInWithEmailAndPassword(auth, 'test-user-creation@test.com', 'fakepassword');
+      } catch (error: any) {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+          // This is a workaround to check if we can create the user.
+        } else if (error.code === 'auth/invalid-credential') {
+            // It means some user exists, so we try to create the admin.
+             try {
+                await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+                console.log('Admin user created successfully.');
+             } catch (creationError: any) {
+                if (creationError.code !== 'auth/email-already-in-use') {
+                    console.error('Failed to create admin user:', creationError);
+                }
+             }
+        }
+      }
+      // Sign out any temporary user. The onAuthStateChanged listener will handle the real user.
+      if (auth.currentUser) {
+          await signOut(auth);
+      }
+    };
+    
+    ensureAdminExists();
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(firestore, 'users', firebaseUser.uid);
