@@ -34,12 +34,22 @@ export default function SubscriptionPage() {
   const { toast } = useToast();
   const { firestore } = initializeFirebase();
 
-  const handlePayment = async (amount: number, credits: number) => {
+  const handlePayment = async (amount: number, credits: number, planName: 'Standard' | 'Premium') => {
     if (!user) {
       toast({
         variant: 'destructive',
         title: 'Authentication Error',
         description: 'You must be logged in to make a purchase.',
+      });
+      return;
+    }
+
+    // Ensure Razorpay script is loaded
+    if (!window.Razorpay) {
+      toast({
+        variant: 'destructive',
+        title: 'Payment Error',
+        description: 'Razorpay checkout is not available. Please refresh the page.',
       });
       return;
     }
@@ -52,12 +62,22 @@ export default function SubscriptionPage() {
       body: JSON.stringify({ amount }),
     });
 
+    if (!res.ok) {
+        const errorData = await res.json();
+        toast({
+            variant: 'destructive',
+            title: 'Payment Error',
+            description: errorData.error || 'Failed to create Razorpay order.',
+        });
+        return;
+    }
+
     const data = await res.json();
     if (!data || !data.id) {
       toast({
         variant: 'destructive',
         title: 'Payment Error',
-        description: 'Failed to create Razorpay order.',
+        description: 'Failed to parse Razorpay order response.',
       });
       return;
     }
@@ -67,21 +87,25 @@ export default function SubscriptionPage() {
       amount: data.amount,
       currency: data.currency,
       name: 'Gajanan Motors',
-      description: 'Subscription Purchase',
+      description: `${planName} Subscription Purchase`,
       order_id: data.id,
       handler: async function (response: any) {
         try {
+          if (!user?.uid) throw new Error("User not found after payment.");
+
           const userDocRef = doc(firestore, 'users', user.uid);
           await updateDoc(userDocRef, {
             adCredits: credits,
             isPro: true,
-            subscriptionType: credits === 10 ? 'Standard' : 'Premium',
+            subscriptionType: planName,
             proExpiresAt: new Date(new Date().setMonth(new Date().getMonth() + 1)), // subscription for 1 month
           });
+
           toast({
             title: 'Payment Successful',
             description: `${credits} ad credits have been added to your account.`,
           });
+          // Note: The useAuth hook will automatically redirect the user on state change.
         } catch (error) {
           console.error("Failed to update user document:", error);
           toast({
@@ -92,9 +116,9 @@ export default function SubscriptionPage() {
         }
       },
       prefill: {
-        name: user.displayName,
-        email: user.email,
-        contact: user.phone,
+        name: user.displayName || 'Gajanan User',
+        email: user.email || '',
+        contact: user.phone || '',
       },
       theme: {
         color: '#F56565',
@@ -102,6 +126,13 @@ export default function SubscriptionPage() {
     };
 
     const rzp = new window.Razorpay(options);
+    rzp.on('payment.failed', function (response: any) {
+        toast({
+            variant: 'destructive',
+            title: 'Payment Failed',
+            description: response.error.description || 'Something went wrong during payment.',
+        });
+    });
     rzp.open();
   };
 
@@ -109,7 +140,7 @@ export default function SubscriptionPage() {
     <div>
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
-        <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs.</p>
+        <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         {tiers.map((tier) => (
@@ -132,7 +163,7 @@ export default function SubscriptionPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={() => handlePayment(tier.price, tier.credits)}>
+              <Button className="w-full" onClick={() => handlePayment(tier.price, tier.credits, tier.name as 'Standard' | 'Premium')}>
                 Choose Plan
               </Button>
             </CardFooter>
