@@ -11,12 +11,14 @@ import { initializeFirebase } from '@/firebase';
 const tiers = [
   {
     name: 'Standard',
+    planId: 'plan_id_for_standard_500', // REPLACE WITH YOUR RAZORPAY PLAN ID
     price: 500,
     credits: 10,
     features: ['10 ad listings', 'Standard support'],
   },
   {
     name: 'Premium',
+    planId: 'plan_id_for_premium_1000', // REPLACE WITH YOUR RAZORPAY PLAN ID
     price: 1000,
     credits: 20,
     features: ['20 ad listings', 'Premium support', 'Featured listings'],
@@ -34,7 +36,7 @@ export default function SubscriptionPage() {
   const { toast } = useToast();
   const { firestore } = initializeFirebase();
 
-  const handlePayment = async (amount: number, credits: number, planName: 'Standard' | 'Premium') => {
+  const handlePayment = async (planId: string, credits: number, planName: 'Standard' | 'Premium', amount: number) => {
     if (!user) {
       toast({
         variant: 'destructive',
@@ -44,7 +46,6 @@ export default function SubscriptionPage() {
       return;
     }
 
-    // Ensure Razorpay script is loaded
     if (!window.Razorpay) {
       toast({
         variant: 'destructive',
@@ -59,7 +60,7 @@ export default function SubscriptionPage() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ amount }),
+      body: JSON.stringify({ planId, amount }),
     });
 
     if (!res.ok) {
@@ -105,7 +106,6 @@ export default function SubscriptionPage() {
             title: 'Payment Successful',
             description: `${credits} ad credits have been added to your account.`,
           });
-          // Note: The useAuth hook will automatically redirect the user on state change.
         } catch (error) {
           console.error("Failed to update user document:", error);
           toast({
@@ -163,7 +163,7 @@ export default function SubscriptionPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={() => handlePayment(tier.price, tier.credits, tier.name as 'Standard' | 'Premium')}>
+              <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name as 'Standard' | 'Premium', tier.price)}>
                 Choose Plan
               </Button>
             </CardFooter>
