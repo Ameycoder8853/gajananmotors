@@ -18,6 +18,7 @@ import {
   DollarSign,
   Settings,
   LogOut,
+  CreditCard,
 } from "lucide-react"
 import { Logo } from "@/components/shared/Logo"
 import { useAuth } from "@/hooks/use-auth"
@@ -77,6 +78,16 @@ export function DashboardSidebar() {
             >
               <DollarSign />
               <span>Commissions</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton
+              href="/dashboard/subscription"
+              isActive={isActive("/dashboard/subscription")}
+              tooltip="Subscription"
+            >
+              <CreditCard />
+              <span>Subscription</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

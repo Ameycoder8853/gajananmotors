@@ -38,25 +38,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const router = useRouter();
 
   useEffect(() => {
-    const ensureAdminExists = () => {
+    const ensureAdminExists = async () => {
       const adminEmail = 'admin@gmail.com';
       const adminPassword = 'gajananmotors';
       
-      // We try to sign in. If it fails, the user likely doesn't exist, so we create it.
-      signInWithEmailAndPassword(auth, 'test-user-creation@test.com', 'fakepassword').catch((error: any) => {
+      try {
+        // Temporarily sign in to check for user, this won't persist
+        await signInWithEmailAndPassword(auth, 'test-user-creation@test.com', 'fakepassword');
+      } catch (error: any) {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
-          // This is a workaround to check if we can create the user.
-          createUserWithEmailAndPassword(auth, adminEmail, adminPassword).catch((creationError: any) => {
-            if (creationError.code !== 'auth/email-already-in-use') {
+          try {
+            await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+          } catch (creationError: any) {
+             if (creationError.code !== 'auth/email-already-in-use') {
                 console.error('Failed to create admin user:', creationError);
             }
-          }).finally(() => {
-            if(auth.currentUser) {
-              signOut(auth);
+          } finally {
+             if(auth.currentUser) {
+              await signOut(auth);
             }
-          });
+          }
         }
-      });
+      } finally {
+        if (auth.currentUser && auth.currentUser.email !== adminEmail) {
+            await signOut(auth);
+        }
+      }
     };
     
     ensureAdminExists();
@@ -64,7 +71,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(firestore, 'users', firebaseUser.uid);
-        getDoc(userDocRef).then(userDoc => {
+        try {
+          const userDoc = await getDoc(userDocRef);
           if (userDoc.exists()) {
             const userData = userDoc.data() as AppUser;
             const enhancedUser: FirebaseUser = {
@@ -80,13 +88,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   setUser(firebaseUser);
               }
           }
-        }).catch(error => {
+        } catch (error) {
             const contextualError = new FirestorePermissionError({
                 operation: 'get',
                 path: userDocRef.path
             });
             errorEmitter.emit('permission-error', contextualError);
-        });
+        }
       } else {
         setUser(null);
       }
@@ -97,14 +105,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [auth, firestore]);
 
   const loginWithEmail = (email: string, pass: string) => {
-    initiateEmailSignIn(auth, email, pass);
+    signInWithEmailAndPassword(auth, email, pass).catch(error => {
+      console.error("Login failed:", error);
+    });
   };
 
   const signUpWithEmail = (email: string, pass: string, name: string, phone: string) => {
     createUserWithEmailAndPassword(auth, email, pass).then(userCredential => {
       updateProfile(userCredential.user, { displayName: name });
       const userDocRef = doc(firestore, 'users', userCredential.user.uid);
-      const userData = {
+      const userData: AppUser = {
         id: userCredential.user.uid,
         name,
         phone,
@@ -112,7 +122,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         role: 'dealer',
         isPro: false,
         proExpiresAt: null,
-        createdAt: serverTimestamp(),
+        createdAt: new Date(),
+        adCredits: 0
       };
       setDoc(userDocRef, userData)
         .catch(error => {
@@ -124,7 +135,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             errorEmitter.emit('permission-error', contextualError);
         });
     }).catch(error => {
-      // This will catch auth errors during creation, which can be handled differently
       console.error("Sign up failed:", error);
     });
   };

@@ -9,10 +9,17 @@ export type User = {
   isPro: boolean;
   proExpiresAt: Date | null;
   createdAt: Date;
+  subscriptionType?: 'Standard' | 'Premium';
+  adCredits?: number;
 };
 
 export type FirebaseUser = import('firebase/auth').User & {
     role?: 'admin' | 'dealer';
+    phone?: string;
+    subscriptionType?: 'Standard' | 'Premium';
+    adCredits?: number;
+    isPro?: boolean;
+    proExpiresAt?: Date | null;
 }
 
 export type Ad = {
