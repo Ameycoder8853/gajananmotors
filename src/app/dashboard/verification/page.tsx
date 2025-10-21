@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -46,10 +46,22 @@ export default function VerificationPage() {
   const [files, setFiles] = useState<{ aadhar?: File; pan?: File; shopLicense?: File }>({});
   const [isUploading, setIsUploading] = useState(false);
 
+  useEffect(() => {
+    if (!window.recaptchaVerifier) {
+      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: (response: any) => {
+          // reCAPTCHA solved, allow signInWithPhoneNumber.
+        },
+      });
+    }
+  }, [auth]);
+
   const handleSendVerificationEmail = async () => {
-    if (user) {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
       try {
-        await sendEmailVerification(user);
+        await sendEmailVerification(currentUser);
         toast({
           title: 'Verification Email Sent',
           description: 'Please check your inbox to verify your email address.',
@@ -64,29 +76,26 @@ export default function VerificationPage() {
     }
   };
 
-  const setupRecaptcha = () => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        },
-      });
-    }
-  };
 
   const handleSendOtp = async () => {
     if (user && user.phone) {
       try {
-        setupRecaptcha();
         const appVerifier = window.recaptchaVerifier!;
-        const confirmationResult = await signInWithPhoneNumber(auth, user.phone, appVerifier);
+        const phoneNumber = user.phone.startsWith('+') ? user.phone : `+91${user.phone}`;
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
         window.confirmationResult = confirmationResult;
         setOtpSent(true);
-        toast({ title: 'OTP Sent', description: `An OTP has been sent to ${user.phone}.` });
+        toast({ title: 'OTP Sent', description: `An OTP has been sent to ${phoneNumber}.` });
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Failed to send OTP', description: error.message });
         console.error("OTP error:", error);
+         // Reset reCAPTCHA for retries
+        if(window.recaptchaVerifier) {
+          window.recaptchaVerifier.render().then((widgetId) => {
+            // @ts-ignore
+            window.grecaptcha.reset(widgetId);
+          });
+        }
       }
     }
   };
@@ -98,6 +107,11 @@ export default function VerificationPage() {
         const userDocRef = doc(firestore, 'users', user.uid);
         updateDocumentNonBlocking(userDocRef, { isPhoneVerified: true });
         toast({ title: 'Phone Verified', description: 'Your phone number has been successfully verified.' });
+        // Manually update user state to reflect phone verification
+        // This is a simplified approach. A more robust solution might involve re-fetching user data.
+        user.isPhoneVerified = true;
+        setOtpSent(false);
+
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Invalid OTP', description: 'The OTP you entered is incorrect.' });
       }
@@ -136,6 +150,7 @@ export default function VerificationPage() {
         shopLicenseUrl,
         verificationStatus: 'pending',
       });
+      user.verificationStatus = 'pending';
 
       toast({ title: 'Documents Submitted', description: 'Your documents have been submitted for verification.' });
     } catch (error: any) {
@@ -147,7 +162,7 @@ export default function VerificationPage() {
 
   if (isUserLoading) return <div>Loading...</div>;
 
-  const isEmailVerified = user?.emailVerified ?? false;
+  const isEmailVerified = auth.currentUser?.emailVerified ?? false;
   const isPhoneVerified = user?.isPhoneVerified ?? false;
   const docsStatus = user?.verificationStatus ?? 'unverified';
 
@@ -215,7 +230,7 @@ export default function VerificationPage() {
           <div className="flex items-center justify-between">
             <p className="text-muted-foreground">Status: {isPhoneVerified ? <span className="text-green-600 font-semibold">Verified</span> : <span className="text-orange-600 font-semibold">Not Verified</span>}</p>
             <Button onClick={handleSendOtp} disabled={isPhoneVerified || otpSent}>
-              {otpSent ? 'OTP Sent' : 'Send OTP'}
+              {isPhoneVerified ? 'Phone Verified' : otpSent ? 'OTP Sent' : 'Send OTP'}
             </Button>
           </div>
           {otpSent && !isPhoneVerified && (
@@ -254,4 +269,3 @@ export default function VerificationPage() {
     </div>
   );
 }
-    
