@@ -3,11 +3,11 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { getFirestore, doc } from 'firebase/firestore';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 const tiers = [
   {
@@ -142,6 +142,46 @@ export default function SubscriptionPage() {
     });
     rzp.open();
   };
+
+  if (user?.isPro && user.subscriptionType) {
+    return (
+        <div>
+            <div className="text-center mb-12">
+                <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
+                <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
+            </div>
+            <div className="max-w-md mx-auto">
+                <Card className="border-primary border-2">
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
+                            <div className="flex items-center gap-1 text-primary">
+                                <Star className="w-5 h-5 fill-current" />
+                                <span className="font-bold">Current Plan</span>
+                            </div>
+                        </div>
+                        <CardDescription>
+                            Your plan is active and provides you with exclusive benefits.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex justify-between items-baseline">
+                            <span className="text-muted-foreground">Ad Credits</span>
+                            <span className="font-bold text-2xl">{user.adCredits ?? 0}</span>
+                        </div>
+                        <div className="flex justify-between items-baseline">
+                            <span className="text-muted-foreground">Plan Expires On</span>
+                            <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                    </CardContent>
+                    <CardFooter>
+                        <Button className="w-full" disabled>Plan is Active</Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        </div>
+    );
+  }
 
   return (
     <div>
