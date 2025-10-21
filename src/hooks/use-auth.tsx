@@ -12,16 +12,17 @@ import {
   User as FirebaseUserInternal,
   updateProfile,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import { initializeFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
+import { initiateEmailSignIn, initiateEmailSignUp } from '@/firebase/non-blocking-login';
 
 interface AuthContextType {
   user: FirebaseUser | null;
   isUserLoading: boolean;
-  loginWithEmail: (email: string, pass: string) => Promise<void>;
-  signUpWithEmail: (email: string, pass: string, name: string, phone: string) => Promise<void>;
+  loginWithEmail: (email: string, pass: string) => void;
+  signUpWithEmail: (email: string, pass: string, name: string, phone: string) => void;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -37,33 +38,25 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const router = useRouter();
 
   useEffect(() => {
-    const ensureAdminExists = async () => {
-      // This is a simplified way to ensure an admin user exists.
-      // In a real-world application, you would manage this through a secure admin interface or a setup script.
+    const ensureAdminExists = () => {
       const adminEmail = 'admin@gmail.com';
       const adminPassword = 'gajananmotors';
-      try {
-        // We try to sign in. If it fails, the user likely doesn't exist, so we create it.
-        await signInWithEmailAndPassword(auth, 'test-user-creation@test.com', 'fakepassword');
-      } catch (error: any) {
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email') {
+      
+      // We try to sign in. If it fails, the user likely doesn't exist, so we create it.
+      signInWithEmailAndPassword(auth, 'test-user-creation@test.com', 'fakepassword').catch((error: any) => {
+        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
           // This is a workaround to check if we can create the user.
-        } else if (error.code === 'auth/invalid-credential') {
-            // It means some user exists, so we try to create the admin.
-             try {
-                await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-                console.log('Admin user created successfully.');
-             } catch (creationError: any) {
-                if (creationError.code !== 'auth/email-already-in-use') {
-                    console.error('Failed to create admin user:', creationError);
-                }
-             }
+          createUserWithEmailAndPassword(auth, adminEmail, adminPassword).catch((creationError: any) => {
+            if (creationError.code !== 'auth/email-already-in-use') {
+                console.error('Failed to create admin user:', creationError);
+            }
+          }).finally(() => {
+            if(auth.currentUser) {
+              signOut(auth);
+            }
+          });
         }
-      }
-      // Sign out any temporary user. The onAuthStateChanged listener will handle the real user.
-      if (auth.currentUser) {
-          await signOut(auth);
-      }
+      });
     };
     
     ensureAdminExists();
@@ -71,23 +64,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(firestore, 'users', firebaseUser.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) {
-          const userData = userDoc.data() as AppUser;
-          const enhancedUser: FirebaseUser = {
-            ...firebaseUser,
-            ...userData,
-          };
-          setUser(enhancedUser);
-        } else {
-            // This could be a new user or admin
-            if (firebaseUser.email === 'admin@gmail.com') {
-                const adminUser: FirebaseUser = { ...firebaseUser, role: 'admin' };
-                setUser(adminUser);
-            } else {
-                setUser(firebaseUser);
-            }
-        }
+        getDoc(userDocRef).then(userDoc => {
+          if (userDoc.exists()) {
+            const userData = userDoc.data() as AppUser;
+            const enhancedUser: FirebaseUser = {
+              ...firebaseUser,
+              ...userData,
+            };
+            setUser(enhancedUser);
+          } else {
+              if (firebaseUser.email === 'admin@gmail.com') {
+                  const adminUser: FirebaseUser = { ...firebaseUser, role: 'admin' };
+                  setUser(adminUser);
+              } else {
+                  setUser(firebaseUser);
+              }
+          }
+        }).catch(error => {
+            const contextualError = new FirestorePermissionError({
+                operation: 'get',
+                path: userDocRef.path
+            });
+            errorEmitter.emit('permission-error', contextualError);
+        });
       } else {
         setUser(null);
       }
@@ -97,24 +96,36 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => unsubscribe();
   }, [auth, firestore]);
 
-  const loginWithEmail = async (email: string, pass: string) => {
-    await signInWithEmailAndPassword(auth, email, pass);
+  const loginWithEmail = (email: string, pass: string) => {
+    initiateEmailSignIn(auth, email, pass);
   };
 
-  const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-    await updateProfile(userCredential.user, { displayName: name });
-    
-    const userDocRef = doc(firestore, 'users', userCredential.user.uid);
-    await setDoc(userDocRef, {
-      id: userCredential.user.uid,
-      name,
-      phone,
-      email,
-      role: 'dealer',
-      isPro: false,
-      proExpiresAt: null,
-      createdAt: new Date(),
+  const signUpWithEmail = (email: string, pass: string, name: string, phone: string) => {
+    createUserWithEmailAndPassword(auth, email, pass).then(userCredential => {
+      updateProfile(userCredential.user, { displayName: name });
+      const userDocRef = doc(firestore, 'users', userCredential.user.uid);
+      const userData = {
+        id: userCredential.user.uid,
+        name,
+        phone,
+        email,
+        role: 'dealer',
+        isPro: false,
+        proExpiresAt: null,
+        createdAt: serverTimestamp(),
+      };
+      setDoc(userDocRef, userData)
+        .catch(error => {
+            const contextualError = new FirestorePermissionError({
+                operation: 'create',
+                path: userDocRef.path,
+                requestResourceData: userData,
+            });
+            errorEmitter.emit('permission-error', contextualError);
+        });
+    }).catch(error => {
+      // This will catch auth errors during creation, which can be handled differently
+      console.error("Sign up failed:", error);
     });
   };
 

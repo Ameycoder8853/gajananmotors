@@ -10,7 +10,6 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Logo } from '@/components/shared/Logo';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -50,9 +49,9 @@ export default function SignupPage() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      await signUpWithEmail(values.email, values.password, values.fullName, values.phone);
+      signUpWithEmail(values.email, values.password, values.fullName, values.phone);
     } catch (error: any) {
       toast({
         variant: 'destructive',
