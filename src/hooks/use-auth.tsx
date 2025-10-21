@@ -11,9 +11,10 @@ import {
   signInWithPopup,
   User as FirebaseUserInternal,
   updateProfile,
+  Auth,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { initializeFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore } from 'firebase/firestore';
+import { initializeFirebase, errorEmitter, FirestorePermissionError, useFirebase } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
 import { useToast } from './use-toast';
@@ -43,22 +44,26 @@ const convertTimestamps = (data: any) => {
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
-  const { firebaseApp } = initializeFirebase();
-  const auth = getAuth(firebaseApp);
-  const firestore = getFirestore(firebaseApp);
+  const { auth, firestore, isUserLoading: isFirebaseLoading } = useFirebase();
   const router = useRouter();
   const { toast } = useToast();
 
   useEffect(() => {
+    if (isFirebaseLoading || !auth || !firestore) {
+      return; // Wait for firebase to be initialized
+    }
     const ensureAdminExists = async () => {
       const adminEmail = 'admin@gmail.com';
       const adminPassword = 'gajananmotors';
       
       try {
+        // Attempt a sign-in to check if user exists. This will fail if the user does not exist.
+        // We will sign out immediately after to not affect the current auth state.
         await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
         await signOut(auth);
       } catch (error: any) {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+          // If the admin user doesn't exist, create it.
           try {
             const adminCred = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
              const adminData: AppUser = {
@@ -73,8 +78,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               adCredits: Infinity
             };
             await setDoc(doc(firestore, 'users', adminCred.user.uid), adminData);
+            // After creating the admin, sign them out so it doesn't interfere with the current session.
             await signOut(auth);
           } catch (creationError: any) {
+             // If another process is creating the user, this might fail. We can ignore it.
              if (creationError.code !== 'auth/email-already-in-use') {
                 console.error('Failed to create admin user:', creationError);
             }
@@ -110,14 +117,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUser(enhancedUser);
 
             // Redirect based on role
-            if (appUser.role === 'admin') {
-              router.push('/dashboard');
-            } else if (appUser.role === 'dealer') {
-              if (appUser.isPro && (appUser.adCredits ?? 0) > 0) {
-                router.push('/dashboard/my-listings');
-              } else {
-                router.push('/dashboard/subscription');
-              }
+            if (router) { // Ensure router is available
+                if (appUser.role === 'admin') {
+                    if(!window.location.pathname.startsWith('/dashboard')) router.push('/dashboard');
+                } else if (appUser.role === 'dealer') {
+                    if (appUser.isPro && (appUser.adCredits ?? 0) > 0) {
+                        if(!window.location.pathname.startsWith('/dashboard')) router.push('/dashboard/my-listings');
+                    } else {
+                        if(!window.location.pathname.startsWith('/dashboard')) router.push('/dashboard/subscription');
+                    }
+                }
             }
           } else {
              // New user from Google Sign in maybe, or something went wrong
@@ -139,7 +148,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 await setDoc(userDocRef, newUser);
                 const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser };
                 setUser(enhancedUser);
-                router.push('/dashboard/subscription');
+                if (router) router.push('/dashboard/subscription');
             }
           }
 
@@ -158,9 +167,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     return () => unsubscribe();
-  }, [auth, firestore, router, toast]);
+  }, [auth, firestore, router, toast, isFirebaseLoading]);
 
   const loginWithEmail = (email: string, pass: string) => {
+    if (!auth) return;
     signInWithEmailAndPassword(auth, email, pass).catch(error => {
       toast({
         variant: 'destructive',
@@ -172,6 +182,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
+    if (!auth || !firestore) return;
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: name });
@@ -202,12 +213,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   const loginWithGoogle = async () => {
+    if (!auth) return;
     const provider = new GoogleAuthProvider();
     await signInWithPopup(auth, provider);
     // onAuthStateChanged will handle the rest
   };
 
   const logout = async () => {
+    if (!auth) return;
     await signOut(auth);
     router.push('/login');
   };
