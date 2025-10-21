@@ -29,6 +29,7 @@ export type Ad = {
   title: string;
   make: string;
   model: string;
+  variant: string;
   year: number;
   kmDriven: number;
   fuelType: 'Petrol' | 'Diesel' | 'Electric' | 'CNG' | 'LPG';
@@ -58,3 +59,5 @@ export type Payment = {
   status: 'created' | 'paid' | 'failed';
   createdAt: Date;
 };
+
+    

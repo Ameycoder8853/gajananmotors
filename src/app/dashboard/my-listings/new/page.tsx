@@ -32,15 +32,19 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { getFirestore, collection, doc, serverTimestamp, increment } from 'firebase/firestore';
+import { collection, doc, serverTimestamp, increment } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { initializeFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
+import { useState } from 'react';
+import Image from 'next/image';
+import { Progress } from '@/components/ui/progress';
 
 const adFormSchema = z.object({
-  title: z.string().min(5, 'Title must be at least 5 characters.'),
   make: z.string().min(2, 'Make is required.'),
   model: z.string().min(1, 'Model is required.'),
+  variant: z.string().min(1, 'Variant is required.'),
   year: z.coerce.number().min(1980, 'Year must be after 1980.').max(new Date().getFullYear() + 1),
   kmDriven: z.coerce.number().min(0, 'Kilometers must be a positive number.'),
   fuelType: z.enum(['Petrol', 'Diesel', 'Electric', 'CNG', 'LPG']),
@@ -48,29 +52,68 @@ const adFormSchema = z.object({
   price: z.coerce.number().min(10000, 'Price must be at least ₹10,000.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
   location: z.string().min(3, 'Location is required.'),
-  images: z.string().url('Please enter a valid image URL. For multiple images, separate with commas.'), // Simple URL input for now
+  images: z.array(z.instanceof(File)).min(1, 'At least one image is required.').max(5, 'You can upload a maximum of 5 images.'),
 });
 
 export default function NewListingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const { firestore } = initializeFirebase();
+  const { firestore, storage } = initializeFirebase();
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+
 
   const form = useForm<z.infer<typeof adFormSchema>>({
     resolver: zodResolver(adFormSchema),
     defaultValues: {
-      title: '',
       make: '',
       model: '',
+      variant: '',
       year: new Date().getFullYear(),
       kmDriven: 0,
       price: 10000,
       description: '',
       location: '',
-      images: '',
+      images: [],
     },
   });
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const files = Array.from(e.target.files || []);
+      const currentImages = form.getValues('images') || [];
+      const combined = [...currentImages, ...files].slice(0, 5);
+      form.setValue('images', combined);
+
+      const previews = combined.map(file => URL.createObjectURL(file));
+      setImagePreviews(previews);
+  }
+
+  const removeImage = (index: number) => {
+      const currentImages = form.getValues('images');
+      const newImages = currentImages.filter((_, i) => i !== index);
+      form.setValue('images', newImages);
+
+      const newPreviews = newImages.map(file => URL.createObjectURL(file));
+      setImagePreviews(newPreviews);
+  }
+
+  async function uploadImages(files: File[], adId: string): Promise<string[]> {
+    if (!storage || !user) throw new Error("Storage or user not available");
+
+    const urls: string[] = [];
+    let totalUploaded = 0;
+
+    for (const file of files) {
+        const storageRef = ref(storage, `ads/${user.uid}/${adId}/${Date.now()}_${file.name}`);
+        await uploadBytes(storageRef, file);
+        const url = await getDownloadURL(storageRef);
+        urls.push(url);
+        totalUploaded++;
+        setUploadProgress((totalUploaded / files.length) * 100);
+    }
+    return urls;
+  }
 
   async function onSubmit(values: z.infer<typeof adFormSchema>) {
     if (!user || !firestore) {
@@ -83,34 +126,53 @@ export default function NewListingPage() {
         router.push('/dashboard/subscription');
         return;
     }
-    
-    const adsCollectionRef = collection(firestore, 'users', user.uid, 'ads');
-    const userDocRef = doc(firestore, 'users', user.uid);
 
-    addDocumentNonBlocking(adsCollectionRef, {
-      ...values,
-      dealerId: user.uid,
-      images: values.images.split(',').map(url => url.trim()).filter(url => url),
-      status: 'active',
-      visibility: 'public',
-      createdAt: serverTimestamp(),
-      soldAt: null,
-      removedAt: null,
-      removalPaid: false,
-      removalPaymentId: null,
-    });
-    
-    updateDocumentNonBlocking(userDocRef, {
-        adCredits: increment(-1)
-    });
-    
-    toast({
-      title: 'Ad Published!',
-      description: 'Your car is now listed in the marketplace.',
-    });
+    setUploadProgress(0);
+    const tempAdId = doc(collection(firestore, 'temp')).id; // Generate a temporary ID for storage path
 
-    router.push('/dashboard/my-listings');
+    try {
+        const imageUrls = await uploadImages(values.images, tempAdId);
+        setUploadProgress(100);
 
+        const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
+        
+        const adsCollectionRef = collection(firestore, 'users', user.uid, 'ads');
+        const userDocRef = doc(firestore, 'users', user.uid);
+    
+        addDocumentNonBlocking(adsCollectionRef, {
+          ...values,
+          title,
+          images: imageUrls,
+          dealerId: user.uid,
+          status: 'active',
+          visibility: 'public',
+          createdAt: serverTimestamp(),
+          soldAt: null,
+          removedAt: null,
+          removalPaid: false,
+          removalPaymentId: null,
+        });
+        
+        updateDocumentNonBlocking(userDocRef, {
+            adCredits: increment(-1)
+        });
+        
+        toast({
+          title: 'Ad Published!',
+          description: 'Your car is now listed in the marketplace.',
+        });
+    
+        router.push('/dashboard/my-listings');
+
+    } catch (error) {
+        console.error("Failed to publish ad:", error);
+        toast({
+            variant: 'destructive',
+            title: 'Upload Failed',
+            description: 'There was an error uploading your images. Please try again.',
+        });
+        setUploadProgress(null);
+    }
   }
 
 
@@ -133,19 +195,6 @@ export default function NewListingPage() {
         <CardContent>
             <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <FormField
-                    control={form.control}
-                    name="title"
-                    render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                        <FormLabel>Ad Title</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., 2021 Hyundai Creta SX" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                        </FormItem>
-                    )}
-                />
 
                 <FormField control={form.control} name="make" render={({ field }) => (
                     <FormItem>
@@ -162,6 +211,16 @@ export default function NewListingPage() {
                         <FormLabel>Model</FormLabel>
                         <FormControl>
                             <Input placeholder="e.g., Swift" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+
+                <FormField control={form.control} name="variant" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Variant</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., VXi" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -265,26 +324,54 @@ export default function NewListingPage() {
                 />
 
                 <FormField
-                    control={form.control}
-                    name="images"
-                    render={({ field }) => (
-                        <FormItem className="md:col-span-2">
-                        <FormLabel>Image URLs</FormLabel>
-                        <FormControl>
-                            <Textarea
-                                placeholder="https://example.com/image1.jpg, https://example.com/image2.jpg"
-                                {...field}
-                            />
-                        </FormControl>
-                         <p className="text-xs text-muted-foreground">Enter one or more image URLs, separated by commas.</p>
-                        <FormMessage />
-                        </FormItem>
-                    )}
+                  control={form.control}
+                  name="images"
+                  render={({ field }) => (
+                    <FormItem className="md:col-span-2">
+                      <FormLabel>Car Images (up to 5)</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center justify-center w-full">
+                          <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-secondary hover:bg-muted">
+                            <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                              <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
+                              <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
+                              <p className="text-xs text-muted-foreground">PNG, JPG or WEBP (MAX. 5 images)</p>
+                            </div>
+                            <Input id="dropzone-file" type="file" className="hidden" multiple accept="image/png, image/jpeg, image/webp" onChange={handleImageChange} disabled={imagePreviews.length >= 5} />
+                          </label>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
 
+                {imagePreviews.length > 0 && (
+                    <div className="md:col-span-2">
+                        <FormLabel>Image Previews</FormLabel>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2">
+                            {imagePreviews.map((src, index) => (
+                                <div key={index} className="relative aspect-square">
+                                    <Image src={src} alt={`Preview ${index}`} fill className="object-cover rounded-md" />
+                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
+                                        <X className="h-4 w-4" />
+                                    </Button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+                
+                {uploadProgress !== null && (
+                    <div className="md:col-span-2">
+                        <Progress value={uploadProgress} className="w-full" />
+                        <p className="text-sm text-center mt-2 text-muted-foreground">{uploadProgress < 100 ? `Uploading images... ${Math.round(uploadProgress)}%` : 'Upload complete!'}</p>
+                    </div>
+                )}
+
                 <div className="md:col-span-2 flex justify-end">
-                    <Button type="submit" size="lg" disabled={form.formState.isSubmitting}>
-                        {form.formState.isSubmitting ? 'Publishing...' : 'Publish Ad'}
+                    <Button type="submit" size="lg" disabled={form.formState.isSubmitting || uploadProgress !== null}>
+                        {form.formState.isSubmitting || uploadProgress !== null ? 'Publishing...' : 'Publish Ad'}
                     </Button>
                 </div>
             </form>
@@ -293,3 +380,5 @@ export default function NewListingPage() {
     </Card>
   );
 }
+
+    
