@@ -50,22 +50,15 @@ export default function SignupPage() {
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    try {
-      signUpWithEmail(values.email, values.password, values.fullName, values.phone);
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Sign Up Failed',
-        description: error.message || 'An unexpected error occurred.',
-      });
-    }
+    signUpWithEmail(values.email, values.password, values.fullName, values.phone);
   }
 
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
+  // This useEffect is no longer needed as redirection is handled in useAuth
+  // useEffect(() => {
+  //   if (user) {
+  //     router.push('/dashboard');
+  //   }
+  // }, [user, router]);
 
   return (
     <Card className="mx-auto max-w-sm">

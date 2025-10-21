@@ -57,11 +57,12 @@ export default function LoginPage() {
     }
   }
 
-  useEffect(() => {
-    if (user) {
-      router.push('/dashboard');
-    }
-  }, [user, router]);
+  // This useEffect is no longer needed as redirection is handled in useAuth
+  // useEffect(() => {
+  //   if (user) {
+  //     router.push('/dashboard');
+  //   }
+  // }, [user, router]);
 
 
   return (

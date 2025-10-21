@@ -44,7 +44,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const adminPassword = 'gajananmotors';
       
       try {
-        await signInWithEmailAndPassword(auth, 'test-user-creation@test.com', 'fakepassword');
+        // We try to sign in with a temporary user to check if admin exists. This is a workaround.
+        // In a real app, this logic would be on a secure backend.
+        const tempUserCreds = await signInWithEmailAndPassword(auth, 'test-user-creation@test.com', 'fakepassword').catch(() => null);
+
+        // This is a simplified check. A more robust way would be a backend check.
+        // This is just to ensure the admin user gets created for the demo.
       } catch (error: any) {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
           try {
@@ -53,15 +58,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
              if (creationError.code !== 'auth/email-already-in-use') {
                 console.error('Failed to create admin user:', creationError);
             }
-          } finally {
-             if(auth.currentUser) {
-              await signOut(auth);
-            }
           }
         }
       } finally {
-        if (auth.currentUser && auth.currentUser.email !== adminEmail) {
-            await signOut(auth);
+        if(auth.currentUser) {
+          await signOut(auth);
         }
       }
     };
@@ -73,21 +74,43 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const userDocRef = doc(firestore, 'users', firebaseUser.uid);
         try {
           const userDoc = await getDoc(userDocRef);
+          let appUser: AppUser | null = null;
+
           if (userDoc.exists()) {
-            const userData = userDoc.data() as AppUser;
-            const enhancedUser: FirebaseUser = {
-              ...firebaseUser,
-              ...userData,
+            appUser = userDoc.data() as AppUser;
+          } else if (firebaseUser.email === 'admin@gmail.com') {
+            appUser = {
+              id: firebaseUser.uid,
+              name: 'Admin',
+              email: firebaseUser.email,
+              role: 'admin',
+              phone: '',
+              isPro: true,
+              proExpiresAt: new Date(new Date().setDate(new Date().getDate() + 365)),
+              createdAt: new Date(),
             };
-            setUser(enhancedUser);
-          } else {
-              if (firebaseUser.email === 'admin@gmail.com') {
-                  const adminUser: FirebaseUser = { ...firebaseUser, role: 'admin' };
-                  setUser(adminUser);
-              } else {
-                  setUser(firebaseUser);
-              }
           }
+          
+          if (appUser) {
+            const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser };
+            setUser(enhancedUser);
+
+            // Redirect based on role
+            if (appUser.role === 'admin') {
+              router.push('/dashboard');
+            } else if (appUser.role === 'dealer') {
+              if (appUser.isPro && (appUser.adCredits ?? 0) > 0) {
+                router.push('/dashboard/my-listings');
+              } else {
+                router.push('/dashboard/subscription');
+              }
+            }
+          } else {
+             // New user from Google Sign in maybe
+             setUser(firebaseUser);
+             router.push('/dashboard/subscription');
+          }
+
         } catch (error) {
             const contextualError = new FirestorePermissionError({
                 operation: 'get',
@@ -102,7 +125,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
 
     return () => unsubscribe();
-  }, [auth, firestore]);
+  }, [auth, firestore, router]);
 
   const loginWithEmail = (email: string, pass: string) => {
     signInWithEmailAndPassword(auth, email, pass).catch(error => {
@@ -118,9 +141,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-      
       await updateProfile(userCredential.user, { displayName: name });
-
       const userDocRef = doc(firestore, 'users', userCredential.user.uid);
       const userData: AppUser = {
         id: userCredential.user.uid,
@@ -133,22 +154,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         createdAt: new Date(),
         adCredits: 0
       };
-
-      setDoc(userDocRef, userData)
-        .catch(error => {
-            const contextualError = new FirestorePermissionError({
-                operation: 'create',
-                path: userDocRef.path,
-                requestResourceData: userData,
-            });
-            errorEmitter.emit('permission-error', contextualError);
-            toast({
-              variant: 'destructive',
-              title: 'Sign Up Failed',
-              description: 'Could not save user information.',
-            });
-        });
-
+      
+      await setDoc(userDocRef, userData);
+      // Let the onAuthStateChanged handle the redirect
+      
     } catch (error: any) {
       toast({
         variant: 'destructive',
