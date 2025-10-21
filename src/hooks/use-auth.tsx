@@ -16,7 +16,7 @@ import { getFirestore, doc, setDoc, getDoc, serverTimestamp } from 'firebase/fir
 import { initializeFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
-import { initiateEmailSignIn, initiateEmailSignUp } from '@/firebase/non-blocking-login';
+import { useToast } from './use-toast';
 
 interface AuthContextType {
   user: FirebaseUser | null;
@@ -36,6 +36,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const auth = getAuth(firebaseApp);
   const firestore = getFirestore(firebaseApp);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     const ensureAdminExists = async () => {
@@ -43,7 +44,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const adminPassword = 'gajananmotors';
       
       try {
-        // Temporarily sign in to check for user, this won't persist
         await signInWithEmailAndPassword(auth, 'test-user-creation@test.com', 'fakepassword');
       } catch (error: any) {
         if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-email' || error.code === 'auth/invalid-credential') {
@@ -106,13 +106,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loginWithEmail = (email: string, pass: string) => {
     signInWithEmailAndPassword(auth, email, pass).catch(error => {
+      toast({
+        variant: 'destructive',
+        title: 'Login Failed',
+        description: error.message || 'An unexpected error occurred.',
+      });
       console.error("Login failed:", error);
     });
   };
 
-  const signUpWithEmail = (email: string, pass: string, name: string, phone: string) => {
-    createUserWithEmailAndPassword(auth, email, pass).then(userCredential => {
-      updateProfile(userCredential.user, { displayName: name });
+  const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+      
+      await updateProfile(userCredential.user, { displayName: name });
+
       const userDocRef = doc(firestore, 'users', userCredential.user.uid);
       const userData: AppUser = {
         id: userCredential.user.uid,
@@ -125,6 +133,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         createdAt: new Date(),
         adCredits: 0
       };
+
       setDoc(userDocRef, userData)
         .catch(error => {
             const contextualError = new FirestorePermissionError({
@@ -133,10 +142,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 requestResourceData: userData,
             });
             errorEmitter.emit('permission-error', contextualError);
+            toast({
+              variant: 'destructive',
+              title: 'Sign Up Failed',
+              description: 'Could not save user information.',
+            });
         });
-    }).catch(error => {
+
+    } catch (error: any) {
+      toast({
+        variant: 'destructive',
+        title: 'Sign Up Failed',
+        description: error.message || 'An unexpected error occurred.',
+      });
       console.error("Sign up failed:", error);
-    });
+    }
   };
 
   const loginWithGoogle = async () => {
