@@ -1,0 +1,161 @@
+/**
+ * @fileoverview Firestore Security Rules for Gajanan Motors Application
+ *
+ * Core Philosophy:
+ * This ruleset enforces a strict user-ownership model for user data and ads,
+ * and restricts access to payments, commissions, and audit logs to admins only.
+ * The rules are designed to prevent unauthorized data access and modification.
+ *
+ * Data Structure:
+ * - /users/{userId}: Stores user profiles. Each user can only access their own profile.
+ * - /users/{dealerId}/ads/{adId}: Stores car advertisements. Each dealer can only access their own ads.
+ * - /payments/{paymentId}: Stores payment records. Accessible only by admins.
+ * - /commissions/{commissionId}: Stores commission records. Accessible only by admins.
+ * - /auditLogs/{logId}: Stores audit logs. Accessible only by admins.
+ * - /roles_admin/{userId}: Used to define admin roles. The existence of a document in this collection grants admin privileges to the user.
+ *
+ * Key Security Decisions:
+ * - User data is private and only accessible to the owning user.
+ * - Dealers can only create, update, and delete their own ads.
+ * - Payments, commissions, and audit logs are only accessible to admins.
+ * - Listing of payments, commissions and audit logs is denied to regular users.
+ *
+ * Denormalization for Authorization:
+ * - Ads include a `dealerId` field, enabling direct authorization checks without requiring additional reads to the parent user document.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Checks if the user is signed in.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the resource.
+     * @param {string} userId - The user ID to compare against the authenticated user's ID.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+        /**
+     * @description Checks if the authenticated user is an admin by checking the existence of a document in the roles_admin collection.
+     */
+    function isAdmin() {
+      return exists(/databases/$(database)/documents/roles_admin/$(request.auth.uid));
+    }
+
+    /**
+     * @description Checks if the authenticated user is the owner of the resource and if the resource exists.
+     * @param {string} userId - The user ID to compare against the authenticated user's ID.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * @description Rules for /users/{userId} documents.
+     * @path /users/{userId}
+     * @allow (create) - A user can create their own user document if the userId matches their auth.uid.
+     * @allow (get, update, delete) - A user can read, update, and delete their own user document.
+     * @deny (create) - A user cannot create a user document for another user.
+     * @deny (get, update, delete) - A user cannot read, update, or delete another user's document.
+     * @principle Enforces document ownership for user profiles.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false;
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+    }
+
+    /**
+     * @description Rules for /users/{dealerId}/ads/{adId} documents.
+     * @path /users/{dealerId}/ads/{adId}
+     * @allow (create) - A dealer can create an ad under their own user ID, provided the dealerId in the ad matches their auth.uid.
+     * @allow (get, update, delete) - A dealer can read, update, and delete their own ads.
+     * @deny (create) - A dealer cannot create an ad under another user's ID.
+     * @deny (get, update, delete) - A dealer cannot read, update, or delete another dealer's ads.
+     * @principle Enforces document ownership for ads, ensuring dealers can only manage their own listings.
+     */
+    match /users/{dealerId}/ads/{adId} {
+      allow get: if isOwner(dealerId);
+      allow list: if isOwner(dealerId);
+      allow create: if isOwner(dealerId) && request.resource.data.dealerId == dealerId;
+      allow update: if isExistingOwner(dealerId) && request.resource.data.dealerId == resource.data.dealerId;
+      allow delete: if isExistingOwner(dealerId);
+    }
+
+    /**
+     * @description Rules for /payments/{paymentId} documents.
+     * @path /payments/{paymentId}
+     * @allow (get, list) - Only admins can read payment records.
+     * @allow (create, update, delete) - Only admins can create, update, or delete payment records.
+     * @deny (get, list) - Non-admins cannot read payment records.
+     * @deny (create, update, delete) - Non-admins cannot create, update, or delete payment records.
+     * @principle Restricts payment data access and management to admins only.
+     */
+    match /payments/{paymentId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Rules for /commissions/{commissionId} documents.
+     * @path /commissions/{commissionId}
+     * @allow (get, list) - Only admins can read commission records.
+     * @allow (create, update, delete) - Only admins can create, update, or delete commission records.
+     * @deny (get, list) - Non-admins cannot read commission records.
+     * @deny (create, update, delete) - Non-admins cannot create, update, or delete commission records.
+     * @principle Restricts commission data access and management to admins only.
+     */
+    match /commissions/{commissionId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    /**
+     * @description Rules for /auditLogs/{logId} documents.
+     * @path /auditLogs/{logId}
+     * @allow (get, list) - Only admins can read audit log records.
+     * @allow (create, update, delete) - Only admins can create, update, or delete audit log records.
+     * @deny (get, list) - Non-admins cannot read audit log records.
+     * @deny (create, update, delete) - Non-admins cannot create, update, or delete audit log records.
+     * @principle Restricts audit log data access and management to admins only.
+     */
+    match /auditLogs/{logId} {
+      allow get: if isAdmin();
+      allow list: if isAdmin();
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+     /**
+     * @description Rules for /roles_admin/{userId} documents.
+     * @path /roles_admin/{userId}
+     * @allow (get, list) - Only admins can read the admin roles.
+     * @allow (create, update, delete) - Only admins can create, update, or delete admin roles.
+     * @deny (get, list) - Non-admins cannot read the admin roles.
+     * @deny (create, update, delete) - Non-admins cannot create, update, or delete admin roles.
+     */
+    match /roles_admin/{userId} {
+       allow get: if isAdmin();
+       allow list: if isAdmin();
+       allow create: if isAdmin();
+       allow update: if isAdmin();
+       allow delete: if isAdmin();
+    }
+  }
+}

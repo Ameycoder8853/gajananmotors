@@ -1,0 +1,401 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user (dealer or admin) in the Gajanan Motors application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The user's phone number, used for authentication and contact."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "role": {
+          "type": "string",
+          "description": "The user's role (dealer or admin)."
+        },
+        "isPro": {
+          "type": "boolean",
+          "description": "Indicates whether the user has a Pro subscription."
+        },
+        "proExpiresAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the Pro subscription expires.",
+          "format": "date-time"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the user account was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "phone",
+        "email",
+        "role",
+        "isPro",
+        "createdAt"
+      ]
+    },
+    "Ad": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Ad",
+      "type": "object",
+      "description": "Represents a car advertisement posted by a dealer.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ad entity."
+        },
+        "dealerId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Ad)"
+        },
+        "title": {
+          "type": "string",
+          "description": "The title of the ad."
+        },
+        "make": {
+          "type": "string",
+          "description": "The make of the car (e.g., Toyota)."
+        },
+        "model": {
+          "type": "string",
+          "description": "The model of the car (e.g., Camry)."
+        },
+        "year": {
+          "type": "number",
+          "description": "The year the car was manufactured."
+        },
+        "kmDriven": {
+          "type": "number",
+          "description": "The number of kilometers the car has been driven."
+        },
+        "fuelType": {
+          "type": "string",
+          "description": "The type of fuel the car uses (e.g., petrol, diesel)."
+        },
+        "transmission": {
+          "type": "string",
+          "description": "The type of transmission (e.g., automatic, manual)."
+        },
+        "price": {
+          "type": "number",
+          "description": "The price of the car."
+        },
+        "description": {
+          "type": "string",
+          "description": "A detailed description of the car."
+        },
+        "location": {
+          "type": "string",
+          "description": "The location where the car is being sold."
+        },
+        "images": {
+          "type": "array",
+          "description": "Array of storage URLs for the car images.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the ad (active, sold, removed)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the ad was created.",
+          "format": "date-time"
+        },
+        "soldAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the ad was marked as sold (can be null).",
+          "format": "date-time"
+        },
+        "removedAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the ad was removed (can be null).",
+          "format": "date-time"
+        },
+        "removalPaid": {
+          "type": "boolean",
+          "description": "Indicates whether the removal fee has been paid."
+        },
+        "removalPaymentId": {
+          "type": "string",
+          "description": "Reference to Payment. (Relationship: Payment 1:1 Ad Removal). The payment id for the removal fee (can be null)."
+        }
+      },
+      "required": [
+        "id",
+        "dealerId",
+        "title",
+        "make",
+        "model",
+        "year",
+        "kmDriven",
+        "fuelType",
+        "transmission",
+        "price",
+        "description",
+        "location",
+        "images",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Payment": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Payment",
+      "type": "object",
+      "description": "Represents a payment made by a dealer for a subscription or ad removal.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the payment entity."
+        },
+        "dealerId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Payment)"
+        },
+        "adId": {
+          "type": "string",
+          "description": "Reference to Ad. (Relationship: Ad 1:N Payment). The ad ID associated with the payment (can be null for subscriptions)."
+        },
+        "type": {
+          "type": "string",
+          "description": "The type of payment (subscription or removal)."
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount paid."
+        },
+        "currency": {
+          "type": "string",
+          "description": "The currency of the payment."
+        },
+        "razorpayPaymentId": {
+          "type": "string",
+          "description": "The ID of the payment in Razorpay."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the payment."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the payment was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "dealerId",
+        "type",
+        "amount",
+        "currency",
+        "razorpayPaymentId",
+        "status",
+        "createdAt"
+      ]
+    },
+    "Commission": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Commission",
+      "type": "object",
+      "description": "Represents a commission charged on an ad.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the commission entity."
+        },
+        "adId": {
+          "type": "string",
+          "description": "Reference to Ad. (Relationship: Ad 1:1 Commission)"
+        },
+        "amount": {
+          "type": "number",
+          "description": "The amount of the commission."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the commission."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp indicating when the commission was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "adId",
+        "amount",
+        "status",
+        "createdAt"
+      ]
+    },
+    "AuditLog": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "AuditLog",
+      "type": "object",
+      "description": "Represents an audit log entry for an action performed in the application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the audit log entity."
+        },
+        "action": {
+          "type": "string",
+          "description": "The action that was performed (e.g., ad creation, ad removal)."
+        },
+        "performedBy": {
+          "type": "string",
+          "description": "The ID of the user who performed the action. Reference to User. (Relationship: User 1:N AuditLog)"
+        },
+        "meta": {
+          "type": "string",
+          "description": "Metadata associated with the action (e.g., details about the ad being created)."
+        },
+        "timestamp": {
+          "type": "string",
+          "description": "Timestamp indicating when the action was performed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "action",
+        "performedBy",
+        "meta",
+        "timestamp"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user data. Accessible by the user themselves and admins. No denormalized fields.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{dealerId}/ads/{adId}",
+        "definition": {
+          "entityName": "Ad",
+          "schema": {
+            "$ref": "#/backend/entities/Ad"
+          },
+          "description": "Stores car advertisements posted by dealers. Uses path-based ownership. Accessible by the dealer who created the ad and admins. Includes denormalized 'dealerId' for authorization independence.",
+          "params": [
+            {
+              "name": "dealerId",
+              "description": "The unique identifier for the dealer who owns the ad."
+            },
+            {
+              "name": "adId",
+              "description": "The unique identifier for the ad."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/payments/{paymentId}",
+        "definition": {
+          "entityName": "Payment",
+          "schema": {
+            "$ref": "#/backend/entities/Payment"
+          },
+          "description": "Stores payment records. Accessible by the dealer who made the payment and admins. No denormalized authorization fields.",
+          "params": [
+            {
+              "name": "paymentId",
+              "description": "The unique identifier for the payment."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/commissions/{commissionId}",
+        "definition": {
+          "entityName": "Commission",
+          "schema": {
+            "$ref": "#/backend/entities/Commission"
+          },
+          "description": "Stores commission records for ads. Accessible by admins. No denormalized authorization fields.",
+          "params": [
+            {
+              "name": "commissionId",
+              "description": "The unique identifier for the commission."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/auditLogs/{logId}",
+        "definition": {
+          "entityName": "AuditLog",
+          "schema": {
+            "$ref": "#/backend/entities/AuditLog"
+          },
+          "description": "Stores audit log entries for actions performed in the application. Accessible by admins. No denormalized authorization fields.",
+          "params": [
+            {
+              "name": "logId",
+              "description": "The unique identifier for the audit log entry."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles_admin/{userId}",
+        "definition": {
+          "entityName": "AdminRole",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Documents in this collection denote users with admin privileges. Existence of a document grants admin role.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily maintainable backend for the Gajanan Motors application, focusing on authorization independence and clear security rules.\n\n*   **Authorization Independence:** Achieved through denormalization. For instance, access to `ads` under a specific `user` is based on the `dealerId` field within the `ad` document itself, rather than requiring a `get()` call to the parent `user` document. Similarly, if commission details needed user specific access controls, the user's id would be denormalized onto the commission record. This strategy avoids hierarchical authorization dependencies and enables atomic operations.\n\n*   **Structural Segregation:** Collections are segregated based on their security requirements. User data, ads, payments, commissions, and audit logs are stored in separate collections to simplify security rules.\n\n*   **Access Modeling:** Uses path-based ownership for user-owned data (ads) via `/users/{userId}/ads/{adId}`. Admin specific data will be stored in collections such as `roles_admin/{userId}` to denote user roles.\n\n*   **QAPs (Rules are not Filters):** Secure `list` operations are supported by structural segregation and authorization independence. For example, listing ads for a specific dealer is secured by the path `/users/{dealerId}/ads/{adId}` and the `dealerId` field within the `ad` document, ensuring that only the dealer can access their own ads. The admin can use `/ads` to view all ads with appropriate authorization rules.\n\n*   **Invariants:** The structure supports the integrity of ownership, timestamps, and denormalized data. Ownership is enforced through path-based ownership and the `dealerId` field in the `ads` collection. Timestamps (`createdAt`, `soldAt`, `removedAt`) maintain data integrity. Denormalization ensures that authorization context is readily available within each document.\n"
+  }
+}
