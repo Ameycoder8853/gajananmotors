@@ -16,12 +16,36 @@ export default function MyListingsPage() {
     // In a real app, this would be a Firestore query.
     const myListings = MOCK_ADS.filter(ad => ad.dealerId === user?.uid);
 
+  if (user && !user.isPro) {
+    return (
+        <div>
+             <div className="flex justify-between items-center mb-6">
+                <div>
+                    <h1 className="text-3xl font-bold">My Listings</h1>
+                    <p className="text-muted-foreground">You have no active subscription.</p>
+                </div>
+            </div>
+            <Card className="flex flex-col items-center justify-center text-center p-12">
+                <CardHeader>
+                    <CardTitle>Get Started with a Subscription</CardTitle>
+                    <CardDescription>You need an active plan to list your cars in the marketplace.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <Button asChild>
+                         <Link href="/dashboard/subscription">View Subscription Plans</Link>
+                    </Button>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
+
   return (
     <div>
         <div className="flex justify-between items-center mb-6">
             <div>
                 <h1 className="text-3xl font-bold">My Listings</h1>
-                <p className="text-muted-foreground">Manage your car advertisements. You have {user?.adCredits ?? 0} ad credits remaining.</p>
+                <p className="text-muted-foreground">You have {user?.adCredits ?? 0} ad credits remaining.</p>
             </div>
             <Button asChild>
                 <Link href="/dashboard/my-listings/new">Post a New Ad</Link>
