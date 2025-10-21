@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import Razorpay from 'razorpay';
 import { z } from 'zod';
+import { config } from 'dotenv';
+
+config(); // Load environment variables from .env file
 
 const paymentSchema = z.object({
   amount: z.number().positive(),
