@@ -48,6 +48,7 @@ export const createMockAd = (dealer: User): Ad => {
     location: `${faker.location.city()}, ${faker.location.stateAbbr()}`,
     images: images,
     status: faker.helpers.arrayElement(['active', 'sold']),
+    visibility: 'public',
     createdAt: faker.date.past(),
     soldAt: null,
     removedAt: null,

@@ -17,7 +17,7 @@ export const metadata = {
 };
 
 export default function MarketPage() {
-  const ads = MOCK_ADS;
+  const ads = MOCK_ADS.filter(ad => ad.visibility === 'public');
 
   return (
     <div className="container py-8">

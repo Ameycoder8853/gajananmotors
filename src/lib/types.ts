@@ -37,6 +37,7 @@ export type Ad = {
   location: string;
   images: string[] | StaticImageData[];
   status: 'active' | 'sold' | 'removed';
+  visibility: 'public' | 'private';
   createdAt: Date;
   soldAt: Date | null;
   removedAt: Date | null;

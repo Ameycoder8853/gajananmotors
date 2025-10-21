@@ -125,6 +125,11 @@
           "type": "string",
           "description": "The status of the ad (active, sold, removed)."
         },
+        "visibility": {
+          "type": "string",
+          "enum": ["public", "private"],
+          "description": "Controls if the ad is visible in the public marketplace."
+        },
         "createdAt": {
           "type": "string",
           "description": "Timestamp indicating when the ad was created.",
@@ -164,6 +169,7 @@
         "location",
         "images",
         "status",
+        "visibility",
         "createdAt"
       ]
     },
