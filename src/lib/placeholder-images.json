@@ -1,3 +1,58 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-background",
+      "description": "A modern car dealership showroom at dusk",
+      "imageUrl": "https://images.unsplash.com/photo-1585390062628-be8608aa7d83?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxjYXIlMjBkZWFsZXJzaGlwfGVufDB8fHx8MTc2MDk0MTgwOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "car dealership"
+    },
+    {
+      "id": "car-1",
+      "description": "A red modern sedan",
+      "imageUrl": "https://images.unsplash.com/photo-1692036629790-77737295ce32?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxyZWQlMjBzZWRhbnxlbnwwfHx8fDE3NjA5ODAyOTF8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "red sedan"
+    },
+    {
+      "id": "car-2",
+      "description": "A blue SUV",
+      "imageUrl": "https://images.unsplash.com/photo-1615836494670-706aa6af4974?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxibHVlJTIwc3V2fGVufDB8fHx8MTc2MTAyNzQ0OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "blue suv"
+    },
+    {
+      "id": "car-3",
+      "description": "A white sports car",
+      "imageUrl": "https://images.unsplash.com/photo-1553201108-25c6764fd7e6?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8d2hpdGUlMjBzcG9ydHNjYXJ8ZW58MHx8fHwxNzYxMDI3NDQ4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "white sportscar"
+    },
+    {
+      "id": "car-4",
+      "description": "A black luxury sedan",
+      "imageUrl": "https://images.unsplash.com/photo-1737051484228-939052076f16?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxibGFjayUyMHNlZGFufGVufDB8fHx8MTc2MTAxNDA2MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "black sedan"
+    },
+    {
+      "id": "car-5",
+      "description": "A silver hatchback",
+      "imageUrl": "https://images.unsplash.com/photo-1705769947337-68a57b761e93?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxzaWx2ZXIlMjBoYXRjaGJhY2t8ZW58MHx8fHwxNzYwOTgwOTQ4fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "silver hatchback"
+    },
+    {
+      "id": "car-6",
+      "description": "A gray pickup truck",
+      "imageUrl": "https://images.unsplash.com/photo-1632788008517-6cfa74f25ddc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxncmF5JTIwdHJ1Y2t8ZW58MHx8fHwxNzYxMDIwMzcxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "gray truck"
+    },
+    {
+      "id": "car-7",
+      "description": "A family minivan",
+      "imageUrl": "https://images.unsplash.com/photo-1689909286741-caa4e3c78bb9?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxmYW1pbHklMjBtaW5pdmFufGVufDB8fHx8MTc2MTAxNDA2MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "family minivan"
+    },
+    {
+      "id": "car-8",
+      "description": "A convertible sports car",
+      "imageUrl": "https://images.unsplash.com/photo-1758348601147-a064c0a7bd93?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx5ZWxsb3clMjBjb252ZXJ0aWJsZXxlbnwwfHx8fDE3NjA5Nzg3Njd8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "yellow convertible"
+    }
+  ]
 }
