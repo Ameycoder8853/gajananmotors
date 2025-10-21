@@ -1,4 +1,5 @@
 import type { StaticImageData } from "next/image";
+import { Timestamp } from "firebase/firestore";
 
 export type User = {
   id: string;
@@ -8,7 +9,7 @@ export type User = {
   role: 'dealer' | 'admin';
   isPro: boolean;
   proExpiresAt: Date | null;
-  createdAt: Date;
+  createdAt: Date | Timestamp;
   subscriptionType?: 'Standard' | 'Premium';
   adCredits?: number;
 };
@@ -38,7 +39,7 @@ export type Ad = {
   images: string[] | StaticImageData[];
   status: 'active' | 'sold' | 'removed';
   visibility: 'public' | 'private';
-  createdAt: Date;
+  createdAt: Date | Timestamp;
   soldAt: Date | null;
   removedAt: Date | null;
   removalPaid: boolean;
