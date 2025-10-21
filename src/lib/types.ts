@@ -11,6 +11,10 @@ export type User = {
   createdAt: Date;
 };
 
+export type FirebaseUser = import('firebase/auth').User & {
+    role?: 'admin' | 'dealer';
+}
+
 export type Ad = {
   id: string;
   dealerId: string;

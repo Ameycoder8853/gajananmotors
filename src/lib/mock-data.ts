@@ -2,15 +2,11 @@ import { faker } from '@faker-js/faker';
 import type { Ad, User } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 
-const carMakes = ['Maruti Suzuki', 'Hyundai', 'Tata', 'Mahindra', 'Kia', 'Toyota', 'Honda'];
+const carMakes = ['Maruti Suzuki', 'Hyundai', 'Tata'];
 const carModels: { [key: string]: string[] } = {
-  'Maruti Suzuki': ['Swift', 'Baleno', 'Wagon R', 'Alto', 'Dzire'],
-  'Hyundai': ['i20', 'Creta', 'Venue', 'Verna', 'Grand i10'],
-  'Tata': ['Nexon', 'Punch', 'Harrier', 'Safari', 'Altroz'],
-  'Mahindra': ['Thar', 'XUV700', 'Scorpio', 'Bolero'],
-  'Kia': ['Seltos', 'Sonet', 'Carens'],
-  'Toyota': ['Innova Crysta', 'Fortuner', 'Glanza'],
-  'Honda': ['City', 'Amaze'],
+  'Maruti Suzuki': ['Swift', 'Baleno'],
+  'Hyundai': ['i20', 'Creta'],
+  'Tata': ['Nexon', 'Punch'],
 };
 
 export const createMockUser = (): User => ({
@@ -24,15 +20,15 @@ export const createMockUser = (): User => ({
   createdAt: faker.date.past(),
 });
 
-export const MOCK_USERS: User[] = Array.from({ length: 10 }, createMockUser);
+export const MOCK_USERS: User[] = Array.from({ length: 2 }, createMockUser);
 
 export const createMockAd = (dealer: User): Ad => {
   const make = faker.helpers.arrayElement(carMakes);
   const model = faker.helpers.arrayElement(carModels[make]);
-  const year = faker.number.int({ min: 2010, max: 2024 });
+  const year = faker.number.int({ min: 2018, max: 2024 });
   const title = `${year} ${make} ${model}`;
   
-  const randomImageCount = faker.number.int({ min: 1, max: 5 });
+  const randomImageCount = faker.number.int({ min: 1, max: 3 });
   const images = faker.helpers.shuffle(PlaceHolderImages.filter(img => img.id.startsWith('car-')))
                      .slice(0, randomImageCount)
                      .map(img => img.imageUrl);
@@ -44,10 +40,10 @@ export const createMockAd = (dealer: User): Ad => {
     make,
     model,
     year,
-    kmDriven: faker.number.int({ min: 5000, max: 150000 }),
-    fuelType: faker.helpers.arrayElement(['Petrol', 'Diesel', 'Electric']),
+    kmDriven: faker.number.int({ min: 15000, max: 80000 }),
+    fuelType: faker.helpers.arrayElement(['Petrol', 'Diesel']),
     transmission: faker.helpers.arrayElement(['Automatic', 'Manual']),
-    price: faker.number.int({ min: 100000, max: 3000000 }),
+    price: faker.number.int({ min: 300000, max: 1500000 }),
     description: faker.lorem.paragraphs(2),
     location: `${faker.location.city()}, ${faker.location.stateAbbr()}`,
     images: images,
@@ -62,5 +58,5 @@ export const createMockAd = (dealer: User): Ad => {
 };
 
 export const MOCK_ADS: Ad[] = MOCK_USERS.flatMap(user => 
-  Array.from({ length: faker.number.int({min: 2, max: 5}) }, () => createMockAd(user))
+  Array.from({ length: faker.number.int({min: 1, max: 2}) }, () => createMockAd(user))
 );
