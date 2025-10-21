@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
@@ -14,7 +15,7 @@ import {
   Auth,
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore } from 'firebase/firestore';
-import { initializeFirebase, errorEmitter, FirestorePermissionError, useFirebase } from '@/firebase';
+import { initializeFirebase, errorEmitter, FirestorePermissionError, useFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
 import { useToast } from './use-toast';
@@ -77,7 +78,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               createdAt: new Date(),
               adCredits: Infinity
             };
-            await setDoc(doc(firestore, 'users', adminCred.user.uid), adminData);
+            setDocumentNonBlocking(doc(firestore, 'users', adminCred.user.uid), adminData, { merge: false });
             // After creating the admin, sign them out so it doesn't interfere with the current session.
             await signOut(auth);
           } catch (creationError: any) {
@@ -106,7 +107,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               // Subscription expired
               appUser.isPro = false;
               appUser.adCredits = 0;
-              await updateDoc(userDocRef, { isPro: false, adCredits: 0 });
+              updateDocumentNonBlocking(userDocRef, { isPro: false, adCredits: 0 });
               toast({
                   title: "Subscription Expired",
                   description: "Your Pro plan has expired. Please renew to keep your ads public."
@@ -145,7 +146,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     createdAt: new Date(),
                     adCredits: 0
                 };
-                await setDoc(userDocRef, newUser);
+                setDocumentNonBlocking(userDocRef, newUser, { merge: false });
                 const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser };
                 setUser(enhancedUser);
                 if (router) router.push('/dashboard/subscription');
@@ -199,7 +200,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         adCredits: 0
       };
       
-      await setDoc(userDocRef, userData);
+      setDocumentNonBlocking(userDocRef, userData, { merge: false });
       // Let the onAuthStateChanged handle the redirect
       
     } catch (error: any) {

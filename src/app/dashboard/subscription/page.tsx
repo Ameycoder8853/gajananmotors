@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -5,20 +6,20 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { getFirestore, doc, updateDoc } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { getFirestore, doc } from 'firebase/firestore';
+import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
 
 const tiers = [
   {
     name: 'Standard',
-    planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_PLAN_ID || '',
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_PLAN_ID || 'replace_with_your_standard_plan_id',
     price: 500,
     credits: 10,
     features: ['10 ad listings', 'Standard support'],
   },
   {
     name: 'Premium',
-    planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_PLAN_ID || '',
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_PLAN_ID || 'replace_with_your_premium_plan_id',
     price: 1000,
     credits: 20,
     features: ['20 ad listings', 'Premium support', 'Featured listings'],
@@ -97,30 +98,29 @@ export default function SubscriptionPage() {
       name: 'Gajanan Motors',
       description: `${planName} Subscription Purchase`,
       subscription_id: data.id,
-      handler: async function (response: any) {
-        try {
-          if (!user?.uid) throw new Error("User not found after payment.");
+      handler: function (response: any) {
+        if (!user?.uid) {
+            toast({
+                variant: 'destructive',
+                title: 'Update failed',
+                description: 'User not found after payment. Please contact support.',
+            });
+            return;
+        };
 
-          const userDocRef = doc(firestore, 'users', user.uid);
-          await updateDoc(userDocRef, {
-            adCredits: credits,
-            isPro: true,
-            subscriptionType: planName,
-            proExpiresAt: new Date(new Date().setMonth(new Date().getMonth() + 1)), // subscription for 1 month
-          });
+        const userDocRef = doc(firestore, 'users', user.uid);
+        
+        updateDocumentNonBlocking(userDocRef, {
+          adCredits: credits,
+          isPro: true,
+          subscriptionType: planName,
+          proExpiresAt: new Date(new Date().setMonth(new Date().getMonth() + 1)), // subscription for 1 month
+        });
 
-          toast({
-            title: 'Payment Successful',
-            description: `${credits} ad credits have been added to your account.`,
-          });
-        } catch (error) {
-          console.error("Failed to update user document:", error);
-          toast({
-            variant: 'destructive',
-            title: 'Update failed',
-            description: 'Your payment was successful, but we failed to update your account. Please contact support.',
-          });
-        }
+        toast({
+          title: 'Payment Successful',
+          description: `${credits} ad credits have been added to your account.`,
+        });
       },
       prefill: {
         name: user.displayName || 'Gajanan User',

@@ -32,8 +32,8 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
-import { getFirestore, collection, addDoc, doc, updateDoc, increment, serverTimestamp } from 'firebase/firestore';
-import { initializeFirebase } from '@/firebase';
+import { getFirestore, collection, doc, serverTimestamp, increment } from 'firebase/firestore';
+import { initializeFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -83,43 +83,34 @@ export default function NewListingPage() {
         router.push('/dashboard/subscription');
         return;
     }
+    
+    const adsCollectionRef = collection(firestore, 'users', user.uid, 'ads');
+    const userDocRef = doc(firestore, 'users', user.uid);
 
-    try {
-      const adsCollectionRef = collection(firestore, 'users', user.uid, 'ads');
-      const userDocRef = doc(firestore, 'users', user.uid);
+    addDocumentNonBlocking(adsCollectionRef, {
+      ...values,
+      dealerId: user.uid,
+      images: values.images.split(',').map(url => url.trim()).filter(url => url),
+      status: 'active',
+      visibility: 'public',
+      createdAt: serverTimestamp(),
+      soldAt: null,
+      removedAt: null,
+      removalPaid: false,
+      removalPaymentId: null,
+    });
+    
+    updateDocumentNonBlocking(userDocRef, {
+        adCredits: increment(-1)
+    });
+    
+    toast({
+      title: 'Ad Published!',
+      description: 'Your car is now listed in the marketplace.',
+    });
 
-      await addDoc(adsCollectionRef, {
-        ...values,
-        dealerId: user.uid,
-        images: values.images.split(',').map(url => url.trim()).filter(url => url),
-        status: 'active',
-        visibility: 'public', // Ads are public by default if user is pro
-        createdAt: serverTimestamp(),
-        soldAt: null,
-        removedAt: null,
-        removalPaid: false,
-        removalPaymentId: null,
-      });
+    router.push('/dashboard/my-listings');
 
-      await updateDoc(userDocRef, {
-          adCredits: increment(-1)
-      });
-      
-      toast({
-        title: 'Ad Published!',
-        description: 'Your car is now listed in the marketplace.',
-      });
-
-      router.push('/dashboard/my-listings');
-
-    } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Failed to post ad',
-        description: error.message || 'An unexpected error occurred.',
-      });
-      console.error('Ad creation failed:', error);
-    }
   }
 
 
