@@ -77,7 +77,7 @@ export default function SubscriptionPage() {
         toast({
             variant: 'destructive',
             title: 'Payment Error',
-            description: errorData.error || 'Failed to create Razorpay order.',
+            description: errorData.error || 'Failed to create Razorpay subscription.',
         });
         return;
     }
@@ -87,18 +87,16 @@ export default function SubscriptionPage() {
       toast({
         variant: 'destructive',
         title: 'Payment Error',
-        description: 'Failed to parse Razorpay order response.',
+        description: 'Failed to parse Razorpay subscription response.',
       });
       return;
     }
 
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-      amount: data.amount,
-      currency: data.currency,
       name: 'Gajanan Motors',
       description: `${planName} Subscription Purchase`,
-      order_id: data.id,
+      subscription_id: data.id,
       handler: async function (response: any) {
         try {
           if (!user?.uid) throw new Error("User not found after payment.");
