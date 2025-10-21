@@ -32,6 +32,9 @@ export function Header() {
     return name.split(' ').map(n => n[0]).join('');
   };
 
+  const subscriptionsHref = user ? '/dashboard/subscription' : '/signup';
+  const allNavLinks = [...navLinks, { href: subscriptionsHref, label: 'Subscriptions' }];
+
 
   const userMenu = user ? (
       <DropdownMenu>
@@ -73,7 +76,7 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <Logo />
         <nav className="hidden md:flex items-center space-x-6 ml-10 text-sm font-medium">
-          {navLinks.map((link) => (
+          {allNavLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -116,7 +119,7 @@ export function Header() {
                   <Logo />
                 </div>
                 <nav className="grid gap-4 py-6 text-lg font-medium">
-                  {navLinks.map((link) => (
+                  {allNavLinks.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
