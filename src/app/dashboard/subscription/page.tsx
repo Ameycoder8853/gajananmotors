@@ -11,14 +11,14 @@ import { initializeFirebase } from '@/firebase';
 const tiers = [
   {
     name: 'Standard',
-    planId: 'plan_id_for_standard_500', // REPLACE WITH YOUR RAZORPAY PLAN ID
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_PLAN_ID || '',
     price: 500,
     credits: 10,
     features: ['10 ad listings', 'Standard support'],
   },
   {
     name: 'Premium',
-    planId: 'plan_id_for_premium_1000', // REPLACE WITH YOUR RAZORPAY PLAN ID
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_PLAN_ID || '',
     price: 1000,
     credits: 20,
     features: ['20 ad listings', 'Premium support', 'Featured listings'],
@@ -36,7 +36,7 @@ export default function SubscriptionPage() {
   const { toast } = useToast();
   const { firestore } = initializeFirebase();
 
-  const handlePayment = async (planId: string, credits: number, planName: 'Standard' | 'Premium', amount: number) => {
+  const handlePayment = async (planId: string, credits: number, planName: 'Standard' | 'Premium') => {
     if (!user) {
       toast({
         variant: 'destructive',
@@ -44,6 +44,15 @@ export default function SubscriptionPage() {
         description: 'You must be logged in to make a purchase.',
       });
       return;
+    }
+
+    if (!planId || planId.startsWith('replace_with')) {
+        toast({
+            variant: 'destructive',
+            title: 'Configuration Error',
+            description: 'The subscription plan ID is not configured. Please contact support.',
+        });
+        return;
     }
 
     if (!window.Razorpay) {
@@ -60,7 +69,7 @@ export default function SubscriptionPage() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ planId, amount }),
+      body: JSON.stringify({ planId }),
     });
 
     if (!res.ok) {
@@ -163,7 +172,7 @@ export default function SubscriptionPage() {
               </ul>
             </CardContent>
             <CardFooter>
-              <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name as 'Standard' | 'Premium', tier.price)}>
+              <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name as 'Standard' | 'Premium')}>
                 Choose Plan
               </Button>
             </CardFooter>
