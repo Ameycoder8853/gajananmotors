@@ -1,8 +1,28 @@
 'use client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, Car, BarChart } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function DashboardPage() {
+    const { user, isUserLoading } = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!isUserLoading && user?.role === 'dealer') {
+            router.replace('/dashboard/my-listings');
+        }
+    }, [user, isUserLoading, router]);
+
+    if (isUserLoading || user?.role !== 'admin') {
+        return (
+            <div className="flex items-center justify-center min-h-[50vh]">
+                <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+            </div>
+        );
+    }
+
     return (
         <div>
             <h1 className="text-3xl font-bold mb-6">Dashboard Overview</h1>
