@@ -56,38 +56,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const ensureAdminExists = async () => {
       const adminEmail = 'admin@gmail.com';
       const adminPassword = 'gajananmotors';
-      
+
       try {
-        // Attempt a sign-in to check if user exists. This will fail if the user does not exist.
-        // We will sign out immediately after to not affect the current auth state.
-        await signInWithEmailAndPassword(auth, adminEmail, adminPassword);
-        await signOut(auth);
-      } catch (error: any) {
-        if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-          // If the admin user doesn't exist, create it.
-          try {
-            const adminCred = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-             const adminData: AppUser = {
-              id: adminCred.user.uid,
-              name: 'Admin',
-              email: adminEmail,
-              role: 'admin',
-              phone: 'N/A',
-              isPro: true,
-              proExpiresAt: new Date(new Date().setDate(new Date().getDate() + 365*5)), // 5 years for admin
-              createdAt: new Date(),
-              adCredits: Infinity,
-              verificationStatus: 'verified',
-            };
-            setDocumentNonBlocking(doc(firestore, 'users', adminCred.user.uid), adminData, { merge: false });
-            // After creating the admin, sign them out so it doesn't interfere with the current session.
+        // Attempt to create the admin user. If the user already exists,
+        // this will throw an 'auth/email-already-in-use' error, which we can safely ignore.
+        const adminCred = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+        const adminData: AppUser = {
+          id: adminCred.user.uid,
+          name: 'Admin',
+          email: adminEmail,
+          role: 'admin',
+          phone: 'N/A',
+          isPro: true,
+          proExpiresAt: new Date(new Date().setDate(new Date().getDate() + 365 * 5)), // 5 years for admin
+          createdAt: new Date(),
+          adCredits: Infinity,
+          verificationStatus: 'verified',
+        };
+        setDocumentNonBlocking(doc(firestore, 'users', adminCred.user.uid), adminData, { merge: false });
+        // After creating the admin, sign them out immediately so it doesn't interfere with the current session.
+        if (auth.currentUser?.email === adminEmail) {
             await signOut(auth);
-          } catch (creationError: any) {
-             // If another process is creating the user, this might fail. We can ignore it.
-             if (creationError.code !== 'auth/email-already-in-use') {
-                console.error('Failed to create admin user:', creationError);
-            }
-          }
+        }
+      } catch (error: any) {
+        // If the admin user already exists, the creation will fail. This is expected and safe to ignore.
+        // We only care about other potential errors during setup.
+        if (error.code !== 'auth/email-already-in-use') {
+          console.error('Failed to ensure admin user exists:', error);
         }
       }
     };
@@ -251,5 +246,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    
