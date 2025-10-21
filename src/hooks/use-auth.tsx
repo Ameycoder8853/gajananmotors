@@ -76,7 +76,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               isPro: true,
               proExpiresAt: new Date(new Date().setDate(new Date().getDate() + 365*5)), // 5 years for admin
               createdAt: new Date(),
-              adCredits: Infinity
+              adCredits: Infinity,
+              verificationStatus: 'verified',
             };
             setDocumentNonBlocking(doc(firestore, 'users', adminCred.user.uid), adminData, { merge: false });
             // After creating the admin, sign them out so it doesn't interfere with the current session.
@@ -114,7 +115,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               });
             }
 
-            const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser };
+            const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser, emailVerified: firebaseUser.emailVerified, isPhoneVerified: appUser.isPhoneVerified ?? false };
             setUser(enhancedUser);
 
             // Redirect based on role
@@ -122,7 +123,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 if (appUser.role === 'admin') {
                     if(!window.location.pathname.startsWith('/dashboard')) router.push('/dashboard');
                 } else if (appUser.role === 'dealer') {
-                    if (appUser.isPro && (appUser.adCredits ?? 0) > 0) {
+                    if (appUser.verificationStatus !== 'verified') {
+                        if (window.location.pathname !== '/dashboard/verification') router.push('/dashboard/verification');
+                    }
+                    else if (appUser.isPro && (appUser.adCredits ?? 0) > 0) {
                         if(!window.location.pathname.startsWith('/dashboard')) router.push('/dashboard/my-listings');
                     } else {
                         if(!window.location.pathname.startsWith('/dashboard')) router.push('/dashboard/subscription');
@@ -144,12 +148,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     isPro: false,
                     proExpiresAt: null,
                     createdAt: new Date(),
-                    adCredits: 0
+                    adCredits: 0,
+                    verificationStatus: 'unverified'
                 };
                 setDocumentNonBlocking(userDocRef, newUser, { merge: false });
-                const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser };
+                const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, emailVerified: firebaseUser.emailVerified, isPhoneVerified: false };
                 setUser(enhancedUser);
-                if (router) router.push('/dashboard/subscription');
+                if (router) router.push('/dashboard/verification');
             }
           }
 
@@ -197,7 +202,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         isPro: false,
         proExpiresAt: null,
         createdAt: new Date(),
-        adCredits: 0
+        adCredits: 0,
+        verificationStatus: 'unverified'
       };
       
       setDocumentNonBlocking(userDocRef, userData, { merge: false });
@@ -245,3 +251,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    

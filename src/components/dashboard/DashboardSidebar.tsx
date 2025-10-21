@@ -20,6 +20,7 @@ import {
   LogOut,
   CreditCard,
   List,
+  ShieldCheck,
 } from "lucide-react"
 import { Logo } from "@/components/shared/Logo"
 import { useAuth } from "@/hooks/use-auth"
@@ -98,6 +99,16 @@ export function DashboardSidebar() {
                   <span>My Listings</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+               <SidebarMenuItem>
+                <SidebarMenuButton
+                  href="/dashboard/verification"
+                  isActive={isActive("/dashboard/verification")}
+                  tooltip="Verification"
+                >
+                  <ShieldCheck />
+                  <span>Verification</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   href="/dashboard/subscription"
@@ -135,3 +146,5 @@ export function DashboardSidebar() {
     </>
   )
 }
+
+    

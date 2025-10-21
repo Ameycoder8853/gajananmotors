@@ -12,6 +12,11 @@ export type User = {
   createdAt: Date | Timestamp;
   subscriptionType?: 'Standard' | 'Premium';
   adCredits?: number;
+  isPhoneVerified?: boolean;
+  verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
+  aadharUrl?: string;
+  panUrl?: string;
+  shopLicenseUrl?: string;
 };
 
 export type FirebaseUser = import('firebase/auth').User & {
@@ -21,6 +26,11 @@ export type FirebaseUser = import('firebase/auth').User & {
     adCredits?: number;
     isPro?: boolean;
     proExpiresAt?: Date | null;
+    isPhoneVerified?: boolean;
+    verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
+    aadharUrl?: string;
+    panUrl?: string;
+    shopLicenseUrl?: string;
 }
 
 export type Ad = {
@@ -60,4 +70,5 @@ export type Payment = {
   createdAt: Date;
 };
 
+    
     

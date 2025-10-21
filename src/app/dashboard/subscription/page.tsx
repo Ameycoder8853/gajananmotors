@@ -8,6 +8,10 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
 const tiers = [
   {
@@ -36,6 +40,8 @@ export default function SubscriptionPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const { firestore } = initializeFirebase();
+  const router = useRouter();
+
 
   const handlePayment = async (planId: string, credits: number, planName: 'Standard' | 'Premium') => {
     if (!user) {
@@ -45,6 +51,15 @@ export default function SubscriptionPage() {
         description: 'You must be logged in to make a purchase.',
       });
       return;
+    }
+     if (user.verificationStatus !== 'verified') {
+        toast({
+            variant: 'destructive',
+            title: 'Verification Required',
+            description: 'Please complete your account verification before purchasing a subscription.',
+        });
+        router.push('/dashboard/verification');
+        return;
     }
 
     if (!planId || planId.startsWith('replace_with')) {
@@ -183,6 +198,23 @@ export default function SubscriptionPage() {
     );
   }
 
+  if (user && user.verificationStatus !== 'verified') {
+    return (
+      <div className="text-center">
+        <Alert variant="destructive">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Account Not Verified</AlertTitle>
+          <AlertDescription>
+            You must verify your account before you can purchase a subscription.
+          </AlertDescription>
+        </Alert>
+        <Button asChild className="mt-6">
+          <Link href="/dashboard/verification">Go to Verification</Link>
+        </Button>
+      </div>
+    )
+  }
+
   return (
     <div>
       <div className="text-center mb-12">
@@ -220,3 +252,5 @@ export default function SubscriptionPage() {
     </div>
   );
 }
+
+    

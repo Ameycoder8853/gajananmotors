@@ -48,6 +48,27 @@
         "adCredits": {
           "type": "number",
           "description": "Number of ad listings remaining for the user."
+        },
+        "isPhoneVerified": {
+            "type": "boolean",
+            "description": "Indicates if the user's phone number has been verified via OTP."
+        },
+        "verificationStatus": {
+            "type": "string",
+            "enum": ["unverified", "pending", "verified", "rejected"],
+            "description": "The user's document verification status."
+        },
+        "aadharUrl": {
+            "type": "string",
+            "description": "Storage URL for the user's Aadhar card image."
+        },
+        "panUrl": {
+            "type": "string",
+            "description": "Storage URL for the user's PAN card image."
+        },
+        "shopLicenseUrl": {
+            "type": "string",
+            "description": "Storage URL for the user's Shop License image."
         }
       },
       "required": [
@@ -57,7 +78,8 @@
         "email",
         "role",
         "isPro",
-        "createdAt"
+        "createdAt",
+        "verificationStatus"
       ]
     },
     "Ad": {
