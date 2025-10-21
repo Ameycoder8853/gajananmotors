@@ -38,7 +38,7 @@ export function getSdks(firebaseApp: FirebaseApp) {
     firebaseApp,
     auth: getAuth(firebaseApp),
     firestore: getFirestore(firebaseApp),
-    storage: getStorage(firebaseApp, "gs://videomatic-ai-5c2b2.appspot.com"),
+    storage: getStorage(firebaseApp, firebaseConfig.storageBucket),
   };
 }
 
@@ -50,5 +50,3 @@ export * from './non-blocking-updates';
 export * from './non-blocking-login';
 export * from './errors';
 export * from './error-emitter';
-
-    
