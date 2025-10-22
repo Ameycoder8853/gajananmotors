@@ -70,7 +70,7 @@ export function Header() {
   const isDashboard = pathname.startsWith('/dashboard');
 
   if (isDashboard) {
-    // A simplified header for the dashboard or no header at all if sidebar is used
+    // This is a simplified header for the dashboard view
     return (
        <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
          <div className="container flex h-14 items-center justify-end gap-2">
@@ -157,13 +157,13 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className={cn("transition-colors hover:text-foreground", scrolled ? "text-muted-foreground" : "text-primary-foreground/80 hover:text-primary-foreground")}
+              className={cn("transition-colors hover:text-foreground", scrolled ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground")}
             >
               {link.label}
             </Link>
           ))}
           {user && user.role === 'admin' && (
-            <Link href="/dashboard" className={cn("transition-colors hover:text-foreground", scrolled ? "text-muted-foreground" : "text-primary-foreground/80 hover:text-primary-foreground")}>
+            <Link href="/dashboard" className={cn("transition-colors hover:text-foreground", scrolled ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground")}>
               Dashboard
             </Link>
           )}
@@ -186,7 +186,7 @@ export function Header() {
           </div>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className={cn("md:hidden", !scrolled && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
+              <Button variant="ghost" size="icon" className={cn("md:hidden", !scrolled && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
