@@ -1,3 +1,4 @@
+
 'use client';
 
 import { notFound, useParams } from "next/navigation";
@@ -7,8 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { ImageCarousel } from "@/components/market/ImageCarousel";
 import { Calendar, Gauge, GitCommitHorizontal, Fuel, MapPin, Phone, User, ShieldCheck } from "lucide-react";
-import { useDoc, useMemoFirebase } from "@/firebase";
-import { useFirestore } from "@/firebase/provider";
+import { useDoc } from "@/firebase";
+import { useFirestore, useMemoFirebase } from "@/firebase/provider";
 import { doc, getDoc } from "firebase/firestore";
 import type { Ad, User as Dealer } from "@/lib/types";
 import { useEffect, useState } from "react";
@@ -135,5 +136,3 @@ export default function AdDetailPage() {
     </div>
   );
 }
-
-    
