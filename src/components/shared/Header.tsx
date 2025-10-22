@@ -48,7 +48,7 @@ function ThemeSwitcher() {
 
 
 export function Header() {
-  const { user, isUserLoading } = useAuth();
+  const { user, isUserLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -66,7 +66,9 @@ export function Header() {
     window.addEventListener('hashchange', handleHashChange, false);
 
     // Set initial hash
-    setActiveHash(window.location.hash);
+    if (typeof window !== 'undefined') {
+        setActiveHash(window.location.hash);
+    }
     
     return () => {
       window.removeEventListener('scroll', handleScroll);
@@ -149,10 +151,6 @@ export function Header() {
             Settings
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push(user.role === 'admin' ? '/dashboard' : '/dashboard/my-listings')}>
-            Dashboard
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={logout}>
             Log out
           </DropdownMenuItem>
@@ -175,7 +173,7 @@ export function Header() {
                 className={getNavLinkStyle(link.href)}
               >
                 {link.label}
-                {isActive && <span className="absolute bottom-[-2px] left-0 w-full h-0.5 bg-primary"></span>}
+                {isActive && <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-4/5 h-0.5 bg-primary rounded-full"></span>}
               </Link>
             )
           })}
