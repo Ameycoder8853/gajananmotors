@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { AdCard } from "@/components/market/AdCard";
 import { EyeOff } from "lucide-react";
 import { useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from "firebase/firestore";
+import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import type { Ad } from "@/lib/types";
 
@@ -17,7 +17,7 @@ export default function MyListingsPage() {
 
     const myListingsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
-        return collection(firestore, 'users', user.uid, 'ads');
+        return query(collection(firestore, 'cars'), where('dealerId', '==', user.uid));
     }, [firestore, user]);
 
     const { data: myListings, isLoading: areListingsLoading } = useCollection<Ad>(myListingsQuery);
@@ -118,3 +118,5 @@ export default function MyListingsPage() {
         </div>
     );
 }
+
+    

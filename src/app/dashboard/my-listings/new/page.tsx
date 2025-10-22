@@ -105,7 +105,7 @@ export default function NewListingPage() {
     let totalUploaded = 0;
 
     for (const file of files) {
-        const storageRef = ref(storage, `ads/${user.uid}/${adId}/${Date.now()}_${file.name}`);
+        const storageRef = ref(storage, `cars/${adId}/${Date.now()}_${file.name}`);
         await uploadBytes(storageRef, file);
         const url = await getDownloadURL(storageRef);
         urls.push(url);
@@ -128,19 +128,22 @@ export default function NewListingPage() {
     }
 
     setUploadProgress(0);
-    const tempAdId = doc(collection(firestore, 'temp')).id; // Generate a temporary ID for storage path
+    const carsCollectionRef = collection(firestore, 'cars');
+    const newCarDocRef = doc(carsCollectionRef); // Generate a new ID for the car
+    const adId = newCarDocRef.id;
 
     try {
-        const imageUrls = await uploadImages(values.images, tempAdId);
+        const imageUrls = await uploadImages(values.images, adId);
         setUploadProgress(100);
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
         
-        const adsCollectionRef = collection(firestore, 'users', user.uid, 'ads');
         const userDocRef = doc(firestore, 'users', user.uid);
     
-        addDocumentNonBlocking(adsCollectionRef, {
+        // Use the generated ref (newCarDocRef) to set the document
+        setDocumentNonBlocking(newCarDocRef, {
           ...values,
+          id: adId, // Explicitly set the document ID
           title,
           images: imageUrls,
           dealerId: user.uid,
@@ -151,7 +154,7 @@ export default function NewListingPage() {
           removedAt: null,
           removalPaid: false,
           removalPaymentId: null,
-        });
+        }, { merge: false });
         
         updateDocumentNonBlocking(userDocRef, {
             adCredits: increment(-1)

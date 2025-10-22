@@ -14,7 +14,7 @@ import {
   updateProfile,
   Auth,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore, collection, getDocs, writeBatch, query, orderBy, limit } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore, collection, getDocs, writeBatch, query, orderBy, limit, where } from 'firebase/firestore';
 import { initializeFirebase, errorEmitter, FirestorePermissionError, useFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
@@ -117,8 +117,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               
               if (oldPlan) {
                   // Make excess ads private
-                  const adsRef = collection(firestore, 'users', firebaseUser.uid, 'ads');
-                  const q = query(adsRef, orderBy('createdAt', 'desc')); // Get all ads
+                  const adsRef = collection(firestore, 'cars');
+                  const q = query(adsRef, where('dealerId', '==', firebaseUser.uid), orderBy('createdAt', 'desc'));
                   const adsSnapshot = await getDocs(q);
                   
                   let publicAdsCount = 0;
@@ -129,7 +129,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   });
 
                   if (publicAdsCount > 0) { // If there are more public ads than the new limit (which is 0)
-                      const adsToMakePrivateQuery = query(adsRef, orderBy('createdAt', 'asc'));
+                      const adsToMakePrivateQuery = query(adsRef, where('dealerId', '==', firebaseUser.uid), orderBy('createdAt', 'asc'));
                       const adsToMakePrivateSnapshot = await getDocs(adsToMakePrivateQuery);
                       let privateNeeded = publicAdsCount;
                       
@@ -286,3 +286,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    

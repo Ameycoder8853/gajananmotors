@@ -14,7 +14,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { useFirestore } from "@/firebase/provider";
-import { collectionGroup, query, where, getDoc, doc } from "firebase/firestore";
+import { collection, query, where, getDoc, doc, getDocs } from "firebase/firestore";
 import type { Ad, User } from "@/lib/types";
 import { useEffect, useState } from "react";
 
@@ -24,7 +24,7 @@ export default function MarketPage() {
   
   const adsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    return query(collectionGroup(firestore, 'ads'), where('visibility', '==', 'public'));
+    return query(collection(firestore, 'cars'), where('visibility', '==', 'public'));
   }, [firestore]);
 
   const { data: ads, isLoading: areAdsLoading } = useCollection<Ad>(adsQuery);
@@ -32,23 +32,31 @@ export default function MarketPage() {
   useEffect(() => {
     if (ads && firestore) {
       const fetchDealers = async () => {
-        const adsWithDealerInfo = await Promise.all(
-          ads.map(async (ad) => {
-            if (ad.dealerId) {
-              const dealerRef = doc(firestore, 'users', ad.dealerId);
-              const dealerSnap = await getDoc(dealerRef);
-              if (dealerSnap.exists()) {
-                return { ...ad, dealer: dealerSnap.data() as User };
-              }
-            }
-            return ad;
-          })
-        );
+        // Create a map of dealer IDs to fetch so we only fetch each dealer once
+        const dealerIds = new Set(ads.map(ad => ad.dealerId));
+        const dealerPromises = Array.from(dealerIds).map(id => getDoc(doc(firestore, 'users', id)));
+        
+        const dealerSnaps = await Promise.all(dealerPromises);
+        const dealersMap = new Map<string, User>();
+        dealerSnaps.forEach(snap => {
+          if (snap.exists()) {
+            dealersMap.set(snap.id, snap.data() as User);
+          }
+        });
+
+        const adsWithDealerInfo = ads.map(ad => ({
+          ...ad,
+          dealer: dealersMap.get(ad.dealerId)
+        }));
+        
         setAdsWithDealers(adsWithDealerInfo);
       };
       fetchDealers();
+    } else if (!areAdsLoading) {
+      // If ads are loaded and empty, clear the list
+      setAdsWithDealers([]);
     }
-  }, [ads, firestore]);
+  }, [ads, firestore, areAdsLoading]);
 
   const isLoading = areAdsLoading || (ads && ads.length > 0 && adsWithDealers.length === 0);
 
@@ -117,3 +125,5 @@ export default function MarketPage() {
     </div>
   );
 }
+
+    

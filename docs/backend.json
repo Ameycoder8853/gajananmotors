@@ -353,21 +353,17 @@
         }
       },
       {
-        "path": "/users/{dealerId}/ads/{adId}",
+        "path": "/cars/{carId}",
         "definition": {
           "entityName": "Ad",
           "schema": {
             "$ref": "#/backend/entities/Ad"
           },
-          "description": "Stores car advertisements posted by dealers. Uses path-based ownership. Accessible by the dealer who created the ad and admins. Includes denormalized 'dealerId' for authorization independence.",
+          "description": "Stores car advertisements posted by dealers. Includes denormalized 'dealerId' for authorization independence. Accessible by the dealer who created the ad and admins.",
           "params": [
             {
-              "name": "dealerId",
-              "description": "The unique identifier for the dealer who owns the ad."
-            },
-            {
-              "name": "adId",
-              "description": "The unique identifier for the ad."
+              "name": "carId",
+              "description": "The unique identifier for the car ad."
             }
           ]
         }
@@ -437,7 +433,8 @@
         }
       }
     ],
-    "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily maintainable backend for the Gajanan Motors application, focusing on authorization independence and clear security rules.\n\n*   **Authorization Independence:** Achieved through denormalization. For instance, access to `ads` under a specific `user` is based on the `dealerId` field within the `ad` document itself, rather than requiring a `get()` call to the parent `user` document. Similarly, if commission details needed user specific access controls, the user's id would be denormalized onto the commission record. This strategy avoids hierarchical authorization dependencies and enables atomic operations.\n\n*   **Structural Segregation:** Collections are segregated based on their security requirements. User data, ads, payments, commissions, and audit logs are stored in separate collections to simplify security rules.\n\n*   **Access Modeling:** Uses path-based ownership for user-owned data (ads) via `/users/{userId}/ads/{adId}`. Admin specific data will be stored in collections such as `roles_admin/{userId}` to denote user roles.\n\n*   **QAPs (Rules are not Filters):** Secure `list` operations are supported by structural segregation and authorization independence. For example, listing ads for a specific dealer is secured by the path `/users/{dealerId}/ads/{adId}` and the `dealerId` field within the `ad` document, ensuring that only the dealer can access their own ads. The admin can use `/ads` to view all ads with appropriate authorization rules.\n\n*   **Invariants:** The structure supports the integrity of ownership, timestamps, and denormalized data. Ownership is enforced through path-based ownership and the `dealerId` field in the `ads` collection. Timestamps (`createdAt`, `soldAt`, `removedAt`) maintain data integrity. Denormalization ensures that authorization context is readily available within each document.\n"
+    "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily maintainable backend for the Gajanan Motors application, focusing on authorization independence and clear security rules.\n\n*   **Authorization Independence:** Achieved through denormalization. For instance, access to `cars` is based on the `dealerId` field within the `car` document itself. This strategy avoids hierarchical authorization dependencies and enables atomic operations.\n\n*   **Structural Segregation:** Collections are segregated based on their security requirements. User data, cars, payments, commissions, and audit logs are stored in separate top-level collections to simplify security rules.\n\n*   **Access Modeling:** Admin specific data will be stored in collections such as `roles_admin/{userId}` to denote user roles.\n\n*   **QAPs (Rules are not Filters):** Secure `list` operations are supported by structural segregation and authorization independence. For example, listing ads for a specific dealer is secured by querying the `cars` collection for a specific `dealerId`. The admin can use a collection group query on `/cars` to view all ads with appropriate authorization rules.\n\n*   **Invariants:** The structure supports the integrity of ownership, timestamps, and denormalized data. Ownership is enforced through the `dealerId` field in the `cars` collection. Timestamps (`createdAt`, `soldAt`, `removedAt`) maintain data integrity. Denormalization ensures that authorization context is readily available within each document.\n"
   }
 }
+
     

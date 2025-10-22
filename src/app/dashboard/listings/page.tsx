@@ -14,7 +14,7 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useCollection, useMemoFirebase } from "@/firebase";
 import { useFirestore } from "@/firebase/provider";
-import { collectionGroup, query, getDoc, doc } from "firebase/firestore";
+import { collection, query, getDoc, doc, getDocs } from "firebase/firestore";
 import type { Ad, User } from "@/lib/types";
 import { useEffect, useState } from "react";
 
@@ -24,9 +24,7 @@ export default function ListingsPage() {
 
   const adsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
-    // This query gets all ads from the 'ads' subcollection across all users.
-    // This requires a specific index in Firestore and proper security rules.
-    return query(collectionGroup(firestore, 'ads'));
+    return query(collection(firestore, 'cars'));
   }, [firestore]);
 
   const { data: ads, isLoading: areAdsLoading } = useCollection<Ad>(adsQuery);
@@ -34,18 +32,22 @@ export default function ListingsPage() {
   useEffect(() => {
     if (ads && firestore) {
       const fetchDealers = async () => {
-        const adsWithDealerInfo = await Promise.all(
-          ads.map(async (ad) => {
-            if (ad.dealerId) {
-              const dealerRef = doc(firestore, 'users', ad.dealerId);
-              const dealerSnap = await getDoc(dealerRef);
-              if (dealerSnap.exists()) {
-                return { ...ad, dealer: dealerSnap.data() as User };
-              }
-            }
-            return ad;
-          })
-        );
+         const dealerIds = new Set(ads.map(ad => ad.dealerId));
+         const dealerPromises = Array.from(dealerIds).map(id => getDoc(doc(firestore, 'users', id)));
+        
+         const dealerSnaps = await Promise.all(dealerPromises);
+         const dealersMap = new Map<string, User>();
+         dealerSnaps.forEach(snap => {
+           if (snap.exists()) {
+             dealersMap.set(snap.id, snap.data() as User);
+           }
+         });
+ 
+         const adsWithDealerInfo = ads.map(ad => ({
+           ...ad,
+           dealer: dealersMap.get(ad.dealerId)
+         }));
+
         setAdsWithDealers(adsWithDealerInfo);
       };
       fetchDealers();
@@ -116,3 +118,5 @@ export default function ListingsPage() {
     </div>
   );
 }
+
+    
