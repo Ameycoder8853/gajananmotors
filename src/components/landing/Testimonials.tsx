@@ -37,13 +37,13 @@ export function Testimonials() {
             We're proud to have helped thousands of people find their perfect car.
           </p>
         </div>
-        <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 justify-center">
+        <div className="mt-12 max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8 justify-center">
           {testimonials.map((testimonial, index) => {
             const image = PlaceHolderImages.find(p => p.id === testimonial.imageId);
             return (
               <Card 
                 key={testimonial.name}
-                className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 animate-fade-in-up max-w-sm"
+                className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 animate-fade-in-up max-w-sm mx-auto"
                 style={{ animationDelay: `${index * 150}ms` }}
               >
                 <CardContent className="p-6 text-center">
