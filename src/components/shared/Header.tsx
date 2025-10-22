@@ -61,8 +61,7 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  const isDashboardPage = pathname.startsWith('/dashboard');
-  const isMarketingPage = !isDashboardPage && (pathname === '/' || pathname === '/#features' || pathname === '/#contact');
+  const isMarketingPage = pathname === '/' || pathname.startsWith('/#');
   
   const headerClasses = cn(
     "sticky top-0 z-50 w-full transition-all duration-300",
@@ -75,23 +74,25 @@ export function Header() {
   const activeLinkColor = scrolled || !isMarketingPage ? "text-primary" : "text-primary-foreground";
 
 
-  const navLinkStyle = (path?: string) => cn(
-    "transition-colors text-sm font-medium",
-    linkColor,
-    "hover:text-primary",
-    path && pathname === path && activeLinkColor
-  );
-
+  const navLinkStyle = (path?: string) => {
+    const isActive = (path === '/' && pathname === '/') || (path !== '/' && pathname.startsWith(path || ''));
+    return cn(
+      "relative transition-colors text-sm font-medium",
+      linkColor,
+      "hover:text-primary",
+      isActive && activeLinkColor
+    );
+  };
   
-  const baseNavLinks = [
+  let navLinks = [
     { href: '/market', label: 'Marketplace' },
     { href: '/#features', label: 'Features' },
     { href: '/#contact', label: 'Contact' },
   ];
   
-  let navLinks = [...baseNavLinks];
-
-  if (user) {
+  if(isUserLoading) {
+    // Don't show auth-dependent links while loading
+  } else if (user) {
     if (user.role === 'admin') {
       navLinks.push(
         { href: '/dashboard', label: 'Overview' },
@@ -108,7 +109,6 @@ export function Header() {
   } else {
     navLinks.push({ href: '/dashboard/subscription', label: 'Subscription' });
   }
-
 
   const userMenu = user ? (
       <DropdownMenu>
@@ -147,15 +147,19 @@ export function Header() {
       <div className="container flex h-16 items-center">
         <Logo className={cn(scrolled || !isMarketingPage ? "text-foreground" : "text-white")} />
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6 ml-10">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={navLinkStyle(link.href)}
-            >
-              {link.label}
-            </Link>
-          ))}
+          {navLinks.map((link) => {
+            const isActive = (link.href === '/' && pathname === '/') || (link.href !== '/' && pathname.startsWith(link.href));
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={navLinkStyle(link.href)}
+              >
+                {link.label}
+                {isActive && <span className="absolute bottom-[-2px] left-0 w-full h-0.5 bg-primary"></span>}
+              </Link>
+            )
+          })}
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
            <ThemeSwitcher />
