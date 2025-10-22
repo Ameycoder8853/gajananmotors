@@ -1,5 +1,4 @@
-import { genkit } from '@genkit-ai/next';  // if genkit is the correct export
-// or
-import { appRoute } from '@genkit-ai/next'; // if using the next plugin example
+import { yourFlow } from '@/genkit/yourFlow';
+import { appRoute } from '@genkit-ai/next';
 
-export const { GET, POST } = appRoute(genkitFlow);
+export const POST = appRoute(yourFlow);
