@@ -1,3 +1,3 @@
-import {genkit} from '@genkit-ai/next';
+import { createGenkitHandler } from '@genkit-ai/next';
 
-export const {GET, POST} = genkit();
+export const { GET, POST } = createGenkitHandler();
