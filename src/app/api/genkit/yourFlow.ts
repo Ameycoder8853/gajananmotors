@@ -1,5 +1,5 @@
-import { defineFlow } from 'genkit';
-
-export const myFlow = defineFlow('myFlow', async (input) => {
-  return `Hello ${input.name}!`;
-});
+// src/genkit/yourFlow.ts
+export async function yourFlow(input: any) {
+  // placeholder implementation — return something simple for now
+  return { message: 'placeholder response', input };
+}
