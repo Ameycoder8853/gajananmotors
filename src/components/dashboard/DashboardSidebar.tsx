@@ -36,7 +36,7 @@ export function DashboardSidebar() {
 
   return (
     <>
-      <SidebarHeader>
+      <SidebarHeader className="hidden md:flex">
         <div className="flex items-center justify-between">
           <Logo />
           <SidebarTrigger />
