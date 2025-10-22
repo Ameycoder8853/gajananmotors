@@ -61,13 +61,27 @@ export function Header() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
   
-  const isDashboard = pathname.startsWith('/dashboard');
+  const isDashboardPage = pathname.startsWith('/dashboard');
+  const isMarketingPage = !isDashboardPage && (pathname === '/' || pathname === '/#features' || pathname === '/#contact');
+  
+  const headerClasses = cn(
+    "sticky top-0 z-50 w-full transition-all duration-300",
+    scrolled || !isMarketingPage
+      ? "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      : "bg-transparent"
+  );
+
+  const linkColor = scrolled || !isMarketingPage ? "text-muted-foreground" : "text-primary-foreground/80";
+  const activeLinkColor = scrolled || !isMarketingPage ? "text-primary" : "text-primary-foreground";
+
 
   const navLinkStyle = (path?: string) => cn(
     "transition-colors text-sm font-medium",
-    (scrolled || isDashboard || pathname !== '/') ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground",
-    path && pathname === path && ((scrolled || isDashboard || pathname !== '/') ? "text-primary" : "text-primary-foreground")
+    linkColor,
+    "hover:text-primary",
+    path && pathname === path && activeLinkColor
   );
+
   
   const baseNavLinks = [
     { href: '/market', label: 'Marketplace' },
@@ -129,12 +143,9 @@ export function Header() {
 
 
   return (
-    <header className={cn(
-      "sticky top-0 z-50 w-full transition-all duration-300",
-      (scrolled || isDashboard || pathname !== '/') ? "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" : "bg-transparent",
-    )}>
+    <header className={headerClasses}>
       <div className="container flex h-16 items-center">
-        <Logo />
+        <Logo className={cn(scrolled || !isMarketingPage ? "text-foreground" : "text-white")} />
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6 ml-10">
           {navLinks.map((link) => (
             <Link
