@@ -78,7 +78,7 @@ export default function DashboardPage() {
                     </CardContent>
                 </Card>
             </div>
-            <div className="mt-8">
+            <div className="mt-8 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
                 <Card>
                     <CardHeader>
                         <CardTitle>Recent Activity</CardTitle>

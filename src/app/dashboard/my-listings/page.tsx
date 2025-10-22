@@ -41,13 +41,13 @@ export default function MyListingsPage() {
                         <p className="text-muted-foreground">You have no active subscription.</p>
                     </div>
                 </div>
-                <Card className="flex flex-col items-center justify-center text-center p-12 transition-all duration-300 hover:shadow-lg">
+                <Card className="flex flex-col items-center justify-center text-center p-12 transition-all duration-300 hover:shadow-lg animate-fade-in-up">
                     <CardHeader>
                         <CardTitle>Get Started with a Subscription</CardTitle>
                         <CardDescription>You need an active plan to list your cars in the marketplace.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button asChild className="transition-transform duration-300 hover:scale-105">
+                        <Button asChild>
                              <Link href="/dashboard/subscription">View Subscription Plans</Link>
                         </Button>
                     </CardContent>
@@ -63,7 +63,7 @@ export default function MyListingsPage() {
                     <h1 className="text-3xl font-bold">My Listings</h1>
                     <p className="text-muted-foreground">You have {user?.adCredits ?? 0} ad credits remaining.</p>
                 </div>
-                <Button asChild disabled={(user?.adCredits ?? 0) <= 0} className="transition-transform duration-300 hover:scale-105">
+                <Button asChild disabled={(user?.adCredits ?? 0) <= 0}>
                     <Link href="/dashboard/my-listings/new">Post a New Ad</Link>
                 </Button>
             </div>
@@ -76,7 +76,7 @@ export default function MyListingsPage() {
                                 <h3 className="font-semibold">You're out of ad credits!</h3>
                                 <p className="text-sm text-muted-foreground">Please upgrade your subscription to post more ads.</p>
                             </div>
-                            <Button asChild className="ml-auto transition-transform duration-300 hover:scale-105">
+                            <Button asChild className="ml-auto">
                                 <Link href="/dashboard/subscription">Upgrade Plan</Link>
                             </Button>
                         </div>
@@ -86,15 +86,15 @@ export default function MyListingsPage() {
 
             {myListings && myListings.length > 0 ? (
                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {myListings.map(ad => (
-                        <div key={ad.id} className="relative">
+                    {myListings.map((ad, index) => (
+                        <div key={ad.id} className="relative animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
                             <AdCard ad={ad} />
                             {ad.visibility === 'private' && (
                                  <div className="absolute top-0 left-0 w-full h-full bg-black/60 rounded-lg flex flex-col items-center justify-center text-white p-4 text-center animate-fade-in">
                                     <EyeOff className="w-12 h-12" />
                                     <p className="font-bold mt-2">Ad is Private</p>
                                     <p className="text-sm">This ad is not visible in the public marketplace because your subscription has expired or downgraded. Renew to make it public.</p>
-                                    <Button asChild variant="secondary" className="mt-4 transition-transform duration-300 hover:scale-105">
+                                    <Button asChild variant="secondary" className="mt-4">
                                         <Link href="/dashboard/subscription">Manage Subscription</Link>
                                     </Button>
                                 </div>
@@ -109,7 +109,7 @@ export default function MyListingsPage() {
                         <CardDescription>You haven't posted any car ads.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <Button asChild className="transition-transform duration-300 hover:scale-105">
+                        <Button asChild>
                              <Link href="/dashboard/my-listings/new">Post Your First Ad</Link>
                         </Button>
                     </CardContent>

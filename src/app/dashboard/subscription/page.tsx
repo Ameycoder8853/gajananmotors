@@ -162,7 +162,7 @@ export default function SubscriptionPage() {
 
   const renderTierCard = (tier: (typeof tiers)[0], isCurrent: boolean, isUpgradeOption: boolean) => {
     return (
-      <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up", isCurrent && "border-primary border-2")}>
+      <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
           <div className="flex justify-between items-center">
              <CardTitle className="text-2xl">{tier.name}</CardTitle>
@@ -206,8 +206,8 @@ export default function SubscriptionPage() {
     const upgradeTier = user.subscriptionType === 'Standard' ? tiers.find(t => t.name === 'Premium') : null;
 
     return (
-        <div>
-            <div className="text-center mb-12 animate-fade-in-up">
+        <div className="animate-fade-in-up">
+            <div className="text-center mb-12">
                 <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
                 <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
             </div>
@@ -245,8 +245,8 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div>
-      <div className="text-center mb-12 animate-fade-in-up">
+    <div className="animate-fade-in-up">
+      <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
         <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
       </div>
@@ -264,7 +264,7 @@ export default function SubscriptionPage() {
       )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
         {tiers.map((tier, index) => (
-            <div key={tier.name} style={{ animationDelay: `${index * 150}ms` }}>
+            <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
                 {renderTierCard(tier, false, false)}
             </div>
         ))}
