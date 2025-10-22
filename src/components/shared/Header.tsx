@@ -27,6 +27,11 @@ const navLinks = [
   { href: '/#contact', label: 'Contact' },
 ];
 
+const getInitials = (name?: string | null) => {
+  if (!name) return 'U';
+  return name.split(' ').map(n => n[0]).join('');
+};
+
 function ThemeSwitcher() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
@@ -100,12 +105,6 @@ export function Header() {
        </header>
     );
   }
-
-
-  const getInitials = (name?: string | null) => {
-    if (!name) return 'U';
-    return name.split(' ').map(n => n[0]).join('');
-  };
 
   const subscriptionsHref = user ? '/dashboard/subscription' : '/signup';
   const allNavLinks = [...navLinks, { href: subscriptionsHref, label: 'Subscriptions' }];
