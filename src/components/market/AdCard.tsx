@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Ad } from "@/lib/types";
-import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel } from "lucide-react";
+import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type AdCardProps = {
@@ -26,6 +26,11 @@ export function AdCard({ ad }: AdCardProps) {
             data-ai-hint={`${ad.make} ${ad.model}`}
           />
         </Link>
+        {ad.dealer?.verificationStatus === 'verified' && (
+            <div className="absolute top-3 left-3 bg-blue-500 text-white rounded-full p-1.5" title="Verified Dealer">
+                <ShieldCheck className="w-4 h-4" />
+            </div>
+        )}
         <Badge 
             className={cn(
                 "absolute top-3 right-3",
@@ -67,7 +72,7 @@ export function AdCard({ ad }: AdCardProps) {
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">{ad.location}</span>
              </div>
-             <span>{new Date(ad.createdAt).toLocaleDateString()}</span>
+             <span>{ad.createdAt ? new Date(ad.createdAt as any).toLocaleDateString() : ''}</span>
         </div>
       </CardContent>
     </Card>
