@@ -7,22 +7,23 @@ import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { doc, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 const tiers = [
   {
-    name: 'Standard',
+    name: 'Standard' as const,
     planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_PLAN_ID || 'replace_with_your_standard_plan_id',
     price: 500,
     credits: 10,
     features: ['10 ad listings', 'Standard support'],
   },
   {
-    name: 'Premium',
+    name: 'Premium' as const,
     planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_PLAN_ID || 'replace_with_your_premium_plan_id',
     price: 1000,
     credits: 20,
@@ -43,7 +44,7 @@ export default function SubscriptionPage() {
   const router = useRouter();
 
 
-  const handlePayment = async (planId: string, credits: number, planName: 'Standard' | 'Premium') => {
+  const handlePayment = async (planId: string, credits: number, planName: 'Standard' | 'Premium', isUpgrade: boolean = false) => {
     if (!user) {
       toast({
         variant: 'destructive',
@@ -125,15 +126,23 @@ export default function SubscriptionPage() {
 
         const userDocRef = doc(firestore, 'users', user.uid);
         
-        updateDocumentNonBlocking(userDocRef, {
-          adCredits: credits,
+        const updateData: any = {
           isPro: true,
           subscriptionType: planName,
-          proExpiresAt: new Date(new Date().setMonth(new Date().getMonth() + 1)), // subscription for 1 month
-        });
+          proExpiresAt: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+        };
+
+        if (isUpgrade) {
+            // Logic for adding credits on upgrade
+            updateData.adCredits = increment(credits);
+        } else {
+            updateData.adCredits = credits;
+        }
+
+        updateDocumentNonBlocking(userDocRef, updateData);
 
         toast({
-          title: 'Payment Successful',
+          title: isUpgrade ? 'Upgrade Successful!' : 'Payment Successful',
           description: `${credits} ad credits have been added to your account.`,
         });
       },
@@ -158,15 +167,60 @@ export default function SubscriptionPage() {
     rzp.open();
   };
 
+  const renderTierCard = (tier: (typeof tiers)[0], isCurrent: boolean, isUpgradeOption: boolean) => {
+    return (
+      <Card key={tier.name} className={cn("flex flex-col", isCurrent && "border-primary border-2")}>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+             <CardTitle className="text-2xl">{tier.name}</CardTitle>
+             {isCurrent && (
+                <div className="flex items-center gap-1 text-primary">
+                    <Star className="w-5 h-5 fill-current" />
+                    <span className="font-bold">Current Plan</span>
+                </div>
+             )}
+          </div>
+          <CardDescription>
+            <span className="text-4xl font-bold">₹{tier.price}</span>
+            <span className="text-muted-foreground">/month</span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <ul className="space-y-3">
+            {tier.features.map((feature) => (
+              <li key={feature} className="flex items-center">
+                <Check className="mr-2 h-5 w-5 text-green-500" />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+        <CardFooter>
+            {isCurrent ? (
+                <Button className="w-full" disabled>Your Current Plan</Button>
+            ) : (
+                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, isUpgradeOption)}>
+                    {isUpgradeOption ? 'Switch to Premium' : 'Choose Plan'}
+                </Button>
+            )}
+        </CardFooter>
+      </Card>
+    )
+  }
+
   if (user?.isPro && user.subscriptionType) {
+    const currentTier = tiers.find(t => t.name === user.subscriptionType);
+    const upgradeTier = user.subscriptionType === 'Standard' ? tiers.find(t => t.name === 'Premium') : null;
+
     return (
         <div>
             <div className="text-center mb-12">
                 <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
                 <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
             </div>
-            <div className="max-w-md mx-auto">
-                <Card className="border-primary border-2">
+            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+               {currentTier && (
+                 <Card className="border-primary border-2">
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
@@ -189,10 +243,9 @@ export default function SubscriptionPage() {
                             <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt).toLocaleDateString() : 'N/A'}</span>
                         </div>
                     </CardContent>
-                    <CardFooter>
-                        <Button className="w-full" disabled>Plan is Active</Button>
-                    </CardFooter>
                 </Card>
+               )}
+               {upgradeTier && renderTierCard(upgradeTier, false, true)}
             </div>
         </div>
     );
@@ -222,35 +275,8 @@ export default function SubscriptionPage() {
         <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        {tiers.map((tier) => (
-          <Card key={tier.name} className="flex flex-col">
-            <CardHeader>
-              <CardTitle className="text-2xl">{tier.name}</CardTitle>
-              <CardDescription>
-                <span className="text-4xl font-bold">₹{tier.price}</span>
-                <span className="text-muted-foreground">/month</span>
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex-grow">
-              <ul className="space-y-3">
-                {tier.features.map((feature) => (
-                  <li key={feature} className="flex items-center">
-                    <Check className="mr-2 h-5 w-5 text-green-500" />
-                    <span>{feature}</span>
-                  </li>
-                ))}
-              </ul>
-            </CardContent>
-            <CardFooter>
-              <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name as 'Standard' | 'Premium')}>
-                Choose Plan
-              </Button>
-            </CardFooter>
-          </Card>
-        ))}
+        {tiers.map((tier) => renderTierCard(tier, false, false))}
       </div>
     </div>
   );
 }
-
-    
