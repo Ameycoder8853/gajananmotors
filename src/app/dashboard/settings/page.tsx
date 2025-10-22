@@ -182,10 +182,10 @@ export default function SettingsPage() {
             Manage your personal information and profile picture.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-8 md:grid-cols-3">
-          <div className="md:col-span-2">
-            <Form {...profileForm}>
-              <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+        <CardContent>
+          <Form {...profileForm}>
+            <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="grid gap-8 md:grid-cols-3">
+              <div className="md:col-span-2 space-y-6">
                 <FormField
                   control={profileForm.control}
                   name="name"
@@ -231,24 +231,24 @@ export default function SettingsPage() {
                 <Button type="submit" disabled={profileForm.formState.isSubmitting}>
                   {profileForm.formState.isSubmitting ? 'Saving...' : 'Save Changes'}
                 </Button>
-              </form>
-            </Form>
-          </div>
-          <div className="space-y-4 text-center">
-              <FormLabel>Profile Picture</FormLabel>
-              <Avatar className="h-32 w-32 mx-auto">
-                <AvatarImage src={pfpPreview || user?.photoURL || ''} alt={user?.displayName || 'User'} />
-                <AvatarFallback className="text-4xl">{getInitials(user?.displayName)}</AvatarFallback>
-              </Avatar>
-              <Input id="pfp-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handlePfpFileChange} />
-              <label htmlFor="pfp-upload" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer w-full">
-                <Upload className="mr-2 h-4 w-4" />
-                Choose Picture
-              </label>
-              <Button onClick={handlePfpUpload} disabled={isUploading || !pfpFile} className="w-full">
-                {isUploading ? 'Uploading...' : 'Upload Picture'}
-              </Button>
-          </div>
+              </div>
+              <div className="space-y-4 text-center">
+                  <FormLabel>Profile Picture</FormLabel>
+                  <Avatar className="h-32 w-32 mx-auto">
+                    <AvatarImage src={pfpPreview || user?.photoURL || ''} alt={user?.displayName || 'User'} />
+                    <AvatarFallback className="text-4xl">{getInitials(user?.displayName)}</AvatarFallback>
+                  </Avatar>
+                  <Input id="pfp-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handlePfpFileChange} />
+                  <label htmlFor="pfp-upload" className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2 cursor-pointer w-full">
+                    <Upload className="mr-2 h-4 w-4" />
+                    Choose Picture
+                  </label>
+                  <Button onClick={handlePfpUpload} disabled={isUploading || !pfpFile} className="w-full">
+                    {isUploading ? 'Uploading...' : 'Upload Picture'}
+                  </Button>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
 
