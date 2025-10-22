@@ -5,5 +5,5 @@ export const firebaseConfig = {
   "authDomain": "studio-3421303385-44fc1.firebaseapp.com",
   "measurementId": "",
   "messagingSenderId": "639177828437",
-  "storageBucket": "studio-3421303385-44fc1.appspot.com"
+  "storageBucket": "videomatic-ai-5c2b2.appspot.com"
 };
