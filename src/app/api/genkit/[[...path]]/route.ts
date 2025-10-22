@@ -1,4 +1,4 @@
-import { myFlow } from '@/genkit/myFlow';
-import { appRoute } from '@genkit-ai/next';
+import { yourFlow } from '@/genkit/yourFlow';
+import { appRoute } from '@genkit-ai/next'; // if your version exports appRoute
 
-export const POST = appRoute(myFlow);
+export const POST = appRoute(yourFlow);
