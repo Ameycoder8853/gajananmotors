@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { useCollection, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, query, where, doc, Firestore } from 'firebase/firestore';
+import { collection, query, where, doc } from 'firebase/firestore';
 import { useFirestore } from '@/firebase/provider';
 import type { User } from '@/lib/types';
 import {
@@ -31,14 +31,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog"
-import Image from "next/image";
 import { useToast } from '@/hooks/use-toast';
 
 
 export default function DealersPage() {
-    const firestore = useFirestore() as Firestore;
+    const firestore = useFirestore();
     const { toast } = useToast();
     
     const dealersQuery = useMemoFirebase(() => {
@@ -61,6 +59,7 @@ export default function DealersPage() {
         const userDocRef = doc(firestore, 'users', userId);
         updateDocumentNonBlocking(userDocRef, { verificationStatus: 'verified' });
         toast({ title: 'Dealer Approved', description: 'The dealer has been marked as verified.' });
+        setIsDialogOpen(false);
     };
 
     const handleReject = (userId: string) => {
@@ -68,6 +67,7 @@ export default function DealersPage() {
         const userDocRef = doc(firestore, 'users', userId);
         updateDocumentNonBlocking(userDocRef, { verificationStatus: 'rejected' });
         toast({ variant: 'destructive', title: 'Dealer Rejected', description: 'The dealer has been marked as rejected.' });
+        setIsDialogOpen(false);
     };
 
     const VerificationStatusBadge = ({ status }: { status: User['verificationStatus'] }) => {
@@ -121,7 +121,6 @@ export default function DealersPage() {
                         <VerificationStatusBadge status={user.verificationStatus} />
                     </TableCell>
                     <TableCell className="text-center">
-                        {/* Assuming emailVerified is part of the firebase user object which we merge into our user type */}
                         {user.emailVerified ? <CheckCircle2 className="h-5 w-5 text-green-500" /> : <XCircle className="h-5 w-5 text-red-500" />}
                     </TableCell>
                     <TableCell className="text-center">
@@ -161,10 +160,10 @@ export default function DealersPage() {
             <DialogHeader>
                 <DialogTitle>Verification Documents</DialogTitle>
                 <DialogDescription>
-                    Documents uploaded by {selectedUser?.name}.
+                    Documents uploaded by {selectedUser?.name}. Review and then approve or reject.
                 </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
+            <div className="space-y-4 py-4">
                 {selectedUser?.aadharUrl ? (
                     <div>
                         <h3 className="font-semibold">Aadhar Card</h3>
@@ -190,6 +189,12 @@ export default function DealersPage() {
                     </div>
                 ) : <p>No Shop License uploaded.</p>}
             </div>
+            {selectedUser?.verificationStatus === 'pending' && (
+                <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => handleReject(selectedUser.id)}>Reject</Button>
+                    <Button onClick={() => handleApprove(selectedUser.id)}>Approve</Button>
+                </div>
+            )}
         </DialogContent>
     </Dialog>
     </>
