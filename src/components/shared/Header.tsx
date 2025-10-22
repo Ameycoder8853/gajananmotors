@@ -48,20 +48,33 @@ function ThemeSwitcher() {
 
 
 export function Header() {
-  const { user, logout, isUserLoading } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
+  const [activeHash, setActiveHash] = useState('');
 
   useEffect(() => {
     const handleScroll = () => {
       setScrolled(window.scrollY > 10);
     };
     window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    
+    const handleHashChange = () => {
+      setActiveHash(window.location.hash);
+    };
+    window.addEventListener('hashchange', handleHashChange, false);
+
+    // Set initial hash
+    setActiveHash(window.location.hash);
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, []);
   
-  const isMarketingPage = pathname === '/' || pathname.startsWith('/#');
+  const isMarketingPage = pathname === '/';
   
   const headerClasses = cn(
     "sticky top-0 z-50 w-full transition-all duration-300",
@@ -74,13 +87,13 @@ export function Header() {
   const activeLinkColor = scrolled || !isMarketingPage ? "text-primary" : "text-primary-foreground";
 
 
-  const navLinkStyle = (path?: string) => {
-    const isActive = (path === '/' && pathname === '/') || (path !== '/' && pathname.startsWith(path || ''));
+  const getNavLinkStyle = (path?: string) => {
+    const isActive = (pathname === path) || (isMarketingPage && path?.startsWith('/#') && activeHash === path.substring(1));
     return cn(
       "relative transition-colors text-sm font-medium",
       linkColor,
       "hover:text-primary",
-      isActive && activeLinkColor
+       isActive && activeLinkColor
     );
   };
   
@@ -94,17 +107,19 @@ export function Header() {
     // Don't show auth-dependent links while loading
   } else if (user) {
     if (user.role === 'admin') {
-      navLinks.push(
+      navLinks = [
+        ...navLinks,
         { href: '/dashboard', label: 'Overview' },
         { href: '/dashboard/listings', label: 'All Listings' },
         { href: '/dashboard/dealers', label: 'Dealers' }
-      );
+      ];
     } else { // 'dealer'
-      navLinks.push(
+      navLinks = [
+        ...navLinks,
         { href: '/dashboard/my-listings', label: 'My Listings' },
         { href: '/dashboard/subscription', label: 'Subscription' },
         { href: '/dashboard/verification', label: 'Verification' }
-      );
+      ];
     }
   } else {
     navLinks.push({ href: '/dashboard/subscription', label: 'Subscription' });
@@ -134,6 +149,10 @@ export function Header() {
             Settings
           </DropdownMenuItem>
           <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => router.push(user.role === 'admin' ? '/dashboard' : '/dashboard/my-listings')}>
+            Dashboard
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={logout}>
             Log out
           </DropdownMenuItem>
@@ -148,12 +167,12 @@ export function Header() {
         <Logo className={cn(scrolled || !isMarketingPage ? "text-foreground" : "text-white")} />
         <nav className="hidden md:flex items-center space-x-4 lg:space-x-6 ml-10">
           {navLinks.map((link) => {
-            const isActive = (link.href === '/' && pathname === '/') || (link.href !== '/' && pathname.startsWith(link.href));
+             const isActive = (pathname === link.href) || (isMarketingPage && link.href.startsWith('/#') && activeHash === link.href.substring(1));
             return (
               <Link
                 key={link.href}
                 href={link.href}
-                className={navLinkStyle(link.href)}
+                className={getNavLinkStyle(link.href)}
               >
                 {link.label}
                 {isActive && <span className="absolute bottom-[-2px] left-0 w-full h-0.5 bg-primary"></span>}
