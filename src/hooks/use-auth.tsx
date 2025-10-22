@@ -151,7 +151,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               });
             }
 
-            const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser, emailVerified: firebaseUser.emailVerified, isPhoneVerified: appUser.isPhoneVerified ?? false };
+            const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser, photoURL: firebaseUser.photoURL, emailVerified: firebaseUser.emailVerified, isPhoneVerified: appUser.isPhoneVerified ?? false };
             setUser(enhancedUser);
 
             // Redirect based on role after login
@@ -173,6 +173,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     id: firebaseUser.uid,
                     name: displayName,
                     email: email,
+                    photoURL: firebaseUser.photoURL || '',
                     role: 'dealer',
                     phone: firebaseUser.phoneNumber || '',
                     isPro: false,
@@ -182,7 +183,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     verificationStatus: 'unverified'
                 };
                 setDocumentNonBlocking(userDocRef, newUser, { merge: false });
-                const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, emailVerified: firebaseUser.emailVerified, isPhoneVerified: false };
+                const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, photoURL: firebaseUser.photoURL, emailVerified: firebaseUser.emailVerified, isPhoneVerified: false };
                 setUser(enhancedUser);
                 if (router) router.push('/dashboard/my-listings');
             }

@@ -7,6 +7,7 @@ export type User = {
   name: string;
   phone: string;
   email: string;
+  photoURL?: string;
   emailVerified?: boolean; // Added from FirebaseUser
   role: 'dealer' | 'admin';
   isPro: boolean;
@@ -24,6 +25,7 @@ export type User = {
 export type FirebaseUser = import('firebase/auth').User & {
     role?: 'admin' | 'dealer';
     phone?: string;
+    photoURL?: string;
     subscriptionType?: 'Standard' | 'Premium';
     adCredits?: number;
     isPro?: boolean;
