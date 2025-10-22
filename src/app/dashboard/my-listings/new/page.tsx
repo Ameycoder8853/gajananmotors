@@ -37,9 +37,11 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { initializeFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
+import { carData, makes } from '@/lib/car-data';
+import { locationData } from '@/lib/location-data';
 
 const adFormSchema = z.object({
   make: z.string().min(2, 'Make is required.'),
@@ -51,7 +53,9 @@ const adFormSchema = z.object({
   transmission: z.enum(['Automatic', 'Manual']),
   price: z.coerce.number().min(10000, 'Price must be at least ₹10,000.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
-  location: z.string().min(3, 'Location is required.'),
+  state: z.string().min(1, "State is required."),
+  city: z.string().min(1, "City is required."),
+  subLocation: z.string().min(1, "Sub-location is required."),
   images: z.array(z.instanceof(File)).min(1, 'At least one image is required.').max(5, 'You can upload a maximum of 5 images.'),
 });
 
@@ -64,6 +68,10 @@ export default function NewListingPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
+  const [models, setModels] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
+  const [subLocations, setSubLocations] = useState<string[]>([]);
+
 
   const form = useForm<z.infer<typeof adFormSchema>>({
     resolver: zodResolver(adFormSchema),
@@ -75,10 +83,40 @@ export default function NewListingPage() {
       kmDriven: 0,
       price: 10000,
       description: '',
-      location: '',
+      state: '',
+      city: '',
+      subLocation: '',
       images: [],
     },
   });
+
+  const selectedMake = form.watch('make');
+  const selectedState = form.watch('state');
+  const selectedCity = form.watch('city');
+
+  useEffect(() => {
+    if (selectedMake) {
+      setModels(carData[selectedMake] || []);
+      form.setValue('model', '');
+    }
+  }, [selectedMake, form]);
+
+  useEffect(() => {
+    if (selectedState) {
+        setCities(Object.keys(locationData[selectedState] || {}));
+        form.setValue('city', '');
+        setSubLocations([]);
+        form.setValue('subLocation', '');
+    }
+  }, [selectedState, form]);
+
+  useEffect(() => {
+    if (selectedState && selectedCity) {
+        setSubLocations(locationData[selectedState]?.[selectedCity] || []);
+        form.setValue('subLocation', '');
+    }
+  }, [selectedState, selectedCity, form]);
+
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
@@ -130,7 +168,7 @@ export default function NewListingPage() {
 
     setUploadProgress(0);
     const carsCollectionRef = collection(firestore, 'cars');
-    const newCarDocRef = doc(carsCollectionRef); // Generate a new ID for the car
+    const newCarDocRef = doc(carsCollectionRef); 
     const adId = newCarDocRef.id;
 
     try {
@@ -138,13 +176,16 @@ export default function NewListingPage() {
         setUploadProgress(100);
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
+        const location = `${values.subLocation}, ${values.city}, ${values.state}`;
         
+        const { state, city, subLocation, ...restOfValues } = values;
+
         const userDocRef = doc(firestore, 'users', user.uid);
     
-        // Use the generated ref (newCarDocRef) to set the document
         setDocumentNonBlocking(newCarDocRef, {
-          ...values,
-          id: adId, // Explicitly set the document ID
+          ...restOfValues,
+          location,
+          id: adId,
           title,
           images: imageUrls,
           dealerId: user.uid,
@@ -173,7 +214,7 @@ export default function NewListingPage() {
         toast({
             variant: 'destructive',
             title: 'Upload Failed',
-            description: 'There was an error uploading your images. Please try again.',
+            description: 'There was an error publishing your ad. Please try again.',
         });
         setUploadProgress(null);
     }
@@ -198,14 +239,21 @@ export default function NewListingPage() {
         </CardHeader>
         <CardContent>
             <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
                 <FormField control={form.control} name="make" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Make</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Maruti Suzuki" {...field} />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a car make" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {makes.map(make => <SelectItem key={make} value={make}>{make}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                 )}/>
@@ -213,9 +261,16 @@ export default function NewListingPage() {
                 <FormField control={form.control} name="model" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Model</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Swift" {...field} />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedMake}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a model" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {models.map(model => <SelectItem key={model} value={model}>{model}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                 )}/>
@@ -224,7 +279,7 @@ export default function NewListingPage() {
                     <FormItem>
                         <FormLabel>Variant</FormLabel>
                         <FormControl>
-                            <Input placeholder="e.g., VXi" {...field} />
+                            <Input placeholder="e.g., VXi, ZXi+" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -289,7 +344,7 @@ export default function NewListingPage() {
                     </FormItem>
                 )}/>
 
-                <FormField control={form.control} name="price" render={({ field }) => (
+                 <FormField control={form.control} name="price" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Price (₹)</FormLabel>
                         <FormControl>
@@ -299,12 +354,47 @@ export default function NewListingPage() {
                     </FormItem>
                 )}/>
 
-                <FormField control={form.control} name="location" render={({ field }) => (
+                <FormField control={form.control} name="state" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Location</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Pune, Maharashtra" {...field} />
-                        </FormControl>
+                        <FormLabel>State</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {Object.keys(locationData).map(state => <SelectItem key={state} value={state}>{state}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+
+                <FormField control={form.control} name="city" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>City</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedState}>
+                            <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Select City" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+
+                <FormField control={form.control} name="subLocation" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Sub-location / Area</FormLabel>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCity}>
+                            <FormControl>
+                                <SelectTrigger><SelectValue placeholder="Select Sub-location" /></SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {subLocations.map(sub => <SelectItem key={sub} value={sub}>{sub}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                 )}/>
@@ -313,7 +403,7 @@ export default function NewListingPage() {
                     control={form.control}
                     name="description"
                     render={({ field }) => (
-                        <FormItem className="md:col-span-2">
+                        <FormItem className="lg:col-span-3">
                         <FormLabel>Description</FormLabel>
                         <FormControl>
                             <Textarea
@@ -331,7 +421,7 @@ export default function NewListingPage() {
                   control={form.control}
                   name="images"
                   render={({ field }) => (
-                    <FormItem className="md:col-span-2">
+                    <FormItem className="lg:col-span-3">
                       <FormLabel>Car Images (up to 5)</FormLabel>
                       <FormControl>
                         <div className="flex items-center justify-center w-full">
@@ -351,7 +441,7 @@ export default function NewListingPage() {
                 />
 
                 {imagePreviews.length > 0 && (
-                    <div className="md:col-span-2">
+                    <div className="lg:col-span-3">
                         <FormLabel>Image Previews</FormLabel>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2">
                             {imagePreviews.map((src, index) => (
@@ -367,13 +457,13 @@ export default function NewListingPage() {
                 )}
                 
                 {uploadProgress !== null && (
-                    <div className="md:col-span-2">
+                    <div className="lg:col-span-3">
                         <Progress value={uploadProgress} className="w-full" />
                         <p className="text-sm text-center mt-2 text-muted-foreground">{uploadProgress < 100 ? `Uploading images... ${Math.round(uploadProgress)}%` : 'Upload complete!'}</p>
                     </div>
                 )}
 
-                <div className="md:col-span-2 flex justify-end">
+                <div className="lg:col-span-3 flex justify-end">
                     <Button type="submit" size="lg" disabled={form.formState.isSubmitting || uploadProgress !== null}>
                         {form.formState.isSubmitting || uploadProgress !== null ? 'Publishing...' : 'Publish Ad'}
                     </Button>

@@ -1,9 +1,10 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu } from 'lucide-react';
+import { Menu, Moon, Sun } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -15,7 +16,10 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
+import { useTheme } from 'next-themes';
+import { cn } from '@/lib/utils';
 
 const navLinks = [
   { href: '/market', label: 'Marketplace' },
@@ -23,9 +27,80 @@ const navLinks = [
   { href: '/#contact', label: 'Contact' },
 ];
 
+function ThemeSwitcher() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return null;
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+    >
+      <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+      <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+      <span className="sr-only">Toggle theme</span>
+    </Button>
+  );
+}
+
 export function Header() {
   const { user, logout, isUserLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+  
+  const isDashboard = pathname.startsWith('/dashboard');
+
+  if (isDashboard) {
+    // A simplified header for the dashboard or no header at all if sidebar is used
+    return (
+       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+         <div className="container flex h-14 items-center justify-end gap-2">
+            <ThemeSwitcher />
+             {user && (
+                 <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
+                        <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
+                      </Avatar>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent className="w-56" align="end" forceMount>
+                    <DropdownMenuLabel className="font-normal">
+                      <div className="flex flex-col space-y-1">
+                        <p className="text-sm font-medium leading-none">{user.displayName}</p>
+                        <p className="text-xs leading-none text-muted-foreground">
+                          {user.email}
+                        </p>
+                      </div>
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout}>
+                      Log out
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+            )}
+         </div>
+       </header>
+    );
+  }
+
 
   const getInitials = (name?: string | null) => {
     if (!name) return 'U';
@@ -72,7 +147,10 @@ export function Header() {
 
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-card/80 backdrop-blur-sm">
+    <header className={cn(
+      "sticky top-0 z-50 w-full transition-all duration-300",
+      scrolled ? "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" : "bg-transparent"
+    )}>
       <div className="container flex h-16 items-center">
         <Logo />
         <nav className="hidden md:flex items-center space-x-6 ml-10 text-sm font-medium">
@@ -80,24 +158,25 @@ export function Header() {
             <Link
               key={link.href}
               href={link.href}
-              className="text-muted-foreground transition-colors hover:text-foreground"
+              className={cn("transition-colors hover:text-foreground", scrolled ? "text-muted-foreground" : "text-primary-foreground/80 hover:text-primary-foreground")}
             >
               {link.label}
             </Link>
           ))}
           {user && user.role === 'admin' && (
-            <Link href="/dashboard" className="text-muted-foreground transition-colors hover:text-foreground">
+            <Link href="/dashboard" className={cn("transition-colors hover:text-foreground", scrolled ? "text-muted-foreground" : "text-primary-foreground/80 hover:text-primary-foreground")}>
               Dashboard
             </Link>
           )}
         </nav>
-        <div className="flex flex-1 items-center justify-end space-x-4">
+        <div className="flex flex-1 items-center justify-end space-x-2">
+           <ThemeSwitcher />
           <div className="hidden md:flex items-center space-x-2">
             {!isUserLoading && user ? (
               userMenu
             ) : !isUserLoading ? (
               <>
-                <Button asChild variant="ghost">
+                <Button asChild variant={scrolled ? "ghost" : "outline"} className={cn(!scrolled && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
                   <Link href="/login">Log In</Link>
                 </Button>
                 <Button asChild>
@@ -108,7 +187,7 @@ export function Header() {
           </div>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="md:hidden">
+              <Button variant="outline" size="icon" className={cn("md:hidden", !scrolled && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
