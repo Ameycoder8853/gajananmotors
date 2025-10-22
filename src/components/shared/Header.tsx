@@ -55,6 +55,12 @@ export function Header() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [activeHash, setActiveHash] = useState('');
+  const [navLinks, setNavLinks] = useState([
+    { href: '/market', label: 'Marketplace' },
+    { href: '/#features', label: 'Features' },
+    { href: '/#contact', label: 'Contact' },
+    { href: '/dashboard/subscription', label: 'Subscription' }
+  ]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -67,14 +73,44 @@ export function Header() {
     };
     window.addEventListener('hashchange', onHashChange);
     
-    // Set initial hash
     setActiveHash(window.location.hash);
+
+    if (!isUserLoading) {
+      if (user) {
+        if (user.role === 'admin') {
+          setNavLinks([
+            { href: '/market', label: 'Marketplace' },
+            { href: '/#features', label: 'Features' },
+            { href: '/#contact', label: 'Contact' },
+            { href: '/dashboard', label: 'Overview' },
+            { href: '/dashboard/listings', label: 'All Listings' },
+            { href: '/dashboard/dealers', label: 'Dealers' }
+          ]);
+        } else { // 'dealer'
+          setNavLinks([
+            { href: '/market', label: 'Marketplace' },
+            { href: '/#features', label: 'Features' },
+            { href: '/#contact', label: 'Contact' },
+            { href: '/dashboard/my-listings', label: 'My Listings' },
+            { href: '/dashboard/subscription', label: 'Subscription' },
+            { href: '/dashboard/verification', label: 'Verification' }
+          ]);
+        }
+      } else {
+        setNavLinks([
+            { href: '/market', label: 'Marketplace' },
+            { href: '/#features', label: 'Features' },
+            { href: '/#contact', label: 'Contact' },
+            { href: '/dashboard/subscription', label: 'Subscription' }
+        ]);
+      }
+    }
 
     return () => {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('hashchange', onHashChange);
     };
-  }, []);
+  }, [user, isUserLoading]);
   
   const isMarketingPage = pathname === '/';
   
@@ -99,40 +135,6 @@ export function Header() {
     );
   };
   
-  let navLinks;
-
-  if (isUserLoading) {
-      navLinks = [];
-  } else if (user) {
-      if (user.role === 'admin') {
-          navLinks = [
-              { href: '/market', label: 'Marketplace' },
-              { href: '/#features', label: 'Features' },
-              { href: '/#contact', label: 'Contact' },
-              { href: '/dashboard', label: 'Overview' },
-              { href: '/dashboard/listings', label: 'All Listings' },
-              { href: '/dashboard/dealers', label: 'Dealers' }
-          ];
-      } else { // 'dealer'
-          navLinks = [
-              { href: '/market', label: 'Marketplace' },
-              { href: '/#features', label: 'Features' },
-              { href: '/#contact', label: 'Contact' },
-              { href: '/dashboard/my-listings', label: 'My Listings' },
-              { href: '/dashboard/subscription', label: 'Subscription' },
-              { href: '/dashboard/verification', label: 'Verification' }
-          ];
-      }
-  } else {
-      navLinks = [
-          { href: '/market', label: 'Marketplace' },
-          { href: '/#features', label: 'Features' },
-          { href: '/#contact', label: 'Contact' },
-          { href: '/dashboard/subscription', label: 'Subscription' }
-      ];
-  }
-
-
   const userMenu = user ? (
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -168,7 +170,7 @@ export function Header() {
   return (
     <header className={headerClasses}>
       <div className="container flex h-16 items-center">
-        <div className="mr-auto">
+        <div className="flex-none mr-4">
           <Logo className={cn(scrolled || !isMarketingPage ? "text-foreground" : "text-white")} />
         </div>
         
@@ -193,7 +195,7 @@ export function Header() {
           })}
         </nav>
 
-        <div className="flex items-center justify-end space-x-2 ml-auto">
+        <div className="flex flex-none items-center justify-end space-x-2 ml-4">
            <ThemeSwitcher />
           <div className="hidden md:flex items-center space-x-2">
             {!isUserLoading && user ? (
@@ -207,7 +209,7 @@ export function Header() {
                   <Link href="/signup">Sign Up</Link>
                 </Button>
               </>
-            ) : null}
+            ) : <div className='h-8 w-8' />}
           </div>
           <Sheet>
             <SheetTrigger asChild>
