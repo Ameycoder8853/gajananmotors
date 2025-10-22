@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -60,19 +61,17 @@ export function Header() {
     };
     window.addEventListener('scroll', handleScroll);
     
-    const handleHashChange = () => {
-      setActiveHash(window.location.hash);
-    };
-    window.addEventListener('hashchange', handleHashChange, false);
-
-    // Set initial hash
-    if (typeof window !== 'undefined') {
+    const onHashChange = () => {
         setActiveHash(window.location.hash);
-    }
+    };
+    window.addEventListener('hashchange', onHashChange);
     
+    // Set initial hash
+    setActiveHash(window.location.hash);
+
     return () => {
       window.removeEventListener('scroll', handleScroll);
-      window.removeEventListener('hashchange', handleHashChange);
+      window.removeEventListener('hashchange', onHashChange);
     };
   }, []);
   
@@ -99,33 +98,39 @@ export function Header() {
     );
   };
   
-  let navLinks = [
-    { href: '/market', label: 'Marketplace' },
-    { href: '/#features', label: 'Features' },
-    { href: '/#contact', label: 'Contact' },
-  ];
-  
-  if(isUserLoading) {
-    // Don't show auth-dependent links while loading
+  let navLinks;
+
+  if (isUserLoading) {
+      navLinks = [];
   } else if (user) {
-    if (user.role === 'admin') {
-      navLinks = [
-        ...navLinks,
-        { href: '/dashboard', label: 'Overview' },
-        { href: '/dashboard/listings', label: 'All Listings' },
-        { href: '/dashboard/dealers', label: 'Dealers' }
-      ];
-    } else { // 'dealer'
-      navLinks = [
-        ...navLinks,
-        { href: '/dashboard/my-listings', label: 'My Listings' },
-        { href: '/dashboard/subscription', label: 'Subscription' },
-        { href: '/dashboard/verification', label: 'Verification' }
-      ];
-    }
+      if (user.role === 'admin') {
+          navLinks = [
+              { href: '/market', label: 'Marketplace' },
+              { href: '/#features', label: 'Features' },
+              { href: '/#contact', label: 'Contact' },
+              { href: '/dashboard', label: 'Overview' },
+              { href: '/dashboard/listings', label: 'All Listings' },
+              { href: '/dashboard/dealers', label: 'Dealers' }
+          ];
+      } else { // 'dealer'
+          navLinks = [
+              { href: '/market', label: 'Marketplace' },
+              { href: '/#features', label: 'Features' },
+              { href: '/#contact', label: 'Contact' },
+              { href: '/dashboard/my-listings', label: 'My Listings' },
+              { href: '/dashboard/subscription', label: 'Subscription' },
+              { href: '/dashboard/verification', label: 'Verification' }
+          ];
+      }
   } else {
-    navLinks.push({ href: '/dashboard/subscription', label: 'Subscription' });
+      navLinks = [
+          { href: '/market', label: 'Marketplace' },
+          { href: '/#features', label: 'Features' },
+          { href: '/#contact', label: 'Contact' },
+          { href: '/dashboard/subscription', label: 'Subscription' }
+      ];
   }
+
 
   const userMenu = user ? (
       <DropdownMenu>
@@ -163,7 +168,8 @@ export function Header() {
     <header className={headerClasses}>
       <div className="container flex h-16 items-center">
         <Logo className={cn(scrolled || !isMarketingPage ? "text-foreground" : "text-white")} />
-        <nav className="hidden md:flex items-center space-x-4 lg:space-x-6 ml-10">
+        
+        <nav className="hidden md:flex flex-1 justify-center items-center space-x-4 lg:space-x-6">
           {navLinks.map((link) => {
              const isActive = (pathname === link.href) || (isMarketingPage && link.href.startsWith('/#') && activeHash === link.href.substring(1));
             return (
@@ -173,12 +179,13 @@ export function Header() {
                 className={getNavLinkStyle(link.href)}
               >
                 {link.label}
-                {isActive && <span className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-4/5 h-0.5 bg-primary rounded-full"></span>}
+                {isActive && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>}
               </Link>
             )
           })}
         </nav>
-        <div className="flex flex-1 items-center justify-end space-x-2">
+
+        <div className="flex items-center justify-end space-x-2 w-auto md:w-auto">
            <ThemeSwitcher />
           <div className="hidden md:flex items-center space-x-2">
             {!isUserLoading && user ? (

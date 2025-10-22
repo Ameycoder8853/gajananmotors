@@ -153,19 +153,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser, emailVerified: firebaseUser.emailVerified, isPhoneVerified: appUser.isPhoneVerified ?? false };
             setUser(enhancedUser);
 
-            // Redirect based on role
-            if (router) { // Ensure router is available
+            // Redirect based on role after login
+            const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/signup';
+            if (router && isLoginPage) { 
                 if (appUser.role === 'admin') {
-                    if(!window.location.pathname.startsWith('/dashboard')) router.push('/dashboard');
+                    router.push('/dashboard');
                 } else if (appUser.role === 'dealer') {
-                    if (appUser.verificationStatus !== 'verified') {
-                        if (window.location.pathname !== '/dashboard/verification') router.push('/dashboard/verification');
-                    }
-                    else if (appUser.isPro && (appUser.adCredits ?? 0) > 0) {
-                        if(!window.location.pathname.startsWith('/dashboard')) router.push('/dashboard/my-listings');
-                    } else {
-                        if(!window.location.pathname.startsWith('/dashboard')) router.push('/dashboard/subscription');
-                    }
+                    router.push('/dashboard/my-listings');
                 }
             }
           } else {
@@ -189,7 +183,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setDocumentNonBlocking(userDocRef, newUser, { merge: false });
                 const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, emailVerified: firebaseUser.emailVerified, isPhoneVerified: false };
                 setUser(enhancedUser);
-                if (router) router.push('/dashboard/verification');
+                if (router) router.push('/dashboard/my-listings');
             }
           }
 
@@ -286,5 +280,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    

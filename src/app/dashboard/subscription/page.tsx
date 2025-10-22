@@ -48,19 +48,11 @@ export default function SubscriptionPage() {
     if (!user) {
       toast({
         variant: 'destructive',
-        title: 'Authentication Error',
-        description: 'You must be logged in to make a purchase.',
+        title: 'Authentication Required',
+        description: 'You must be logged in to purchase a subscription. Redirecting to login...',
       });
+      router.push('/login');
       return;
-    }
-     if (user.verificationStatus !== 'verified') {
-        toast({
-            variant: 'destructive',
-            title: 'Verification Required',
-            description: 'Please complete your account verification before purchasing a subscription.',
-        });
-        router.push('/dashboard/verification');
-        return;
     }
 
     if (!planId || planId.startsWith('replace_with')) {
@@ -145,6 +137,7 @@ export default function SubscriptionPage() {
           title: isUpgrade ? 'Upgrade Successful!' : 'Payment Successful',
           description: `${credits} ad credits have been added to your account.`,
         });
+        router.push('/dashboard/my-listings');
       },
       prefill: {
         name: user.displayName || 'Gajanan User',
@@ -169,7 +162,7 @@ export default function SubscriptionPage() {
 
   const renderTierCard = (tier: (typeof tiers)[0], isCurrent: boolean, isUpgradeOption: boolean) => {
     return (
-      <Card key={tier.name} className={cn("flex flex-col", isCurrent && "border-primary border-2")}>
+      <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up", isCurrent && "border-primary border-2")}>
         <CardHeader>
           <div className="flex justify-between items-center">
              <CardTitle className="text-2xl">{tier.name}</CardTitle>
@@ -214,13 +207,13 @@ export default function SubscriptionPage() {
 
     return (
         <div>
-            <div className="text-center mb-12">
+            <div className="text-center mb-12 animate-fade-in-up">
                 <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
                 <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
             </div>
             <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
                {currentTier && (
-                 <Card className="border-primary border-2">
+                 <Card className="border-primary border-2 animate-fade-in-up">
                     <CardHeader>
                         <div className="flex justify-between items-center">
                             <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
@@ -251,31 +244,30 @@ export default function SubscriptionPage() {
     );
   }
 
-  if (user && user.verificationStatus !== 'verified') {
-    return (
-      <div className="text-center">
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Account Not Verified</AlertTitle>
-          <AlertDescription>
-            You must verify your account before you can purchase a subscription.
-          </AlertDescription>
-        </Alert>
-        <Button asChild className="mt-6">
-          <Link href="/dashboard/verification">Go to Verification</Link>
-        </Button>
-      </div>
-    )
-  }
-
   return (
     <div>
-      <div className="text-center mb-12">
+      <div className="text-center mb-12 animate-fade-in-up">
         <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
         <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
       </div>
+       {user && user.verificationStatus !== 'verified' && (
+        <Alert className="max-w-4xl mx-auto mb-8 animate-fade-in">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Account Verification Recommended</AlertTitle>
+          <AlertDescription>
+            You can purchase a subscription now, but you must complete account verification before you can post any ads.
+             <Button variant="link" asChild className="p-1 h-auto">
+                <Link href="/dashboard/verification">Complete Verification</Link>
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        {tiers.map((tier) => renderTierCard(tier, false, false))}
+        {tiers.map((tier, index) => (
+            <div key={tier.name} style={{ animationDelay: `${index * 150}ms` }}>
+                {renderTierCard(tier, false, false)}
+            </div>
+        ))}
       </div>
     </div>
   );
