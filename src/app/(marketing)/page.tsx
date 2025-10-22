@@ -8,6 +8,8 @@ import { FeaturedCars } from "@/components/landing/FeaturedCars";
 import { HowItWorks } from "@/components/landing/HowItWorks";
 import { Testimonials } from "@/components/landing/Testimonials";
 import { Cta } from "@/components/landing/Cta";
+import { Stats } from "@/components/landing/Stats";
+import { Faq } from "@/components/landing/Faq";
 
 function ContactForm() {
     return (
@@ -54,8 +56,10 @@ export default function LandingPage() {
       <Hero />
       <Features />
       <FeaturedCars />
+      <Stats />
       <HowItWorks />
       <Testimonials />
+      <Faq />
       <Cta />
       <ContactForm />
     </>
