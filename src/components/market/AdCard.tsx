@@ -1,3 +1,4 @@
+'use client';
 import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
@@ -5,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import type { Ad } from "@/lib/types";
 import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Timestamp } from "firebase/firestore";
 
 type AdCardProps = {
   ad: Ad;
@@ -12,6 +14,14 @@ type AdCardProps = {
 
 export function AdCard({ ad }: AdCardProps) {
   const imageUrl = Array.isArray(ad.images) && ad.images.length > 0 ? ad.images[0] : `https://picsum.photos/seed/${ad.id}/600/400`;
+
+  const getFormattedDate = () => {
+    if (!ad.createdAt) return '';
+    if (ad.createdAt instanceof Timestamp) {
+      return ad.createdAt.toDate().toLocaleDateString();
+    }
+    return new Date(ad.createdAt as any).toLocaleDateString();
+  }
 
   return (
     <Card className="overflow-hidden h-full flex flex-col group">
@@ -72,7 +82,7 @@ export function AdCard({ ad }: AdCardProps) {
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">{ad.location}</span>
              </div>
-             <span>{ad.createdAt ? new Date(ad.createdAt as any).toLocaleDateString() : ''}</span>
+             <span>{getFormattedDate()}</span>
         </div>
       </CardContent>
     </Card>
