@@ -13,7 +13,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRouter, usePathname } from 'next/navigation';
@@ -65,37 +64,36 @@ export function Header() {
   const isDashboard = pathname.startsWith('/dashboard');
 
   const navLinkStyle = (path?: string) => cn(
-    "transition-colors",
-    (scrolled || pathname !== '/') ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground",
-    path && pathname === path && "text-primary font-semibold"
+    "transition-colors text-sm font-medium",
+    (scrolled || isDashboard || pathname !== '/') ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground",
+    path && pathname === path && ((scrolled || isDashboard || pathname !== '/') ? "text-primary" : "text-primary-foreground")
   );
   
-  const navLinks = [
+  const baseNavLinks = [
     { href: '/market', label: 'Marketplace' },
     { href: '/#features', label: 'Features' },
     { href: '/#contact', label: 'Contact' },
   ];
   
-  const dealerNavLinks = [
-      { href: '/dashboard/my-listings', label: 'My Listings' },
-      { href: '/dashboard/verification', label: 'Verification' },
-      { href: '/dashboard/subscription', label: 'Subscription' },
-  ];
+  let navLinks = [...baseNavLinks];
 
-  const adminNavLinks = [
-      { href: '/dashboard', label: 'Overview' },
-      { href: '/dashboard/listings', label: 'All Listings' },
-      { href: '/dashboard/dealers', label: 'Dealers' },
-      { href: '/dashboard/commissions', label: 'Commissions' },
-  ]
-  
-  const getDashboardLinks = () => {
-      if (user?.role === 'admin') return adminNavLinks;
-      if (user?.role === 'dealer') return dealerNavLinks;
-      return [];
+  if (user) {
+    if (user.role === 'admin') {
+      navLinks.push(
+        { href: '/dashboard', label: 'Overview' },
+        { href: '/dashboard/listings', label: 'All Listings' },
+        { href: '/dashboard/dealers', label: 'Dealers' }
+      );
+    } else { // 'dealer'
+      navLinks.push(
+        { href: '/dashboard/my-listings', label: 'My Listings' },
+        { href: '/dashboard/subscription', label: 'Subscription' },
+        { href: '/dashboard/verification', label: 'Verification' }
+      );
+    }
+  } else {
+    navLinks.push({ href: '/dashboard/subscription', label: 'Subscription' });
   }
-
-  const dashboardLinks = getDashboardLinks();
 
 
   const userMenu = user ? (
@@ -118,15 +116,6 @@ export function Header() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-           <DropdownMenuGroup>
-            <DropdownMenuLabel>Dashboard</DropdownMenuLabel>
-             {dashboardLinks.map(link => (
-                <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
-                    {link.label}
-                </DropdownMenuItem>
-            ))}
-           </DropdownMenuGroup>
-          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
             Settings
           </DropdownMenuItem>
@@ -146,7 +135,7 @@ export function Header() {
     )}>
       <div className="container flex h-16 items-center">
         <Logo />
-        <nav className="hidden md:flex items-center space-x-6 ml-10 text-sm font-medium">
+        <nav className="hidden md:flex items-center space-x-4 lg:space-x-6 ml-10">
           {navLinks.map((link) => (
             <Link
               key={link.href}
@@ -195,11 +184,6 @@ export function Header() {
                       {link.label}
                     </Link>
                   ))}
-                  {user && (
-                     <Link href="/dashboard" className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground">
-                        Dashboard
-                      </Link>
-                  )}
                 </nav>
                 <div className="mt-auto border-t pt-6">
                   {!isUserLoading && user ? (
