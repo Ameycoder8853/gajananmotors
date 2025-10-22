@@ -83,12 +83,12 @@ export default function AdDetailPage() {
             <CardContent>
                 <div className="space-y-4">
                     {specs.map(spec => (
-                        <div key={spec.label} className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
+                        <div key={spec.label} className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-3 shrink-0">
                                 {spec.icon}
                                 <span className="text-muted-foreground">{spec.label}</span>
                             </div>
-                            <span className="font-semibold">{spec.value}</span>
+                            <span className="font-semibold text-right">{spec.value}</span>
                         </div>
                     ))}
                 </div>
