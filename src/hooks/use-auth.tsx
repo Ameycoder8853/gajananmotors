@@ -22,6 +22,7 @@ import { useToast } from './use-toast';
 
 interface AuthContextType {
   user: FirebaseUser | null;
+  auth: Auth;
   isUserLoading: boolean;
   loginWithEmail: (email: string, pass: string) => void;
   signUpWithEmail: (email: string, pass: string, name: string, phone: string) => void;
@@ -263,6 +264,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const value = {
     user,
+    auth,
     isUserLoading,
     loginWithEmail,
     signUpWithEmail,
