@@ -168,7 +168,9 @@ export function Header() {
   return (
     <header className={headerClasses}>
       <div className="container flex h-16 items-center">
-        <Logo className={cn(scrolled || !isMarketingPage ? "text-foreground" : "text-white")} />
+        <div className="mr-auto">
+          <Logo className={cn(scrolled || !isMarketingPage ? "text-foreground" : "text-white")} />
+        </div>
         
         <nav className="hidden md:flex flex-1 justify-center items-center space-x-4 lg:space-x-6">
           {navLinks.map((link) => {
@@ -191,7 +193,7 @@ export function Header() {
           })}
         </nav>
 
-        <div className="flex items-center justify-end space-x-2 w-auto md:w-auto">
+        <div className="flex items-center justify-end space-x-2 ml-auto">
            <ThemeSwitcher />
           <div className="hidden md:flex items-center space-x-2">
             {!isUserLoading && user ? (
@@ -214,7 +216,7 @@ export function Header() {
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left">
+            <SheetContent side="right">
               <div className="flex flex-col h-full">
                 <div className="border-b pb-4">
                   <Logo />
@@ -264,4 +266,3 @@ export function Header() {
     </header>
   );
 }
-
