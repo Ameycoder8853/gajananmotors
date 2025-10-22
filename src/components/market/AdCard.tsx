@@ -3,16 +3,37 @@ import Image from "next/image";
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Ad } from "@/lib/types";
-import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck } from "lucide-react";
+import type { Ad, FirebaseUser } from "@/lib/types";
+import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck, Trash2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Timestamp } from "firebase/firestore";
+import { Timestamp, doc, increment } from "firebase/firestore";
+import { usePathname } from "next/navigation";
+import { useAuth } from "@/hooks/use-auth";
+import { Button } from "../ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "../ui/alert-dialog";
+import { Input } from "../ui/input";
+import { useState } from "react";
+import { deleteDocumentNonBlocking, initializeFirebase, updateDocumentNonBlocking } from "@/firebase";
+import { useToast } from "@/hooks/use-toast";
 
 type AdCardProps = {
   ad: Ad;
 };
 
+const subscriptionLimits = {
+    'Standard': 10,
+    'Premium': 20,
+};
+
 export function AdCard({ ad }: AdCardProps) {
+  const { user } = useAuth();
+  const pathname = usePathname();
+  const { firestore } = initializeFirebase();
+  const { toast } = useToast();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
+
+
   const imageUrl = Array.isArray(ad.images) && ad.images.length > 0 ? ad.images[0] : `https://picsum.photos/seed/${ad.id}/600/400`;
 
   const getFormattedDate = () => {
@@ -27,9 +48,37 @@ export function AdCard({ ad }: AdCardProps) {
       return "Invalid Date";
     }
   }
+  
+  const isOwnerOnMyListings = user && user.uid === ad.dealerId && pathname.includes('/my-listings');
+
+  const handleDelete = async () => {
+    if (!user || !firestore) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Authentication error.' });
+        return;
+    }
+
+    const adRef = doc(firestore, 'cars', ad.id);
+    const userRef = doc(firestore, 'users', user.uid);
+
+    deleteDocumentNonBlocking(adRef);
+
+    const currentUserPlan = user.subscriptionType;
+    const creditLimit = currentUserPlan ? subscriptionLimits[currentUserPlan] : 0;
+    
+    // Only increment if the current credits are less than the limit
+    if (user.adCredits !== undefined && user.adCredits < creditLimit) {
+        updateDocumentNonBlocking(userRef, {
+            adCredits: increment(1)
+        });
+    }
+
+    toast({ title: 'Ad Deleted', description: 'Your ad has been successfully removed.' });
+    setIsDialogOpen(false);
+  }
 
   return (
-    <Card className="overflow-hidden h-full flex flex-col group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-fade-in-up">
+    <>
+    <Card className="overflow-hidden h-full flex flex-col group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-fade-in-up relative">
       <div className="relative aspect-video overflow-hidden">
         <Link href={`/market/${ad.id}`}>
           <Image
@@ -90,6 +139,44 @@ export function AdCard({ ad }: AdCardProps) {
              <span>{getFormattedDate()}</span>
         </div>
       </CardContent>
+       {isOwnerOnMyListings && (
+        <div className="absolute bottom-2 right-2">
+            <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <AlertDialogTrigger asChild>
+                    <Button variant="destructive" size="icon" className="h-8 w-8">
+                        <Trash2 className="h-4 w-4" />
+                        <span className="sr-only">Delete Ad</span>
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete your ad and restore one ad credit (if your plan allows).
+                            Please type <strong className="text-destructive">delete</strong> to confirm.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <Input 
+                        value={deleteInput}
+                        onChange={(e) => setDeleteInput(e.target.value)}
+                        placeholder="delete"
+                        className="my-2"
+                    />
+                    <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setDeleteInput('')}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction 
+                            onClick={handleDelete}
+                            disabled={deleteInput !== 'delete'}
+                            className={cn(buttonVariants({ variant: 'destructive' }))}
+                        >
+                            Delete Ad
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div>
+       )}
     </Card>
+    </>
   );
 }
