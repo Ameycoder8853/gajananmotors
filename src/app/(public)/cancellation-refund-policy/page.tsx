@@ -9,22 +9,15 @@ export default function CancellationRefundPolicyPage() {
           <CardTitle className="text-3xl">Cancellation & Refund Policy</CardTitle>
         </CardHeader>
         <CardContent className="prose dark:prose-invert max-w-none">
-          <p>Last updated: {new Date().toLocaleDateString()}</p>
-          
-          <h2>1. Dealer Subscriptions</h2>
-          <p>
-            Payments made by dealers for subscription plans (e.g., 'Standard', 'Premium') are non-refundable. Once a subscription is purchased and ad credits are allocated, the service is considered rendered. Dealers can choose not to renew their subscription for the following period.
-          </p>
-          
-          <h2>2. Ad Posting and Credits</h2>
-          <p>
-            Ad credits purchased as part of a subscription plan have no cash value and cannot be refunded or exchanged. If a dealer deletes an ad, the ad credit may be returned to their account, subject to the terms of their subscription plan.
-          </p>
-          
-          <h2>3. Vehicle Purchases</h2>
-          <p>
-            Gajanan Motors is a platform that connects buyers and sellers. We are not a party to the vehicle transaction itself. Any issues regarding the cancellation of a vehicle purchase or requests for refunds must be settled directly between the buyer and the dealer according to their own agreed-upon terms. We are not responsible for any financial disputes between users.
-          </p>
+            <p>Gajanan Motors believes in helping its customers as far as possible, and has therefore a liberal cancellation policy. Under this policy:</p>
+            <ul>
+                <li>Cancellations will be considered only if the request is made within 2 days of placing the order. However, the cancellation request may not be entertained if the orders have been communicated to the vendors/merchants and they have initiated the process of shipping them.</li>
+                <li>Gajanan Motors does not accept cancellation requests for perishable items like flowers, eatables etc. However, refund/replacement can be made if the customer establishes that the quality of product delivered is not good.</li>
+                <li>In case of receipt of damaged or defective items please report the same to our Customer Service team. The request will, however, be entertained once the merchant has checked and determined the same at his own end. This should be reported within 2 days of receipt of the products.</li>
+                <li>In case you feel that the product received is not as shown on the site or as per your expectations, you must bring it to the notice of our customer service within 2 days of receiving the product. The Customer Service Team after looking into your complaint will take an appropriate decision.</li>
+                <li>In case of complaints regarding products that come with a warranty from manufacturers, please refer the issue to them.</li>
+                <li>In case of any Refunds approved by the Gajanan Motors, it'll take 3-5 days for the refund to be processed to the end customer.</li>
+            </ul>
         </CardContent>
       </Card>
     </div>

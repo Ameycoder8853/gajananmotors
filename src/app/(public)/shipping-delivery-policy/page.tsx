@@ -9,22 +9,7 @@ export default function ShippingDeliveryPolicyPage() {
           <CardTitle className="text-3xl">Shipping & Delivery Policy</CardTitle>
         </CardHeader>
         <CardContent className="prose dark:prose-invert max-w-none">
-          <p>Last updated: {new Date().toLocaleDateString()}</p>
-
-          <h2>1. General Information</h2>
-          <p>
-            Gajanan Motors is a marketplace connecting vehicle buyers and sellers. We do not directly handle the shipping or delivery of vehicles. The transaction, including the delivery and handover of the vehicle, is conducted directly between the buyer and the dealer.
-          </p>
-          
-          <h2>2. Vehicle Handover</h2>
-          <p>
-            Arrangements for vehicle pickup or delivery must be made directly between the buyer and the selling dealer. We recommend both parties document the vehicle's condition at the time of handover and sign a transfer of ownership form.
-          </p>
-
-          <h2>3. Responsibilities</h2>
-          <p>
-            The buyer and seller are responsible for ensuring all legal and logistical aspects of the vehicle transfer are handled correctly, including but not limited to: RTO paperwork, insurance transfer, and payment of any applicable taxes or fees. Gajanan Motors is not liable for any issues that arise during the shipping, delivery, or handover process.
-          </p>
+            <p>For International buyers, orders are shipped and delivered through registered international courier companies and/or International speed post only. For domestic buyers, orders are shipped through registered domestic courier companies and /or speed post only. Orders are shipped within 0-7 days or as per the delivery date agreed at the time of order confirmation and delivering of the shipment subject to Courier Company / post office norms. Gajanan Motors is not liable for any delay in delivery by the courier company / postal authorities and only guarantees to hand over the consignment to the courier company or postal authorities within 0-7 days rom the date of the order and payment or as per the delivery date agreed at the time of order confirmation. Delivery of all orders will be to the address provided by the buyer. Delivery of our services will be confirmed on your mail ID as specified during registration. For any issues in utilizing our services you may contact our helpdesk on 8999809224 or gajananmotors@gmail.com</p>
         </CardContent>
       </Card>
     </div>

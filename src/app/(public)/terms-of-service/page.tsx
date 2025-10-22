@@ -6,51 +6,23 @@ export default function TermsOfServicePage() {
     <div className="container py-12 md:py-16">
       <Card>
         <CardHeader>
-          <CardTitle className="text-3xl">Terms of Service</CardTitle>
+          <CardTitle className="text-3xl">Terms & Conditions</CardTitle>
         </CardHeader>
         <CardContent className="prose dark:prose-invert max-w-none">
-          <p>Last updated: {new Date().toLocaleDateString()}</p>
-          
-          <h2>1. Introduction</h2>
-          <p>
-            Welcome to Gajanan Motors. By accessing our website, you agree to be
-            bound by these terms of service, all applicable laws and regulations,
-            and agree that you are responsible for compliance with any applicable
-            local laws.
-          </p>
-          
-          <h2>2. Use License</h2>
-          <p>
-            Permission is granted to temporarily download one copy of the materials
-            (information or software) on Gajanan Motors' website for personal,
-            non-commercial transitory viewing only. This is the grant of a license,
-            not a transfer of title.
-          </p>
-          
-          <h2>3. Disclaimer</h2>
-          <p>
-            The materials on Gajanan Motors' website are provided on an 'as is'
-            basis. Gajanan Motors makes no warranties, expressed or implied, and
-            hereby disclaims and negates all other warranties including, without
-            limitation, implied warranties or conditions of merchantability,
-            fitness for a particular purpose, or non-infringement of intellectual
-            property or other violation of rights.
-          </p>
-          
-          <h2>4. Limitations</h2>
-          <p>
-            In no event shall Gajanan Motors or its suppliers be liable for any
-            damages (including, without limitation, damages for loss of data or
-            profit, or due to business interruption) arising out of the use or
-            inability to use the materials on Gajanan Motors' website.
-          </p>
-
-          <h2>5. Modifications</h2>
-          <p>
-            Gajanan Motors may revise these terms of service for its website at any
-            time without notice. By using this website you are agreeing to be bound
-            by the then current version of these terms of service.
-          </p>
+            <p>For the purpose of these Terms and Conditions, The term "we", "us", "our" used anywhere on this page shall mean Gajanan Motors, whose registered/operational office is VARDHAMAN PLAZA, SANGLI KOLHAPUR ROAD 416416 Sangli H.O MAHARASHTRA 416416 . "you", "your", "user", "visitor" shall mean any natural or legal person who is visiting our website and/or agreed to purchase from us.</p>
+            <p>Your use of the website and/or purchase from us are governed by following Terms and Conditions:</p>
+            <ul>
+                <li>The content of the pages of this website is subject to change without notice.</li>
+                <li>Neither we nor any third parties provide any warranty or guarantee as to the accuracy, timeliness, performance, completeness or suitability of the information and materials found or offered on this website for any particular purpose. You acknowledge that such information and materials may contain inaccuracies or errors and we expressly exclude liability for any such inaccuracies or errors to the fullest extent permitted by law.</li>
+                <li>Your use of any information or materials on our website and/or product pages is entirely at your own risk, for which we shall not be liable. It shall be your own responsibility to ensure that any products, services or information available through our website and/or product pages meet your specific requirements.</li>
+                <li>Our website contains material which is owned by or licensed to us. This material includes, but is not limited to, the design, layout, look, appearance and graphics. Reproduction is prohibited other than in accordance with the copyright notice, which forms part of these terms and conditions.</li>
+                <li>All trademarks reproduced in our website which are not the property of, or licensed to, the operator are acknowledged on the website.</li>
+                <li>Unauthorized use of information provided by us shall give rise to a claim for damages and/or be a criminal offense.</li>
+                <li>From time to time our website may also include links to other websites. These links are provided for your convenience to provide further information.</li>
+                <li>You may not create a link to our website from another website or document without Gajanan Motors's prior written consent.</li>
+                <li>Any dispute arising out of use of our website and/or purchase with us and/or any engagement with us is subject to the laws of India .</li>
+                <li>We, shall be under no liability whatsoever in respect of any loss or damage arising directly or indirectly out of the decline of authorization for any Transaction, on Account of the Cardholder having exceeded the preset limit mutually agreed by us with our acquiring bank from time to time</li>
+            </ul>
         </CardContent>
       </Card>
     </div>
