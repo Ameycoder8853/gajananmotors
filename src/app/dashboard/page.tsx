@@ -24,10 +24,10 @@ export default function DashboardPage() {
     }
 
     return (
-        <div>
+        <div className="animate-fade-in-up">
             <h1 className="text-3xl font-bold mb-6">Dashboard Overview</h1>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
+                <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">
                             Total Revenue
@@ -41,7 +41,7 @@ export default function DashboardPage() {
                         </p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Dealers</CardTitle>
                         <Users className="h-4 w-4 text-muted-foreground" />
@@ -53,7 +53,7 @@ export default function DashboardPage() {
                         </p>
                     </CardContent>
                 </Card>
-                <Card>
+                <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Active Listings</CardTitle>
                         <Car className="h-4 w-4 text-muted-foreground" />
@@ -65,7 +65,7 @@ export default function DashboardPage() {
                         </p>
                     </CardContent>
                 </Card>
-                 <Card>
+                 <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Ads Sold</CardTitle>
                         <BarChart className="h-4 w-4 text-muted-foreground" />

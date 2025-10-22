@@ -20,11 +20,16 @@ export function AdCard({ ad }: AdCardProps) {
     if (ad.createdAt instanceof Timestamp) {
       return ad.createdAt.toDate().toLocaleDateString();
     }
-    return new Date(ad.createdAt as any).toLocaleDateString();
+    // Handle case where it might already be a Date object or string
+    try {
+      return new Date(ad.createdAt as any).toLocaleDateString();
+    } catch (e) {
+      return "Invalid Date";
+    }
   }
 
   return (
-    <Card className="overflow-hidden h-full flex flex-col group">
+    <Card className="overflow-hidden h-full flex flex-col group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-fade-in-up">
       <div className="relative aspect-video overflow-hidden">
         <Link href={`/market/${ad.id}`}>
           <Image
@@ -51,7 +56,7 @@ export function AdCard({ ad }: AdCardProps) {
         </Badge>
       </div>
       <CardContent className="p-4 flex-grow flex flex-col">
-        <h3 className="font-bold text-lg leading-snug truncate group-hover:text-primary">
+        <h3 className="font-bold text-lg leading-snug truncate transition-colors duration-300 group-hover:text-primary">
           <Link href={`/market/${ad.id}`}>{ad.title}</Link>
         </h3>
         <p className="font-semibold text-xl text-primary mt-1 mb-3">

@@ -8,7 +8,7 @@ function ContactForm() {
     return (
         <section id="contact" className="py-16 sm:py-24">
             <div className="container">
-                <div className="max-w-4xl mx-auto">
+                <div className="max-w-4xl mx-auto animate-fade-in-up">
                     <Card>
                         <CardContent className="p-8 md:p-12">
                             <div className="text-center">
@@ -32,7 +32,7 @@ function ContactForm() {
                                     ></textarea>
                                 </div>
                                 <div className="sm:col-span-2 text-center">
-                                    <Button size="lg" type="submit">Send Message</Button>
+                                    <Button size="lg" type="submit" className="transition-transform duration-300 hover:scale-105">Send Message</Button>
                                 </div>
                             </form>
                         </CardContent>
