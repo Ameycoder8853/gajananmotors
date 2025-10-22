@@ -41,7 +41,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { carData, makes } from '@/lib/car-data';
-import { locationData, states } from '@/lib/location-data';
+import { states } from '@/lib/location-data';
 
 
 const adFormSchema = z.object({
@@ -55,8 +55,8 @@ const adFormSchema = z.object({
   price: z.coerce.number().min(10000, 'Price must be at least ₹10,000.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
   state: z.string().min(1, 'State is required.'),
-  city: z.string().min(1, 'City is required.'),
-  subLocation: z.string().min(1, 'Sub-location is required.'),
+  city: z.string().min(2, 'City is required.'),
+  subLocation: z.string().min(2, 'Area/Sub-location is required.'),
   images: z.array(z.instanceof(File)).min(1, 'At least one image is required.').max(5, 'You can upload a maximum of 5 images.'),
 });
 
@@ -70,8 +70,6 @@ export default function NewListingPage() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const [models, setModels] = useState<string[]>([]);
-  const [cities, setCities] = useState<string[]>([]);
-  const [subLocations, setSubLocations] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof adFormSchema>>({
     resolver: zodResolver(adFormSchema),
@@ -91,8 +89,6 @@ export default function NewListingPage() {
   });
 
   const selectedMake = form.watch('make');
-  const selectedState = form.watch('state');
-  const selectedCity = form.watch('city');
 
   useEffect(() => {
     if (selectedMake) {
@@ -100,22 +96,6 @@ export default function NewListingPage() {
       form.setValue('model', '');
     }
   }, [selectedMake, form]);
-  
-  useEffect(() => {
-    if (selectedState) {
-      setCities(Object.keys(locationData[selectedState] || {}));
-      form.setValue('city', '');
-      setSubLocations([]);
-      form.setValue('subLocation', '');
-    }
-  }, [selectedState, form]);
-
-  useEffect(() => {
-    if (selectedState && selectedCity) {
-      setSubLocations(locationData[selectedState]?.[selectedCity] || []);
-      form.setValue('subLocation', '');
-    }
-  }, [selectedState, selectedCity, form]);
 
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -375,16 +355,9 @@ export default function NewListingPage() {
                 <FormField control={form.control} name="city" render={({ field }) => (
                     <FormItem>
                         <FormLabel>City</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedState}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select city" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                        <FormControl>
+                            <Input placeholder="e.g., Pune" {...field} />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>
@@ -392,16 +365,9 @@ export default function NewListingPage() {
                  <FormField control={form.control} name="subLocation" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Sub-location / Area</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCity}>
-                            <FormControl>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Select area" />
-                                </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {subLocations.map(sub => <SelectItem key={sub} value={sub}>{sub}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                         <FormControl>
+                            <Input placeholder="e.g., Koregaon Park" {...field} />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>

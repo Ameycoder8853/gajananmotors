@@ -1,18 +1,39 @@
 
-export const locationData: { [key: string]: { [key: string]: string[] } } = {
-  "Maharashtra": {
-    "Mumbai": ["South Mumbai", "Western Suburbs", "Central Suburbs", "Navi Mumbai"],
-    "Pune": ["Koregaon Park", "Deccan", "Hinjewadi", "Kothrud"],
-    "Nagpur": ["Civil Lines", "Sadar", "Ramdaspeth"],
-    "Sangli": ["Miraj", "Kupwad", "Vishrambag", "Sangli-Miraj Road"]
-  },
-  "Karnataka": {
-    "Bangalore": ["Koramangala", "Indiranagar", "Jayanagar", "Whitefield"],
-    "Mysore": ["Jayalakshmipuram", "Vontikoppal", "Saraswathipuram"],
-  },
-  "Delhi": {
-    "Delhi": ["Connaught Place", "Karol Bagh", "South Extension", "Saket"]
-  }
-};
-
-export const states = Object.keys(locationData);
+export const states: string[] = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry",
+];
