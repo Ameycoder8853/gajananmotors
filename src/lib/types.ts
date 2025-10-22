@@ -71,6 +71,3 @@ export type Payment = {
   status: 'created' | 'paid' | 'failed';
   createdAt: Date;
 };
-
-    
-    
