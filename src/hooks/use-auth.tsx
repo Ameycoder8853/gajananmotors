@@ -14,7 +14,7 @@ import {
   updateProfile,
   Auth,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore, collection, getDocs, writeBatch, query, orderBy, limit } from 'firebase/firestore';
 import { initializeFirebase, errorEmitter, FirestorePermissionError, useFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
@@ -41,6 +41,11 @@ const convertTimestamps = (data: any) => {
   }
   return data;
 }
+
+const subscriptionLimits = {
+    'Standard': 10,
+    'Premium': 20,
+};
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
@@ -100,13 +105,48 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             
             // Check for subscription expiry
             if (appUser.role === 'dealer' && appUser.isPro && appUser.proExpiresAt && new Date() > appUser.proExpiresAt) {
+              const oldPlan = appUser.subscriptionType;
+              
               // Subscription expired
               appUser.isPro = false;
               appUser.adCredits = 0;
-              updateDocumentNonBlocking(userDocRef, { isPro: false, adCredits: 0 });
+              appUser.subscriptionType = undefined;
+              
+              const batch = writeBatch(firestore);
+              batch.update(userDocRef, { isPro: false, adCredits: 0, subscriptionType: null });
+              
+              if (oldPlan) {
+                  // Make excess ads private
+                  const adsRef = collection(firestore, 'users', firebaseUser.uid, 'ads');
+                  const q = query(adsRef, orderBy('createdAt', 'desc')); // Get all ads
+                  const adsSnapshot = await getDocs(q);
+                  
+                  let publicAdsCount = 0;
+                  adsSnapshot.forEach(adDoc => {
+                      if (adDoc.data().visibility === 'public') {
+                          publicAdsCount++;
+                      }
+                  });
+
+                  if (publicAdsCount > 0) { // If there are more public ads than the new limit (which is 0)
+                      const adsToMakePrivateQuery = query(adsRef, orderBy('createdAt', 'asc'));
+                      const adsToMakePrivateSnapshot = await getDocs(adsToMakePrivateQuery);
+                      let privateNeeded = publicAdsCount;
+                      
+                      adsToMakePrivateSnapshot.forEach(adDoc => {
+                          if (privateNeeded > 0 && adDoc.data().visibility === 'public') {
+                              batch.update(adDoc.ref, { visibility: 'private' });
+                              privateNeeded--;
+                          }
+                      });
+                  }
+              }
+
+              await batch.commit();
+
               toast({
                   title: "Subscription Expired",
-                  description: "Your Pro plan has expired. Please renew to keep your ads public."
+                  description: "Your Pro plan has expired. Your ads are now private. Please renew to make them public again."
               });
             }
 
