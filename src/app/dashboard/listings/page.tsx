@@ -2,7 +2,6 @@
 
 import { AdCard } from "@/components/market/AdCard";
 import { AdFilters } from "@/components/market/AdFilters";
-import { MOCK_ADS } from "@/lib/mock-data";
 import {
   Pagination,
   PaginationContent,
@@ -13,42 +12,87 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useCollection, useMemoFirebase } from "@/firebase";
+import { useFirestore } from "@/firebase/provider";
+import { collectionGroup, query, getDoc, doc } from "firebase/firestore";
+import type { Ad, User } from "@/lib/types";
+import { useEffect, useState } from "react";
 
 export default function ListingsPage() {
-  const ads = MOCK_ADS;
+  const firestore = useFirestore();
+  const [adsWithDealers, setAdsWithDealers] = useState<Ad[]>([]);
+
+  const adsQuery = useMemoFirebase(() => {
+    if (!firestore) return null;
+    // This query gets all ads from the 'ads' subcollection across all users.
+    // This requires a specific index in Firestore and proper security rules.
+    return query(collectionGroup(firestore, 'ads'));
+  }, [firestore]);
+
+  const { data: ads, isLoading: areAdsLoading } = useCollection<Ad>(adsQuery);
+
+  useEffect(() => {
+    if (ads && firestore) {
+      const fetchDealers = async () => {
+        const adsWithDealerInfo = await Promise.all(
+          ads.map(async (ad) => {
+            if (ad.dealerId) {
+              const dealerRef = doc(firestore, 'users', ad.dealerId);
+              const dealerSnap = await getDoc(dealerRef);
+              if (dealerSnap.exists()) {
+                return { ...ad, dealer: dealerSnap.data() as User };
+              }
+            }
+            return ad;
+          })
+        );
+        setAdsWithDealers(adsWithDealerInfo);
+      };
+      fetchDealers();
+    }
+  }, [ads, firestore]);
+
+  const isLoading = areAdsLoading || (ads && ads.length > 0 && adsWithDealers.length === 0);
 
   return (
     <div>
-        <div className="mb-6">
-            <h1 className="text-3xl font-bold">Car Listings</h1>
-            <p className="text-muted-foreground">Manage all car advertisements.</p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-3xl font-bold">Car Listings</h1>
+        <p className="text-muted-foreground">Manage all car advertisements.</p>
+      </div>
 
       <AdFilters />
 
       <div className="flex justify-between items-center my-6">
-        <p className="text-sm text-muted-foreground">Showing {ads.length} results</p>
+        <p className="text-sm text-muted-foreground">Showing {adsWithDealers.length} results</p>
         <div className="flex items-center gap-2">
-            <label className="text-sm font-medium">Sort by:</label>
-            <Select defaultValue="newest">
-                <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent>
-                    <SelectItem value="newest">Newest</SelectItem>
-                    <SelectItem value="price-asc">Price: Low to High</SelectItem>
-                    <SelectItem value="price-desc">Price: High to Low</SelectItem>
-                    <SelectItem value="year-desc">Year: Newest First</SelectItem>
-                </SelectContent>
-            </Select>
+          <label className="text-sm font-medium">Sort by:</label>
+          <Select defaultValue="newest">
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Newest</SelectItem>
+              <SelectItem value="price-asc">Price: Low to High</SelectItem>
+              <SelectItem value="price-desc">Price: High to Low</SelectItem>
+              <SelectItem value="year-desc">Year: Newest First</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
-        {ads.map((ad) => (
-          <AdCard key={ad.id} ad={ad} />
-        ))}
-      </div>
+      {isLoading ? (
+        <div className="flex items-center justify-center min-h-[50vh]">
+          <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+          {adsWithDealers.map((ad) => (
+            <AdCard key={ad.id} ad={ad} />
+          ))}
+        </div>
+      )}
+
 
       <Pagination className="mt-12">
         <PaginationContent>
