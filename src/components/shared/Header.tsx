@@ -13,6 +13,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuGroup,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useRouter, usePathname } from 'next/navigation';
@@ -65,11 +66,11 @@ export function Header() {
 
   const navLinkStyle = (path?: string) => cn(
     "transition-colors",
-    (scrolled || pathname !== '/' || isDashboard) ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground",
+    (scrolled || pathname !== '/') ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground",
     path && pathname === path && "text-primary font-semibold"
   );
   
-  const publicNavLinks = [
+  const navLinks = [
     { href: '/market', label: 'Marketplace' },
     { href: '/#features', label: 'Features' },
     { href: '/#contact', label: 'Contact' },
@@ -82,21 +83,19 @@ export function Header() {
   ];
 
   const adminNavLinks = [
-      { href: '/dashboard', label: 'Dashboard' },
+      { href: '/dashboard', label: 'Overview' },
       { href: '/dashboard/listings', label: 'All Listings' },
       { href: '/dashboard/dealers', label: 'Dealers' },
       { href: '/dashboard/commissions', label: 'Commissions' },
   ]
   
-  const getNavLinks = () => {
-      if (isDashboard) {
-          if (user?.role === 'admin') return adminNavLinks;
-          if (user?.role === 'dealer') return dealerNavLinks;
-      }
-      return publicNavLinks;
+  const getDashboardLinks = () => {
+      if (user?.role === 'admin') return adminNavLinks;
+      if (user?.role === 'dealer') return dealerNavLinks;
+      return [];
   }
 
-  const navLinks = getNavLinks();
+  const dashboardLinks = getDashboardLinks();
 
 
   const userMenu = user ? (
@@ -119,9 +118,15 @@ export function Header() {
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-            Dashboard
-          </DropdownMenuItem>
+           <DropdownMenuGroup>
+            <DropdownMenuLabel>Dashboard</DropdownMenuLabel>
+             {dashboardLinks.map(link => (
+                <DropdownMenuItem key={link.href} onClick={() => router.push(link.href)}>
+                    {link.label}
+                </DropdownMenuItem>
+            ))}
+           </DropdownMenuGroup>
+          <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
             Settings
           </DropdownMenuItem>
@@ -137,8 +142,7 @@ export function Header() {
   return (
     <header className={cn(
       "sticky top-0 z-50 w-full transition-all duration-300",
-      (scrolled || isDashboard) ? "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" : "bg-transparent",
-      pathname !== '/' && !isDashboard && "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      (scrolled || isDashboard || pathname !== '/') ? "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" : "bg-transparent",
     )}>
       <div className="container flex h-16 items-center">
         <Logo />
@@ -160,7 +164,7 @@ export function Header() {
               userMenu
             ) : !isUserLoading ? (
               <>
-                <Button asChild variant={(scrolled || pathname !== '/' || isDashboard) ? "ghost" : "outline"} className={cn(!scrolled && pathname === '/' && !isDashboard && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
+                <Button asChild variant={(scrolled || pathname !== '/') ? "ghost" : "outline"} className={cn(!scrolled && pathname === '/' && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
                   <Link href="/login">Log In</Link>
                 </Button>
                 <Button asChild>
@@ -171,7 +175,7 @@ export function Header() {
           </div>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className={cn("md:hidden", !scrolled && pathname === '/' && !isDashboard && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
+              <Button variant="ghost" size="icon" className={cn("md:hidden", !scrolled && pathname === '/' && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
