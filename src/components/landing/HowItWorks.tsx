@@ -37,7 +37,7 @@ export function HowItWorks() {
             A simple, transparent process to get you behind the wheel.
           </p>
         </div>
-        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-12 max-w-5xl mx-auto grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step, index) => (
                  <Card 
                     key={step.title}
