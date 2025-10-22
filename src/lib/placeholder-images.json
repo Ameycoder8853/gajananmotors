@@ -53,6 +53,24 @@
       "description": "A convertible sports car",
       "imageUrl": "https://images.unsplash.com/photo-1758348601147-a064c0a7bd93?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHx5ZWxsb3clMjBjb252ZXJ0aWJsZXxlbnwwfHx8fDE3NjA5Nzg3Njd8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "yellow convertible"
+    },
+    {
+      "id": "testimonial-1",
+      "description": "Portrait of a happy man",
+      "imageUrl": "https://images.unsplash.com/photo-1560250097-0b93528c311a?q=80&w=1974&auto=format&fit=crop",
+      "imageHint": "happy man"
+    },
+    {
+      "id": "testimonial-2",
+      "description": "Portrait of a smiling woman",
+      "imageUrl": "https://images.unsplash.com/photo-1580489944761-15a19d654956?q=80&w=1961&auto=format&fit=crop",
+      "imageHint": "smiling woman"
+    },
+    {
+      "id": "testimonial-3",
+      "description": "Portrait of a professional person",
+      "imageUrl": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=2080&auto=format&fit=crop",
+      "imageHint": "professional person"
     }
   ]
 }

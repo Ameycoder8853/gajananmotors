@@ -1,12 +1,17 @@
+
 import { Features } from "@/components/landing/Features";
 import { Hero } from "@/components/landing/Hero";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { FeaturedCars } from "@/components/landing/FeaturedCars";
+import { HowItWorks } from "@/components/landing/HowItWorks";
+import { Testimonials } from "@/components/landing/Testimonials";
+import { Cta } from "@/components/landing/Cta";
 
 function ContactForm() {
     return (
-        <section id="contact" className="py-16 sm:py-24">
+        <section id="contact" className="py-16 sm:py-24 bg-secondary">
             <div className="container">
                 <div className="max-w-4xl mx-auto animate-fade-in-up">
                     <Card>
@@ -48,6 +53,10 @@ export default function LandingPage() {
     <>
       <Hero />
       <Features />
+      <FeaturedCars />
+      <HowItWorks />
+      <Testimonials />
+      <Cta />
       <ContactForm />
     </>
   );
