@@ -104,7 +104,7 @@ export function AdCard({ ad }: AdCardProps) {
           {ad.status === 'sold' ? 'Sold' : 'For Sale'}
         </Badge>
       </div>
-      <CardContent className="p-4 flex-grow flex flex-col">
+      <CardContent className={cn("p-4 flex-grow flex flex-col", isOwnerOnMyListings && 'pb-2')}>
         <h3 className="font-bold text-lg leading-snug truncate transition-colors duration-300 group-hover:text-primary">
           <Link href={`/market/${ad.id}`}>{ad.title}</Link>
         </h3>
@@ -136,12 +136,13 @@ export function AdCard({ ad }: AdCardProps) {
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">{ad.location}</span>
              </div>
-             <span>{getFormattedDate()}</span>
+             {!isOwnerOnMyListings && <span>{getFormattedDate()}</span>}
         </div>
       </CardContent>
        {isOwnerOnMyListings && (
-        <div className="absolute bottom-2 right-2">
-            <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <div className="px-4 pb-3 pt-1 flex justify-between items-center text-xs text-muted-foreground">
+             <span>{getFormattedDate()}</span>
+             <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                 <AlertDialogTrigger asChild>
                     <Button variant="destructive" size="icon" className="h-8 w-8">
                         <Trash2 className="h-4 w-4" />
