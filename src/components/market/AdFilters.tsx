@@ -1,16 +1,26 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
+import { carData, makes as allMakes } from "@/lib/car-data";
 
-type AdFiltersProps = {
-  makes: string[];
-  models: string[];
-};
+export function AdFilters() {
+  const [selectedMake, setSelectedMake] = useState<string>('');
+  const [models, setModels] = useState<string[]>([]);
 
-export function AdFilters({ makes, models }: AdFiltersProps) {
+  const handleMakeChange = (make: string) => {
+    if (make === 'any') {
+      setSelectedMake('');
+      setModels([]);
+    } else {
+      setSelectedMake(make);
+      setModels(carData[make] || []);
+    }
+  };
+  
   return (
     <div className="bg-card p-4 rounded-lg border shadow-sm">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
@@ -23,19 +33,19 @@ export function AdFilters({ makes, models }: AdFiltersProps) {
         </div>
         <div>
           <label className="text-sm font-medium" htmlFor="make">Make</label>
-          <Select>
+          <Select onValueChange={handleMakeChange}>
             <SelectTrigger id="make">
               <SelectValue placeholder="Select Make" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="any">Any Make</SelectItem>
-              {makes.map(make => <SelectItem key={make} value={make}>{make}</SelectItem>)}
+              {allMakes.map(make => <SelectItem key={make} value={make}>{make}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
         <div>
           <label className="text-sm font-medium" htmlFor="model">Model</label>
-          <Select>
+          <Select disabled={!selectedMake}>
             <SelectTrigger id="model">
               <SelectValue placeholder="Select Model" />
             </SelectTrigger>
