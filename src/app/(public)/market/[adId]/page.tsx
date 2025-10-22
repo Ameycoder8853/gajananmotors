@@ -58,8 +58,8 @@ export default function AdDetailPage() {
   }
 
   const specs = [
-    { icon: <Calendar className="w-5 h-5 text-muted-foreground" />, label: "Year", value: ad.year },
-    { icon: <Gauge className="w-5 h-5 text-muted-foreground" />, label: "Kilometers", value: `${ad.kmDriven.toLocaleString("en-IN")} km` },
+    { icon: <Calendar className="w-5 h-5 text-muted-foreground" />, label: "Year of manufacture", value: ad.year },
+    { icon: <Gauge className="w-5 h-5 text-muted-foreground" />, label: "Kilometers driven", value: `${ad.kmDriven.toLocaleString("en-IN")} km` },
     { icon: <Fuel className="w-5 h-5 text-muted-foreground" />, label: "Fuel Type", value: ad.fuelType },
     { icon: <GitCommitHorizontal className="w-5 h-5 text-muted-foreground" />, label: "Transmission", value: ad.transmission },
     { icon: <MapPin className="w-5 h-5 text-muted-foreground" />, label: "Location", value: ad.location },
