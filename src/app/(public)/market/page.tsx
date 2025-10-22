@@ -21,6 +21,8 @@ import { useEffect, useState } from "react";
 export default function MarketPage() {
   const firestore = useFirestore();
   const [adsWithDealers, setAdsWithDealers] = useState<Ad[]>([]);
+  const [makes, setMakes] = useState<string[]>([]);
+  const [models, setModels] = useState<string[]>([]);
   
   const adsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -31,6 +33,12 @@ export default function MarketPage() {
 
   useEffect(() => {
     if (ads && firestore) {
+      // Extract unique makes and models
+      const uniqueMakes = [...new Set(ads.map(ad => ad.make))];
+      const uniqueModels = [...new Set(ads.map(ad => ad.model))];
+      setMakes(uniqueMakes);
+      setModels(uniqueModels);
+
       const fetchDealers = async () => {
         // Create a map of dealer IDs to fetch so we only fetch each dealer once
         const dealerIds = new Set(ads.map(ad => ad.dealerId));
@@ -53,8 +61,10 @@ export default function MarketPage() {
       };
       fetchDealers();
     } else if (!areAdsLoading) {
-      // If ads are loaded and empty, clear the list
+      // If ads are loaded and empty, clear the lists
       setAdsWithDealers([]);
+      setMakes([]);
+      setModels([]);
     }
   }, [ads, firestore, areAdsLoading]);
 
@@ -67,7 +77,7 @@ export default function MarketPage() {
         <p className="mt-2 text-lg text-muted-foreground">Browse and find your dream car from our trusted dealers.</p>
       </div>
 
-      <AdFilters />
+      <AdFilters makes={makes} models={models} />
 
       <div className="flex justify-between items-center my-6">
         <p className="text-sm text-muted-foreground">Showing {adsWithDealers.length} results</p>
@@ -125,5 +135,3 @@ export default function MarketPage() {
     </div>
   );
 }
-
-    

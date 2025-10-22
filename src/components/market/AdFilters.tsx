@@ -5,10 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Search, X } from "lucide-react";
 
-const makes = ["Any Make", "Maruti Suzuki", "Hyundai", "Tata", "Mahindra", "Kia", "Toyota", "Honda"];
-const models = ["Any Model", "Swift", "Creta", "Nexon", "Thar", "Seltos", "Fortuner", "City"];
+type AdFiltersProps = {
+  makes: string[];
+  models: string[];
+};
 
-export function AdFilters() {
+export function AdFilters({ makes, models }: AdFiltersProps) {
   return (
     <div className="bg-card p-4 rounded-lg border shadow-sm">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 items-end">
@@ -26,6 +28,7 @@ export function AdFilters() {
               <SelectValue placeholder="Select Make" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="any">Any Make</SelectItem>
               {makes.map(make => <SelectItem key={make} value={make}>{make}</SelectItem>)}
             </SelectContent>
           </Select>
@@ -37,6 +40,7 @@ export function AdFilters() {
               <SelectValue placeholder="Select Model" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="any">Any Model</SelectItem>
               {models.map(model => <SelectItem key={model} value={model}>{model}</SelectItem>)}
             </SelectContent>
           </Select>
