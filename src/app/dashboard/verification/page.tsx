@@ -38,7 +38,8 @@ declare global {
 export default function VerificationPage() {
   const { user, isUserLoading } = useAuth();
   const { toast } = useToast();
-  const { firestore, storage } = initializeFirebase();
+  const { firestore } = initializeFirebase();
+  const storage = getStorage();
   const auth = getAuth();
 
   const [otp, setOtp] = useState('');
@@ -93,7 +94,9 @@ export default function VerificationPage() {
         if(window.recaptchaVerifier) {
           window.recaptchaVerifier.render().then((widgetId) => {
             // @ts-ignore
-            window.grecaptcha.reset(widgetId);
+            if (window.grecaptcha) {
+              window.grecaptcha.reset(widgetId);
+            }
           });
         }
       }

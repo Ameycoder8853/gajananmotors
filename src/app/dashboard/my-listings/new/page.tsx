@@ -34,7 +34,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { collection, doc, serverTimestamp, increment } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { initializeFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { initializeFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -59,7 +59,8 @@ export default function NewListingPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
-  const { firestore, storage } = initializeFirebase();
+  const { firestore } = initializeFirebase();
+  const storage = getStorage();
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
@@ -383,5 +384,3 @@ export default function NewListingPage() {
     </Card>
   );
 }
-
-    
