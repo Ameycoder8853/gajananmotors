@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import Link from 'next/link';
@@ -176,10 +177,15 @@ export function Header() {
               <Link
                 key={link.href}
                 href={link.href}
-                className={getNavLinkStyle(link.href)}
+                className={cn(
+                    "relative transition-colors text-sm font-medium",
+                    linkColor,
+                    "hover:text-primary",
+                    ((pathname === link.href && !link.href.includes('#')) || (isMarketingPage && link.href.includes('#') && activeHash === link.href.substring(1))) && activeLinkColor
+                )}
               >
                 {link.label}
-                {isActive && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>}
+                {((pathname === link.href && !link.href.includes('#')) || (isMarketingPage && link.href.includes('#') && activeHash === link.href.substring(1))) && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>}
               </Link>
             )
           })}
@@ -258,3 +264,4 @@ export function Header() {
     </header>
   );
 }
+
