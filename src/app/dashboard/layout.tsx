@@ -1,13 +1,9 @@
-
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { Header } from '@/components/shared/Header';
-import { SidebarProvider, Sidebar, SidebarInset, useSidebar } from '@/components/ui/sidebar';
-import { DashboardSidebar } from '@/components/dashboard/DashboardSidebar';
-import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
   children,
@@ -32,16 +28,11 @@ export default function DashboardLayout({
   }
 
   return (
-    <SidebarProvider>
-        <Sidebar>
-            <DashboardSidebar />
-        </Sidebar>
-        <SidebarInset>
-            <Header />
-            <main className="p-4 sm:p-6 lg:p-8 flex-1">
-                {children}
-            </main>
-        </SidebarInset>
-    </SidebarProvider>
+    <div className="flex flex-col min-h-screen">
+      <Header />
+      <main className="flex-1 container py-8">
+          {children}
+      </main>
+    </div>
   );
 }

@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -20,7 +19,6 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
-import { SidebarTrigger } from '../ui/sidebar';
 
 const getInitials = (name?: string | null) => {
   if (!name) return 'U';
@@ -65,64 +63,40 @@ export function Header() {
   
   const isDashboard = pathname.startsWith('/dashboard');
 
-  if (isDashboard) {
-    return (
-       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-         <div className="container flex h-14 items-center">
-            <div className="mr-4 hidden md:flex">
-              <Logo />
-            </div>
-            <div className="md:hidden">
-              <SidebarTrigger />
-            </div>
-            <div className="flex flex-1 items-center justify-end space-x-2">
-                <ThemeSwitcher />
-                {user && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                          <Avatar className="h-8 w-8">
-                            <AvatarImage src={user.photoURL ?? ''} alt={user.displayName ?? 'User'} />
-                            <AvatarFallback>{getInitials(user.displayName)}</AvatarFallback>
-                          </Avatar>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent className="w-56" align="end" forceMount>
-                        <DropdownMenuLabel className="font-normal">
-                          <div className="flex flex-col space-y-1">
-                            <p className="text-sm font-medium leading-none">{user.displayName}</p>
-                            <p className="text-xs leading-none text-muted-foreground">
-                              {user.email}
-                            </p>
-                          </div>
-                        </DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                         <DropdownMenuItem onClick={() => router.push('/dashboard')}>
-                            Dashboard
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => router.push('/dashboard/settings')}>
-                            Settings
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={logout}>
-                          Log out
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                )}
-            </div>
-         </div>
-       </header>
-    );
-  }
-
-  const navLinks = [
+  const navLinkStyle = (path?: string) => cn(
+    "transition-colors",
+    (scrolled || pathname !== '/' || isDashboard) ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground",
+    path && pathname === path && "text-primary font-semibold"
+  );
+  
+  const publicNavLinks = [
     { href: '/market', label: 'Marketplace' },
     { href: '/#features', label: 'Features' },
     { href: '/#contact', label: 'Contact' },
   ];
-  const subscriptionsHref = user ? '/dashboard/subscription' : '/signup';
-  const allNavLinks = [...navLinks, { href: subscriptionsHref, label: 'Subscriptions' }];
+  
+  const dealerNavLinks = [
+      { href: '/dashboard/my-listings', label: 'My Listings' },
+      { href: '/dashboard/verification', label: 'Verification' },
+      { href: '/dashboard/subscription', label: 'Subscription' },
+  ];
+
+  const adminNavLinks = [
+      { href: '/dashboard', label: 'Dashboard' },
+      { href: '/dashboard/listings', label: 'All Listings' },
+      { href: '/dashboard/dealers', label: 'Dealers' },
+      { href: '/dashboard/commissions', label: 'Commissions' },
+  ]
+  
+  const getNavLinks = () => {
+      if (isDashboard) {
+          if (user?.role === 'admin') return adminNavLinks;
+          if (user?.role === 'dealer') return dealerNavLinks;
+      }
+      return publicNavLinks;
+  }
+
+  const navLinks = getNavLinks();
 
 
   const userMenu = user ? (
@@ -163,26 +137,21 @@ export function Header() {
   return (
     <header className={cn(
       "sticky top-0 z-50 w-full transition-all duration-300",
-      scrolled ? "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" : "bg-transparent",
-      pathname !== '/' && "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+      (scrolled || isDashboard) ? "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60" : "bg-transparent",
+      pathname !== '/' && !isDashboard && "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
     )}>
       <div className="container flex h-16 items-center">
         <Logo />
         <nav className="hidden md:flex items-center space-x-6 ml-10 text-sm font-medium">
-          {allNavLinks.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
-              className={cn("transition-colors hover:text-foreground", scrolled || pathname !== '/' ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground")}
+              className={navLinkStyle(link.href)}
             >
               {link.label}
             </Link>
           ))}
-          {user && user.role === 'admin' && (
-            <Link href="/dashboard" className={cn("transition-colors hover:text-foreground", scrolled || pathname !== '/' ? "text-muted-foreground hover:text-primary" : "text-primary-foreground/80 hover:text-primary-foreground")}>
-              Dashboard
-            </Link>
-          )}
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
            <ThemeSwitcher />
@@ -191,7 +160,7 @@ export function Header() {
               userMenu
             ) : !isUserLoading ? (
               <>
-                <Button asChild variant={(scrolled || pathname !== '/') ? "ghost" : "outline"} className={cn(!(scrolled || pathname !== '/') && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
+                <Button asChild variant={(scrolled || pathname !== '/' || isDashboard) ? "ghost" : "outline"} className={cn(!scrolled && pathname === '/' && !isDashboard && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
                   <Link href="/login">Log In</Link>
                 </Button>
                 <Button asChild>
@@ -202,7 +171,7 @@ export function Header() {
           </div>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className={cn("md:hidden", !(scrolled || pathname !== '/') && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
+              <Button variant="ghost" size="icon" className={cn("md:hidden", !scrolled && pathname === '/' && !isDashboard && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
@@ -213,7 +182,7 @@ export function Header() {
                   <Logo />
                 </div>
                 <nav className="grid gap-4 py-6 text-lg font-medium">
-                  {allNavLinks.map((link) => (
+                  {navLinks.map((link) => (
                     <Link
                       key={link.href}
                       href={link.href}
