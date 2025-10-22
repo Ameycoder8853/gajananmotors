@@ -41,7 +41,6 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { carData, makes } from '@/lib/car-data';
-import { locationData } from '@/lib/location-data';
 
 const adFormSchema = z.object({
   make: z.string().min(2, 'Make is required.'),
@@ -53,9 +52,7 @@ const adFormSchema = z.object({
   transmission: z.enum(['Automatic', 'Manual']),
   price: z.coerce.number().min(10000, 'Price must be at least ₹10,000.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
-  state: z.string().min(1, "State is required."),
-  city: z.string().min(1, "City is required."),
-  subLocation: z.string().min(1, "Sub-location is required."),
+  location: z.string().min(3, "Location is required."),
   images: z.array(z.instanceof(File)).min(1, 'At least one image is required.').max(5, 'You can upload a maximum of 5 images.'),
 });
 
@@ -69,9 +66,6 @@ export default function NewListingPage() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   const [models, setModels] = useState<string[]>([]);
-  const [cities, setCities] = useState<string[]>([]);
-  const [subLocations, setSubLocations] = useState<string[]>([]);
-
 
   const form = useForm<z.infer<typeof adFormSchema>>({
     resolver: zodResolver(adFormSchema),
@@ -83,16 +77,12 @@ export default function NewListingPage() {
       kmDriven: 0,
       price: 10000,
       description: '',
-      state: '',
-      city: '',
-      subLocation: '',
+      location: '',
       images: [],
     },
   });
 
   const selectedMake = form.watch('make');
-  const selectedState = form.watch('state');
-  const selectedCity = form.watch('city');
 
   useEffect(() => {
     if (selectedMake) {
@@ -100,22 +90,6 @@ export default function NewListingPage() {
       form.setValue('model', '');
     }
   }, [selectedMake, form]);
-
-  useEffect(() => {
-    if (selectedState) {
-        setCities(Object.keys(locationData[selectedState] || {}));
-        form.setValue('city', '');
-        setSubLocations([]);
-        form.setValue('subLocation', '');
-    }
-  }, [selectedState, form]);
-
-  useEffect(() => {
-    if (selectedState && selectedCity) {
-        setSubLocations(locationData[selectedState]?.[selectedCity] || []);
-        form.setValue('subLocation', '');
-    }
-  }, [selectedState, selectedCity, form]);
 
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,15 +150,11 @@ export default function NewListingPage() {
         setUploadProgress(100);
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
-        const location = `${values.subLocation}, ${values.city}, ${values.state}`;
         
-        const { state, city, subLocation, ...restOfValues } = values;
-
         const userDocRef = doc(firestore, 'users', user.uid);
     
         setDocumentNonBlocking(newCarDocRef, {
-          ...restOfValues,
-          location,
+          ...values,
           id: adId,
           title,
           images: imageUrls,
@@ -354,47 +324,12 @@ export default function NewListingPage() {
                     </FormItem>
                 )}/>
 
-                <FormField control={form.control} name="state" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>State</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Select State" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {Object.keys(locationData).map(state => <SelectItem key={state} value={state}>{state}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-
-                <FormField control={form.control} name="city" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>City</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedState}>
-                            <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Select City" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
-
-                <FormField control={form.control} name="subLocation" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Sub-location / Area</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedCity}>
-                            <FormControl>
-                                <SelectTrigger><SelectValue placeholder="Select Sub-location" /></SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                                {subLocations.map(sub => <SelectItem key={sub} value={sub}>{sub}</SelectItem>)}
-                            </SelectContent>
-                        </Select>
+                <FormField control={form.control} name="location" render={({ field }) => (
+                    <FormItem className="lg:col-span-2">
+                        <FormLabel>Location</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., Koramangala, Bangalore" {...field} />
+                        </FormControl>
                         <FormMessage />
                     </FormItem>
                 )}/>
