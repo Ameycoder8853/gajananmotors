@@ -1,7 +1,10 @@
 
 export const locationData: { [state: string]: { [city: string]: string[] } } = {
     "Andaman and Nicobar Islands": {
-        "Port Blair": []
+        "Port Blair": [],
+        "Bamboo Flat": [],
+        "Garacharma": [],
+        "Prothrapur": []
     },
     "Andhra Pradesh": {
         "Visakhapatnam": [],
@@ -10,22 +13,53 @@ export const locationData: { [state: string]: { [city: string]: string[] } } = {
         "Nellore": [],
         "Kurnool": [],
         "Rajahmundry": [],
-        "Tirupati": []
+        "Tirupati": [],
+        "Kakinada": [],
+        "Anantapur": [],
+        "Eluru": [],
+        "Kadapa": [],
+        "Ongole": [],
+        "Chittoor": [],
+        "Srikakulam": [],
+        "Vizianagaram": [],
+        "Machilipatnam": [],
+        "Tenali": [],
+        "Proddatur": [],
+        "Adoni": [],
+        "Madanapalle": [],
+        "Nandyal": []
     },
     "Arunachal Pradesh": {
-        "Itanagar": []
+        "Itanagar": [],
+        "Naharlagun": [],
+        "Tawang": [],
+        "Pasighat": [],
+        "Ziro": []
     },
     "Assam": {
         "Guwahati": [],
         "Silchar": [],
         "Dibrugarh": [],
-        "Jorhat": []
+        "Jorhat": [],
+        "Nagaon": [],
+        "Tinsukia": [],
+        "Tezpur": [],
+        "Bongaigaon": [],
+        "Dhubri": []
     },
     "Bihar": {
         "Patna": [],
         "Gaya": [],
         "Bhagalpur": [],
-        "Muzaffarpur": []
+        "Muzaffarpur": [],
+        "Purnia": [],
+        "Darbhanga": [],
+        "Arrah": [],
+        "Begusarai": [],
+        "Katihar": [],
+        "Munger": [],
+        "Chhapra": [],
+        "Bihar Sharif": []
     },
     "Chandigarh": {
         "Chandigarh": []
@@ -33,7 +67,12 @@ export const locationData: { [state: string]: { [city: string]: string[] } } = {
     "Chhattisgarh": {
         "Raipur": [],
         "Bhilai": [],
-        "Bilaspur": []
+        "Bilaspur": [],
+        "Korba": [],
+        "Durg": [],
+        "Raigarh": [],
+        "Rajnandgaon": [],
+        "Jagdalpur": []
     },
     "Dadra and Nagar Haveli and Daman and Diu": {
         "Daman": [],
@@ -41,121 +80,206 @@ export const locationData: { [state: string]: { [city: string]: string[] } } = {
         "Silvassa": []
     },
     "Delhi": {
-        "New Delhi": ["Connaught Place", "Karol Bagh", "Hauz Khas", "Saket", "Greater Kailash"],
-        "Delhi": []
+        "New Delhi": ["Connaught Place", "Karol Bagh", "Hauz Khas", "Saket", "Greater Kailash", "Dwarka", "Rohini", "Vasant Kunj"],
+        "Delhi": ["Chandni Chowk", "Paharganj", "Lajpat Nagar", "Nehru Place", "Mayur Vihar"]
     },
     "Goa": {
         "Panaji": [],
         "Margao": [],
-        "Vasco da Gama": []
+        "Vasco da Gama": [],
+        "Mapusa": [],
+        "Ponda": []
     },
     "Gujarat": {
         "Ahmedabad": [],
         "Surat": [],
         "Vadodara": [],
-        "Rajkot": []
+        "Rajkot": [],
+        "Bhavnagar": [],
+        "Jamnagar": [],
+        "Gandhinagar": [],
+        "Junagadh": [],
+        "Anand": [],
+        "Nadiad": [],
+        "Bharuch": [],
+        "Navsari": []
     },
     "Haryana": {
         "Faridabad": [],
         "Gurgaon": [],
         "Panipat": [],
-        "Ambala": []
+        "Ambala": [],
+        "Yamunanagar": [],
+        "Rohtak": [],
+        "Hisar": [],
+        "Karnal": [],
+        "Sonipat": [],
+        "Panchkula": []
     },
     "Himachal Pradesh": {
         "Shimla": [],
         "Manali": [],
-        "Dharamshala": []
+        "Dharamshala": [],
+        "Solan": [],
+        "Mandi": [],
+        "Kullu": [],
+        "Chamba": [],
+        "Hamirpur": []
     },
     "Jammu and Kashmir": {
         "Srinagar": [],
-        "Jammu": []
+        "Jammu": [],
+        "Anantnag": [],
+        "Baramulla": [],
+        "Udhampur": [],
+        "Kathua": []
     },
     "Jharkhand": {
         "Ranchi": [],
         "Jamshedpur": [],
-        "Dhanbad": []
+        "Dhanbad": [],
+        "Bokaro Steel City": [],
+        "Deoghar": [],
+        "Hazaribagh": [],
+        "Giridih": []
     },
     "Karnataka": {
-        "Bangalore": ["Koramangala", "Indiranagar", "Whitefield", "Jayanagar", "HSR Layout"],
-        "Mysore": ["Jayalakshmipuram", "Vontikoppal", "Saraswathipuram"],
+        "Bangalore": ["Koramangala", "Indiranagar", "Whitefield", "Jayanagar", "HSR Layout", "Malleshwaram", "Rajajinagar"],
+        "Mysore": ["Jayalakshmipuram", "Vontikoppal", "Saraswathipuram", "Kuvempunagar"],
         "Hubli": [],
         "Mangalore": [],
-        "Belgaum": []
+        "Belgaum": [],
+        "Davanagere": [],
+        "Bellary": [],
+        "Gulbarga": [],
+        "Shimoga": [],
+        "Tumkur": []
     },
     "Kerala": {
         "Thiruvananthapuram": [],
         "Kochi": [],
         "Kozhikode": [],
-        "Thrissur": []
+        "Thrissur": [],
+        "Kollam": [],
+        "Alappuzha": [],
+        "Palakkad": [],
+        "Kannur": [],
+        "Kottayam": []
     },
     "Ladakh": {
         "Leh": [],
         "Kargil": []
     },
     "Lakshadweep": {
-        "Kavaratti": []
+        "Kavaratti": [],
+        "Agatti": [],
+        "Minicoy": []
     },
     "Madhya Pradesh": {
         "Indore": [],
         "Bhopal": [],
         "Jabalpur": [],
-        "Gwalior": []
+        "Gwalior": [],
+        "Ujjain": [],
+        "Sagar": [],
+        "Ratlam": [],
+        "Rewa": [],
+        "Satna": []
     },
     "Maharashtra": {
-        "Mumbai": ["Andheri", "Bandra", "Dadar", "Juhu", "Malad"],
-        "Pune": ["Koregaon Park", "Viman Nagar", "Hinjewadi", "Kothrud", "Deccan Gymkhana"],
+        "Mumbai": ["Andheri", "Bandra", "Dadar", "Juhu", "Malad", "Borivali", "Thane", "Navi Mumbai"],
+        "Pune": ["Koregaon Park", "Viman Nagar", "Hinjewadi", "Kothrud", "Deccan Gymkhana", "Pimpri-Chinchwad"],
         "Nagpur": ["Sitabuldi", "Dharampeth", "Ramdaspeth"],
         "Thane": [],
-        "Nashik": []
+        "Nashik": [],
+        "Aurangabad": [],
+        "Solapur": [],
+        "Kolhapur": [],
+        "Amravati": []
     },
     "Manipur": {
-        "Imphal": []
+        "Imphal": [],
+        "Churachandpur": [],
+        "Thoubal": []
     },
     "Meghalaya": {
-        "Shillong": []
+        "Shillong": [],
+        "Tura": [],
+        "Jowai": []
     },
     "Mizoram": {
-        "Aizawl": []
+        "Aizawl": [],
+        "Lunglei": [],
+        "Champhai": []
     },
     "Nagaland": {
         "Kohima": [],
-        "Dimapur": []
+        "Dimapur": [],
+        "Mokokchung": [],
+        "Wokha": []
     },
     "Odisha": {
         "Bhubaneswar": [],
         "Cuttack": [],
-        "Rourkela": []
+        "Rourkela": [],
+        "Berhampur": [],
+        "Sambalpur": [],
+        "Puri": []
     },
     "Puducherry": {
-        "Puducherry": []
+        "Puducherry": [],
+        "Karaikal": [],
+        "Mahe": [],
+        "Yanam": []
     },
     "Punjab": {
         "Ludhiana": [],
         "Amritsar": [],
-        "Jalandhar": []
+        "Jalandhar": [],
+        "Patiala": [],
+        "Bathinda": [],
+        "Mohali": [],
+        "Hoshiarpur": []
     },
     "Rajasthan": {
         "Jaipur": [],
         "Jodhpur": [],
         "Udaipur": [],
-        "Kota": []
+        "Kota": [],
+        "Bikaner": [],
+        "Ajmer": [],
+        "Alwar": [],
+        "Bhilwara": []
     },
     "Sikkim": {
-        "Gangtok": []
+        "Gangtok": [],
+        "Namchi": [],
+        "Gyalshing": [],
+        "Mangan": []
     },
     "Tamil Nadu": {
         "Chennai": [],
         "Coimbatore": [],
         "Madurai": [],
-        "Tiruchirappalli": []
+        "Tiruchirappalli": [],
+        "Salem": [],
+        "Tirunelveli": [],
+        "Vellore": [],
+        "Erode": [],
+        "Thoothukudi": []
     },
     "Telangana": {
         "Hyderabad": [],
         "Warangal": [],
-        "Nizamabad": []
+        "Nizamabad": [],
+        "Karimnagar": [],
+        "Ramagundam": [],
+        "Khammam": []
     },
     "Tripura": {
-        "Agartala": []
+        "Agartala": [],
+        "Udaipur": [],
+        "Dharmanagar": []
     },
     "Uttar Pradesh": {
         "Lucknow": [],
@@ -163,18 +287,31 @@ export const locationData: { [state: string]: { [city: string]: string[] } } = {
         "Ghaziabad": [],
         "Agra": [],
         "Varanasi": [],
-        "Meerut": []
+        "Meerut": [],
+        "Prayagraj": [],
+        "Noida": [],
+        "Bareilly": [],
+        "Aligarh": [],
+        "Moradabad": [],
+        "Saharanpur": [],
+        "Gorakhpur": []
     },
     "Uttarakhand": {
         "Dehradun": [],
         "Haridwar": [],
-        "Nainital": []
+        "Nainital": [],
+        "Roorkee": [],
+        "Haldwani": [],
+        "Rishikesh": []
     },
     "West Bengal": {
         "Kolkata": [],
         "Asansol": [],
         "Siliguri": [],
-        "Durgapur": []
+        "Durgapur": [],
+        "Howrah": [],
+        "Haldia": [],
+        "Kharagpur": []
     }
 };
 
