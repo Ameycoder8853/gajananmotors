@@ -16,18 +16,12 @@ export default function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
-    if (typeof window === 'undefined' || isUserLoading) {
-      return; // Wait for auth state and client-side context
+    if (isUserLoading) {
+      return; // Wait for auth state to be determined
     }
     
-    const currentPath = window.location.pathname;
-
-    // Allow unauthenticated users to see the public subscription page
-    if (!user && currentPath.startsWith('/dashboard/subscription')) {
-      return;
-    }
-
-    // If user is not logged in, redirect to login.
+    // If auth check is complete and there is no user, redirect to login.
+    // This correctly handles all dashboard routes, including dynamic ones.
     if (!user) {
       router.push('/login');
     }
@@ -42,7 +36,8 @@ export default function DashboardLayout({
     );
   }
 
-  // If loading is finished and there's no user, show loading spinner to prevent brief flashes of content before redirect
+  // If loading is finished and there's no user, we show a spinner while redirecting.
+  // This prevents a brief flash of the dashboard content before the redirect happens.
   if (!user) {
      return (
         <div className="flex items-center justify-center min-h-screen">
