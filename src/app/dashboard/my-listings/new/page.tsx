@@ -383,7 +383,7 @@ export default function NewListingPage() {
                     <FormItem>
                         <FormLabel>Street Address / Building (Optional)</FormLabel>
                          <FormControl>
-                            <Input placeholder="e.g., Front of Pawer Tower" {...field} />
+                            <Input placeholder="e.g., Parvati Niwas, Lane 5" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -514,4 +514,5 @@ export default function NewListingPage() {
   );
 }
 
+    
     
