@@ -195,7 +195,7 @@ export function Header() {
           })}
         </nav>
 
-        <div className="flex flex-none items-center justify-end space-x-2 ml-4">
+        <div className="flex flex-none items-center justify-end space-x-2 ml-auto">
            <ThemeSwitcher />
           <div className="hidden md:flex items-center space-x-2">
             {!isUserLoading && user ? (
