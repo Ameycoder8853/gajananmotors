@@ -78,7 +78,7 @@ export default function AdDetailPage() {
   };
 
   return (
-    <div className="px-8 py-8 md:py-12">
+    <div className="py-8 md:py-12 px-8">
         <div className="mb-4">
             <Badge className="w-fit mb-2">{ad.make}</Badge>
             <h1 className="text-3xl lg:text-4xl font-bold">{ad.title}</h1>
@@ -142,8 +142,8 @@ export default function AdDetailPage() {
                         <CardTitle>Description</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="prose prose-sm max-w-none text-muted-foreground">
-                            <p>{ad.description}</p>
+                        <div className="prose prose-sm max-w-none text-muted-foreground whitespace-pre-wrap">
+                            {ad.description}
                         </div>
                     </CardContent>
                 </Card>
@@ -181,5 +181,3 @@ export default function AdDetailPage() {
     </div>
   );
 }
-
-    
