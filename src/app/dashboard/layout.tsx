@@ -17,16 +17,18 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   useEffect(() => {
+    // If auth state is still being determined, do nothing.
     if (isUserLoading) {
-      return; // Wait for auth state to be determined
+      return; 
     }
     
-    // If auth check is complete and there is no user, redirect to login.
-    // This now correctly handles all dashboard routes.
-    if (!user && pathname.startsWith('/dashboard')) {
+    // Only redirect if loading is complete AND there is definitively no user.
+    // This prevents redirects during the brief moment between Firebase auth loading
+    // and the custom user profile being attached.
+    if (!isUserLoading && !user) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router, pathname]);
+  }, [user, isUserLoading, router]);
 
   // Render a loading state while checking for user auth
   if (isUserLoading) {
@@ -37,8 +39,8 @@ export default function DashboardLayout({
     );
   }
 
-  // If loading is finished and there's no user, we show a spinner while redirecting.
-  // This prevents a brief flash of the dashboard content before the redirect happens.
+  // If loading is finished and there's still no user, it means the redirect is in progress.
+  // Show a loader to prevent a flash of content.
   if (!user) {
      return (
         <div className="flex items-center justify-center min-h-screen">
@@ -51,7 +53,7 @@ export default function DashboardLayout({
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="px-8 py-8 flex-1">
+      <main className="flex-1 px-8 py-8">
           {children}
       </main>
       <Footer />
