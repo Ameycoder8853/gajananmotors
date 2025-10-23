@@ -82,7 +82,6 @@ export default function EditListingPage() {
   }, [firestore, adId]);
 
   const { data: ad, isLoading: isAdLoading } = useDoc<Ad>(adRef);
-  const [isOwner, setIsOwner] = useState<boolean | undefined>(undefined);
 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -90,6 +89,7 @@ export default function EditListingPage() {
 
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [models, setModels] = useState<string[]>([]);
+  const [isFormInitialized, setIsFormInitialized] = useState(false);
 
   const form = useForm<AdFormValues>({
     resolver: zodResolver(adFormSchema),
@@ -110,34 +110,13 @@ export default function EditListingPage() {
     },
   });
 
-   useEffect(() => {
-    // Wait until both user and ad data have finished loading
-    if (isAdLoading || isUserLoading) {
-      return; 
-    }
-    
-    // Once loaded, check ownership
-    if (ad && user) {
-        if (ad.dealerId !== user.uid) {
-            setIsOwner(false); // Not the owner
-        } else {
-            setIsOwner(true); // Is the owner
-        }
-    } else {
-        setIsOwner(false); // Ad doesn't exist or user isn't logged in
-    }
-
-  }, [ad, user, isAdLoading, isUserLoading]);
-
-
   useEffect(() => {
-    if (ad) {
+    if (ad && !isFormInitialized) {
         // Deconstruct location
         const locationParts = ad.location.split(',').map(s => s.trim());
         const state = locationParts.pop() || '';
         const city = locationParts.pop() || '';
         const subLocation = ad.addressLine ? ad.location.replace(ad.addressLine, '').split(',')[0].trim() : ad.location.split(',')[0].trim();
-
 
         form.reset({
             ...ad,
@@ -153,20 +132,21 @@ export default function EditListingPage() {
         if (ad.make && carData[ad.make]) {
             setModels(carData[ad.make]);
         }
+        setIsFormInitialized(true);
     }
-  }, [ad, form]);
+  }, [ad, form, isFormInitialized]);
 
   const selectedMake = form.watch('make');
 
   useEffect(() => {
-    if (selectedMake) {
+    if (selectedMake && isFormInitialized) { // Only run after form is set
       setModels(carData[selectedMake] || []);
-      // Do not reset model if it's the initial load
+      // Reset model only if make is changed by user, not on initial load
       if (form.formState.isDirty) {
         form.setValue('model', '');
       }
     }
-  }, [selectedMake, form]);
+  }, [selectedMake, form, isFormInitialized]);
 
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,16 +268,18 @@ export default function EditListingPage() {
     }
   }
   
-  if (isOwner === undefined) {
-     return (
-        <div className="flex items-center justify-center min-h-[50vh]">
-            <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
-        </div>
+  // Render loading state until all data is ready
+  if (isUserLoading || isAdLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+      </div>
     );
   }
 
-  if (!isOwner) {
-      return notFound();
+  // After loading, if ad doesn't exist or doesn't belong to the user, show 404
+  if (!ad || ad.dealerId !== user?.uid) {
+    return notFound();
   }
 
 
@@ -409,7 +391,7 @@ export default function EditListingPage() {
                 <FormField control={form.control} name="transmission" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Transmission</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
+                        <Select onValuechange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select transmission type" />
