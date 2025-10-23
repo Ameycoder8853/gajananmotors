@@ -456,9 +456,9 @@ export default function EditListingPage() {
                 
                 <FormField control={form.control} name="addressLine" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Street Address / Building (Optional)</FormLabel>
+                        <FormLabel>Street Address / Building</FormLabel>
                          <FormControl>
-                            <Input placeholder="e.g., Parvati Niwas, Lane 5" {...field} />
+                            <Input placeholder="" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
@@ -593,4 +593,6 @@ export default function EditListingPage() {
 }
 
     
+    
+
     
