@@ -80,8 +80,6 @@ export function Header() {
         if (user.role === 'admin') {
           setNavLinks([
             { href: '/market', label: 'Marketplace' },
-            { href: '/#features', label: 'Features' },
-            { href: '/#contact', label: 'Contact' },
             { href: '/dashboard', label: 'Overview' },
             { href: '/dashboard/listings', label: 'All Listings' },
             { href: '/dashboard/dealers', label: 'Dealers' }
