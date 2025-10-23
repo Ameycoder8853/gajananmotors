@@ -68,7 +68,7 @@ const adFormSchema = z.object({
 type AdFormValues = z.infer<typeof adFormSchema>;
 
 export default function EditListingPage() {
-  const { user } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
   const params = useParams();
@@ -82,6 +82,7 @@ export default function EditListingPage() {
   }, [firestore, adId]);
 
   const { data: ad, isLoading: isAdLoading } = useDoc<Ad>(adRef);
+  const [isOwner, setIsOwner] = useState<boolean | undefined>(undefined);
 
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<string[]>([]);
@@ -109,12 +110,26 @@ export default function EditListingPage() {
     },
   });
 
+   useEffect(() => {
+    if (isAdLoading || isUserLoading) return; // Wait for both to load
+    
+    if (ad && user) {
+        if (ad.dealerId !== user.uid) {
+            setIsOwner(false);
+        } else {
+            setIsOwner(true);
+        }
+    } else if (!ad) {
+        setIsOwner(false); // Ad doesn't exist
+    } else {
+        setIsOwner(false); // User not logged in
+    }
+
+  }, [ad, user, isAdLoading, isUserLoading]);
+
+
   useEffect(() => {
     if (ad) {
-        if (user && ad.dealerId !== user.uid) {
-            return notFound();
-        }
-        
         // Deconstruct location
         const locationParts = ad.location.split(',').map(s => s.trim());
         const state = locationParts.pop() || '';
@@ -137,7 +152,7 @@ export default function EditListingPage() {
             setModels(carData[ad.make]);
         }
     }
-  }, [ad, form, user]);
+  }, [ad, form]);
 
   const selectedMake = form.watch('make');
 
@@ -270,8 +285,8 @@ export default function EditListingPage() {
         setUploadProgress(null);
     }
   }
-
-  if (isAdLoading) {
+  
+  if (isOwner === undefined || isAdLoading) {
      return (
         <div className="flex items-center justify-center min-h-[50vh]">
             <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
@@ -279,7 +294,7 @@ export default function EditListingPage() {
     );
   }
 
-  if (!ad) {
+  if (!isOwner) {
       return notFound();
   }
 
@@ -591,8 +606,3 @@ export default function EditListingPage() {
     </Card>
   );
 }
-
-    
-    
-
-    
