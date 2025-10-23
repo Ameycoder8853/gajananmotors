@@ -76,6 +76,8 @@ export default function AdDetailPage() {
     const Icon = feature.icon;
     return <Icon className="w-5 h-5 text-primary" />;
   };
+  
+  const formattedPhone = dealer?.phone.startsWith('+') ? dealer.phone : `+91 ${dealer?.phone}`;
 
   return (
     <div className="py-8 md:py-12 px-8">
@@ -165,7 +167,7 @@ export default function AdDetailPage() {
                     <CardContent className="pt-6 text-center">
                         <div className="flex items-center gap-2 mt-2 text-primary font-bold text-2xl justify-center">
                             <Phone className="w-6 h-6" />
-                            <span>{dealer.phone}</span>
+                            <span>{formattedPhone}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">Call the dealer for the best price</p>
                         <Button asChild className="w-full mt-4" size="lg">
