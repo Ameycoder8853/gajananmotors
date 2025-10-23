@@ -2,7 +2,7 @@
 'use client';
 
 import { useAuth } from '@/hooks/use-auth';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { Header } from '@/components/shared/Header';
 import { Footer } from '@/components/shared/Footer';
@@ -14,6 +14,7 @@ export default function DashboardLayout({
 }) {
   const { user, isUserLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (isUserLoading) {
@@ -21,11 +22,11 @@ export default function DashboardLayout({
     }
     
     // If auth check is complete and there is no user, redirect to login.
-    // This correctly handles all dashboard routes, including dynamic ones.
-    if (!user) {
+    // This now correctly handles all dashboard routes.
+    if (!user && pathname.startsWith('/dashboard')) {
       router.push('/login');
     }
-  }, [user, isUserLoading, router]);
+  }, [user, isUserLoading, router, pathname]);
 
   // Render a loading state while checking for user auth
   if (isUserLoading) {
@@ -50,7 +51,7 @@ export default function DashboardLayout({
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
-      <main className="flex-1 container py-8">
+      <main className="flex-1 px-8 py-8">
           {children}
       </main>
       <Footer />

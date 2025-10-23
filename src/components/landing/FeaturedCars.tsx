@@ -43,7 +43,7 @@ export function FeaturedCars() {
 
   return (
     <section className="py-16 sm:py-24 bg-secondary">
-      <div className="container">
+      <div className="px-8">
         <div className="text-center animate-fade-in-up">
           <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
             Featured Listings

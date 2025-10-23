@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function ShippingDeliveryPolicyPage() {
   return (
-    <div className="container py-12 md:py-16">
+    <div className="px-8 py-12 md:py-16">
       <Card>
         <CardHeader>
           <CardTitle className="text-3xl">Shipping & Delivery Policy</CardTitle>

@@ -20,7 +20,7 @@ export function Hero() {
         />
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/50 to-transparent" />
-      <div className="relative z-10 container mx-auto px-4 text-center">
+      <div className="relative z-10 px-8 text-center">
         <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm backdrop-blur-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <Star className="w-4 h-4 text-yellow-300 fill-yellow-300" />
           <span>Over 1,000+ happy customers</span>

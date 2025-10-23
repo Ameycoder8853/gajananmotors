@@ -14,7 +14,7 @@ import { Faq } from "@/components/landing/Faq";
 function ContactForm() {
     return (
         <section id="contact" className="py-16 sm:py-24 bg-secondary">
-            <div className="container">
+            <div className="px-8">
                 <div className="max-w-4xl mx-auto animate-fade-in-up">
                     <Card>
                         <CardContent className="p-8 md:p-12">

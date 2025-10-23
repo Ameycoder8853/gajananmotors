@@ -78,7 +78,7 @@ export default function AdDetailPage() {
   };
 
   return (
-    <div className="container py-8 md:py-12">
+    <div className="px-8 py-8 md:py-12">
         <div className="mb-4">
             <Badge className="w-fit mb-2">{ad.make}</Badge>
             <h1 className="text-3xl lg:text-4xl font-bold">{ad.title}</h1>

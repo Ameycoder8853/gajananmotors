@@ -169,7 +169,7 @@ export function Header() {
 
   return (
     <header className={headerClasses}>
-      <div className="container flex h-16 items-center">
+      <div className="flex h-16 items-center px-8">
         <div className="flex-none mr-4">
           <Logo className={cn(scrolled || !isMarketingPage ? "text-foreground" : "text-white")} />
         </div>

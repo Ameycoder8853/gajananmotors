@@ -9,7 +9,7 @@ export default function PublicLayout({
   return (
     <>
       <Header />
-      <main className="flex-1 container">{children}</main>
+      <main className="flex-1 px-8">{children}</main>
       <Footer />
     </>
   );
