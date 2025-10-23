@@ -235,7 +235,9 @@ export default function SettingsPage() {
               <div className="space-y-4 text-center">
                   <FormLabel>Profile Picture</FormLabel>
                   <Avatar className="h-32 w-32 mx-auto">
-                    <AvatarImage src={pfpPreview || user?.photoURL || ''} alt={user?.displayName || 'User'} />
+                    {(pfpPreview || user?.photoURL) && (
+                      <AvatarImage src={pfpPreview || user?.photoURL || ''} alt={user?.displayName || 'User'} />
+                    )}
                     <AvatarFallback className="text-4xl">{getInitials(user?.displayName)}</AvatarFallback>
                   </Avatar>
                   <Input id="pfp-upload" type="file" className="hidden" accept="image/png, image/jpeg, image/webp" onChange={handlePfpFileChange} />
@@ -320,3 +322,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    

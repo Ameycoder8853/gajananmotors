@@ -241,12 +241,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       // Let the onAuthStateChanged handle the redirect
       
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Sign Up Failed',
-        description: error.message || 'An unexpected error occurred.',
-      });
-      console.error("Sign up failed:", error);
+        let description = 'An unexpected error occurred.';
+        if (error.code === 'auth/email-already-in-use') {
+            description = 'This email is already in use. Please log in or use a different email.';
+        } else {
+            description = error.message;
+        }
+        toast({
+            variant: 'destructive',
+            title: 'Sign Up Failed',
+            description,
+        });
+        console.error("Sign up failed:", error);
     }
   };
 
@@ -283,3 +289,5 @@ export const useAuth = () => {
   }
   return context;
 };
+
+    
