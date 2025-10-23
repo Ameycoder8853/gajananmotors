@@ -111,18 +111,20 @@ export default function EditListingPage() {
   });
 
    useEffect(() => {
-    if (isAdLoading || isUserLoading) return; // Wait for both to load
+    // Wait until both user and ad data have finished loading
+    if (isAdLoading || isUserLoading) {
+      return; 
+    }
     
+    // Once loaded, check ownership
     if (ad && user) {
         if (ad.dealerId !== user.uid) {
-            setIsOwner(false);
+            setIsOwner(false); // Not the owner
         } else {
-            setIsOwner(true);
+            setIsOwner(true); // Is the owner
         }
-    } else if (!ad) {
-        setIsOwner(false); // Ad doesn't exist
     } else {
-        setIsOwner(false); // User not logged in
+        setIsOwner(false); // Ad doesn't exist or user isn't logged in
     }
 
   }, [ad, user, isAdLoading, isUserLoading]);
@@ -134,14 +136,14 @@ export default function EditListingPage() {
         const locationParts = ad.location.split(',').map(s => s.trim());
         const state = locationParts.pop() || '';
         const city = locationParts.pop() || '';
-        const subLocation = locationParts.join(', ').replace(ad.addressLine || '', '').replace(/, $/, '').trim();
+        const subLocation = ad.addressLine ? ad.location.replace(ad.addressLine, '').split(',')[0].trim() : ad.location.split(',')[0].trim();
 
 
         form.reset({
             ...ad,
             state,
             city,
-            subLocation: ad.location.split(', ')[1] || '',
+            subLocation: subLocation,
             addressLine: ad.addressLine || '',
             newImages: [],
         });
@@ -254,7 +256,7 @@ export default function EditListingPage() {
         }
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
-        const locationParts = [values.subLocation, values.city, values.state].filter(Boolean);
+        const locationParts = [values.addressLine, values.subLocation, values.city, values.state].filter(Boolean);
         const location = locationParts.join(', ');
         
         // Omit form-specific fields that are not in the Ad type
@@ -286,7 +288,7 @@ export default function EditListingPage() {
     }
   }
   
-  if (isOwner === undefined || isAdLoading) {
+  if (isOwner === undefined) {
      return (
         <div className="flex items-center justify-center min-h-[50vh]">
             <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
@@ -606,3 +608,5 @@ export default function EditListingPage() {
     </Card>
   );
 }
+
+    
