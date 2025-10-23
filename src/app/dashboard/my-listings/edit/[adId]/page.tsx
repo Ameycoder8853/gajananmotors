@@ -391,7 +391,7 @@ export default function EditListingPage() {
                 <FormField control={form.control} name="transmission" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Transmission</FormLabel>
-                        <Select onValuechange={field.onChange} value={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select transmission type" />
@@ -590,5 +590,3 @@ export default function EditListingPage() {
     </Card>
   );
 }
-
-    
