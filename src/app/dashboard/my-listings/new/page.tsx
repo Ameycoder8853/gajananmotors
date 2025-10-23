@@ -42,6 +42,8 @@ import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { carData, makes } from '@/lib/car-data';
 import { states } from '@/lib/location-data';
+import { Checkbox } from '@/components/ui/checkbox';
+import { carFeatures } from '@/lib/car-features';
 
 
 const adFormSchema = z.object({
@@ -58,6 +60,7 @@ const adFormSchema = z.object({
   city: z.string().min(2, 'City is required.'),
   subLocation: z.string().min(2, 'Area/Sub-location is required.'),
   images: z.array(z.instanceof(File)).min(1, 'At least one image is required.').max(5, 'You can upload a maximum of 5 images.'),
+  features: z.array(z.string()).optional(),
 });
 
 export default function NewListingPage() {
@@ -85,6 +88,7 @@ export default function NewListingPage() {
       city: '',
       subLocation: '',
       images: [],
+      features: [],
     },
   });
 
@@ -430,6 +434,54 @@ export default function NewListingPage() {
                     </div>
                 )}
                 
+                 <FormField
+                    control={form.control}
+                    name="features"
+                    render={() => (
+                        <FormItem className="lg:col-span-3">
+                        <div className="mb-4">
+                            <FormLabel className="text-base">Features</FormLabel>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                            {carFeatures.map((item) => (
+                            <FormField
+                                key={item.id}
+                                control={form.control}
+                                name="features"
+                                render={({ field }) => {
+                                return (
+                                    <FormItem
+                                    key={item.id}
+                                    className="flex flex-row items-start space-x-3 space-y-0"
+                                    >
+                                    <FormControl>
+                                        <Checkbox
+                                        checked={field.value?.includes(item.id)}
+                                        onCheckedChange={(checked) => {
+                                            return checked
+                                            ? field.onChange([...(field.value || []), item.id])
+                                            : field.onChange(
+                                                field.value?.filter(
+                                                    (value) => value !== item.id
+                                                )
+                                                )
+                                        }}
+                                        />
+                                    </FormControl>
+                                    <FormLabel className="font-normal">
+                                        {item.label}
+                                    </FormLabel>
+                                    </FormItem>
+                                )
+                                }}
+                            />
+                            ))}
+                        </div>
+                        <FormMessage />
+                        </FormItem>
+                    )}
+                    />
+
                 {uploadProgress !== null && (
                     <div className="lg:col-span-3">
                         <Progress value={uploadProgress} className="w-full" />
@@ -448,3 +500,5 @@ export default function NewListingPage() {
     </Card>
   );
 }
+
+    

@@ -60,6 +60,7 @@ export type Ad = {
   removalPaid: boolean;
   removalPaymentId: string | null;
   dealer?: User;
+  features?: string[];
 };
 
 export type Payment = {
@@ -73,3 +74,5 @@ export type Payment = {
   status: 'created' | 'paid' | 'failed';
   createdAt: Date;
 };
+
+    

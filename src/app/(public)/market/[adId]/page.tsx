@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ImageCarousel } from "@/components/market/ImageCarousel";
-import { Car, Calendar, Gauge, GitBranch, Fuel, MapPin, Phone, User, ShieldCheck } from "lucide-react";
+import { Phone, ShieldCheck } from "lucide-react";
 import { useDoc } from "@/firebase";
 import { useFirestore, useMemoFirebase } from "@/firebase/provider";
 import { doc, getDoc } from "firebase/firestore";
@@ -14,6 +14,7 @@ import type { Ad, User as Dealer } from "@/lib/types";
 import { useEffect, useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { carFeatures } from "@/lib/car-features";
 
 export default function AdDetailPage() {
   const params = useParams();
@@ -68,6 +69,13 @@ export default function AdDetailPage() {
     { label: "Transmission", value: ad.transmission },
     { label: "Location", value: ad.location },
   ];
+  
+  const getFeatureIcon = (featureId: string) => {
+    const feature = carFeatures.find(f => f.id === featureId);
+    if (!feature) return null;
+    const Icon = feature.icon;
+    return <Icon className="w-5 h-5 text-primary" />;
+  };
 
   return (
     <div className="container py-8 md:py-12">
@@ -84,8 +92,8 @@ export default function AdDetailPage() {
            <Tabs defaultValue="overview" className="w-full mt-8">
             <TabsList>
               <TabsTrigger value="overview">Overview</TabsTrigger>
-              <TabsTrigger value="description">Description</TabsTrigger>
               <TabsTrigger value="features">Features</TabsTrigger>
+              <TabsTrigger value="description">Description</TabsTrigger>
             </TabsList>
             <TabsContent value="overview">
               <Card>
@@ -103,6 +111,31 @@ export default function AdDetailPage() {
                 </CardContent>
               </Card>
             </TabsContent>
+            <TabsContent value="features">
+              <Card>
+                <CardHeader>
+                    <CardTitle>Features</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {ad.features && ad.features.length > 0 ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {ad.features.map(featureId => {
+                        const feature = carFeatures.find(f => f.id === featureId);
+                        if (!feature) return null;
+                        return (
+                          <div key={featureId} className="flex items-center gap-3 bg-muted/50 p-3 rounded-lg">
+                            {getFeatureIcon(featureId)}
+                            <span className="text-sm font-medium">{feature.label}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground">No special features listed for this vehicle.</p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
              <TabsContent value="description">
                 <Card>
                     <CardHeader>
@@ -114,13 +147,6 @@ export default function AdDetailPage() {
                         </div>
                     </CardContent>
                 </Card>
-            </TabsContent>
-            <TabsContent value="features">
-              <Card>
-                <CardContent className="pt-6">
-                  <p>Features will be displayed here.</p>
-                </CardContent>
-              </Card>
             </TabsContent>
           </Tabs>
         </div>
@@ -155,3 +181,5 @@ export default function AdDetailPage() {
     </div>
   );
 }
+
+    

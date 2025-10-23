@@ -1,3 +1,4 @@
+
 {
   "entities": {
     "User": {
@@ -143,6 +144,13 @@
         "images": {
           "type": "array",
           "description": "Array of storage URLs for the car images.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "features": {
+          "type": "array",
+          "description": "List of notable features of the car.",
           "items": {
             "type": "string"
           }
