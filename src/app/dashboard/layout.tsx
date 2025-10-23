@@ -16,17 +16,18 @@ export default function DashboardLayout({
   const router = useRouter();
 
   useEffect(() => {
-    // If the auth state is still loading, wait.
-    if (isUserLoading) {
-      return;
+    if (typeof window === 'undefined' || isUserLoading) {
+      return; // Wait for auth state and client-side context
     }
     
-    // Allow logged-out users to see the public subscription page
-    if (!user && window.location.pathname === '/dashboard/subscription') {
+    const currentPath = window.location.pathname;
+
+    // Allow unauthenticated users to see the public subscription page
+    if (!user && currentPath.startsWith('/dashboard/subscription')) {
       return;
     }
 
-    // If user is not logged in and not on subscription page, redirect to login.
+    // If user is not logged in, redirect to login.
     if (!user) {
       router.push('/login');
     }
@@ -41,8 +42,8 @@ export default function DashboardLayout({
     );
   }
 
-  // Allow unauthenticated users to see the subscription page, but show loading for other dashboard pages
-  if (!user && (typeof window !== 'undefined' && window.location.pathname !== '/dashboard/subscription')) {
+  // If loading is finished and there's no user, show loading spinner to prevent brief flashes of content before redirect
+  if (!user) {
      return (
         <div className="flex items-center justify-center min-h-screen">
             <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
@@ -50,7 +51,7 @@ export default function DashboardLayout({
     );
   }
 
-
+  // If we have a user, render the dashboard content
   return (
     <div className="flex flex-col min-h-screen">
       <Header />
