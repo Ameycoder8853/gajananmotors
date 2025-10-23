@@ -7,7 +7,7 @@ export function Footer() {
     <footer className="bg-card border-t mt-auto">
       <div className="container py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
-          <div className="flex-1">
+          <div>
             <Logo />
             <p className="mt-4 text-sm text-muted-foreground max-w-sm">
               Your trusted partner in buying and selling used cars. Quality vehicles, transparent pricing.
