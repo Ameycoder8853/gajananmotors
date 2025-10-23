@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Ad, FirebaseUser } from "@/lib/types";
-import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck, Trash2 } from "lucide-react";
+import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck, Trash2, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Timestamp, doc, increment } from "firebase/firestore";
 import { usePathname } from "next/navigation";
@@ -140,41 +140,49 @@ export function AdCard({ ad }: AdCardProps) {
         </div>
       </CardContent>
        {isOwnerOnMyListings && (
-        <div className="px-4 pb-3 pt-1 flex justify-between items-center text-xs text-muted-foreground">
-             <span>{getFormattedDate()}</span>
-             <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <AlertDialogTrigger asChild>
-                    <Button variant="destructive" size="icon" className="h-8 w-8">
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete Ad</span>
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete your ad and restore one ad credit (if your plan allows).
-                            Please type <strong className="text-destructive">delete</strong> to confirm.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <Input 
-                        value={deleteInput}
-                        onChange={(e) => setDeleteInput(e.target.value)}
-                        placeholder="delete"
-                        className="my-2"
-                    />
-                    <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setDeleteInput('')}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                            onClick={handleDelete}
-                            disabled={deleteInput !== 'delete'}
-                            className={cn(buttonVariants({ variant: 'destructive' }))}
-                        >
-                            Delete Ad
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+        <div className="px-4 pb-3 pt-1 flex justify-between items-center">
+             <span className="text-xs text-muted-foreground">{getFormattedDate()}</span>
+             <div className="flex items-center gap-2">
+                <Button asChild variant="outline" size="icon" className="h-8 w-8">
+                    <Link href={`/dashboard/my-listings/edit/${ad.id}`}>
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Edit Ad</span>
+                    </Link>
+                </Button>
+                 <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                        <Button variant="destructive" size="icon" className="h-8 w-8">
+                            <Trash2 className="h-4 w-4" />
+                            <span className="sr-only">Delete Ad</span>
+                        </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This action cannot be undone. This will permanently delete your ad and restore one ad credit (if your plan allows).
+                                Please type <strong className="text-destructive">delete</strong> to confirm.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <Input 
+                            value={deleteInput}
+                            onChange={(e) => setDeleteInput(e.target.value)}
+                            placeholder="delete"
+                            className="my-2"
+                        />
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setDeleteInput('')}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction 
+                                onClick={handleDelete}
+                                disabled={deleteInput !== 'delete'}
+                                className={cn(buttonVariants({ variant: 'destructive' }))}
+                            >
+                                Delete Ad
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
+             </div>
         </div>
        )}
     </Card>

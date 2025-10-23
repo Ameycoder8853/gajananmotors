@@ -55,6 +55,7 @@ export type Ad = {
   status: 'active' | 'sold' | 'removed';
   visibility: 'public' | 'private';
   createdAt: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
   soldAt: Date | null;
   removedAt: Date | null;
   removalPaid: boolean;
