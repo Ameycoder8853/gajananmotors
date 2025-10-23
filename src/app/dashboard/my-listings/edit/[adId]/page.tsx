@@ -119,15 +119,15 @@ export default function EditListingPage() {
         const locationParts = ad.location.split(',').map(s => s.trim());
         const state = locationParts.pop() || '';
         const city = locationParts.pop() || '';
-        const subLocation = locationParts.pop() || '';
-        const addressLine = locationParts.join(', ');
+        const subLocation = locationParts.join(', ').replace(ad.addressLine || '', '').replace(/, $/, '').trim();
+
 
         form.reset({
             ...ad,
             state,
             city,
-            subLocation,
-            addressLine,
+            subLocation: ad.location.split(', ')[1] || '',
+            addressLine: ad.addressLine || '',
             newImages: [],
         });
         setExistingImages(ad.images as string[]);
@@ -239,7 +239,7 @@ export default function EditListingPage() {
         }
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
-        const locationParts = [values.addressLine, values.subLocation, values.city, values.state].filter(Boolean);
+        const locationParts = [values.subLocation, values.city, values.state].filter(Boolean);
         const location = locationParts.join(', ');
         
         // Omit form-specific fields that are not in the Ad type
@@ -591,3 +591,5 @@ export default function EditListingPage() {
     </Card>
   );
 }
+
+    
