@@ -32,9 +32,10 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useParams, notFound } from 'next/navigation';
-import { collection, doc, serverTimestamp, getDoc, updateDoc } from 'firebase/firestore';
+import { serverTimestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import { initializeFirebase, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
@@ -60,7 +61,6 @@ const adFormSchema = z.object({
   state: z.string().min(1, 'State is required.'),
   city: z.string().min(2, 'City is required.'),
   subLocation: z.string().min(2, 'Area/Sub-location is required.'),
-  addressLine: z.string().optional(),
   newImages: z.array(z.instanceof(File)).max(5, 'You can upload a maximum of 5 images.').optional(),
   features: z.array(z.string()).optional(),
 });
@@ -89,7 +89,6 @@ export default function EditListingPage() {
 
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [models, setModels] = useState<string[]>([]);
-  const [isFormInitialized, setIsFormInitialized] = useState(false);
 
   const form = useForm<AdFormValues>({
     resolver: zodResolver(adFormSchema),
@@ -104,26 +103,19 @@ export default function EditListingPage() {
       state: '',
       city: '',
       subLocation: '',
-      addressLine: '',
       newImages: [],
       features: [],
     },
   });
 
   useEffect(() => {
-    if (ad && !isFormInitialized) {
-        // Deconstruct location
-        const locationParts = ad.location.split(',').map(s => s.trim());
-        const state = locationParts.pop() || '';
-        const city = locationParts.pop() || '';
-        const subLocation = ad.addressLine ? ad.location.replace(ad.addressLine, '').split(',')[0].trim() : ad.location.split(',')[0].trim();
-
+    if (ad) {
+        const [subLocation, city, state] = ad.location.split(',').map(s => s.trim());
         form.reset({
             ...ad,
             state,
             city,
-            subLocation: subLocation,
-            addressLine: ad.addressLine || '',
+            subLocation,
             newImages: [],
         });
         setExistingImages(ad.images as string[]);
@@ -132,21 +124,28 @@ export default function EditListingPage() {
         if (ad.make && carData[ad.make]) {
             setModels(carData[ad.make]);
         }
-        setIsFormInitialized(true);
     }
-  }, [ad, form, isFormInitialized]);
+  }, [ad, form]);
+
+  const isLoading = isAdLoading || isUserLoading;
+
+  // Final check after loading is complete
+  if (!isLoading && ad && user && ad.dealerId !== user.uid) {
+    return notFound();
+  }
+
 
   const selectedMake = form.watch('make');
 
   useEffect(() => {
-    if (selectedMake && isFormInitialized) { // Only run after form is set
+    if (selectedMake) {
       setModels(carData[selectedMake] || []);
-      // Reset model only if make is changed by user, not on initial load
+      // Do not reset model if it's the initial load
       if (form.formState.isDirty) {
         form.setValue('model', '');
       }
     }
-  }, [selectedMake, form, isFormInitialized]);
+  }, [selectedMake, form]);
 
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -236,8 +235,7 @@ export default function EditListingPage() {
         }
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
-        const locationParts = [values.addressLine, values.subLocation, values.city, values.state].filter(Boolean);
-        const location = locationParts.join(', ');
+        const location = `${values.subLocation}, ${values.city}, ${values.state}`;
         
         // Omit form-specific fields that are not in the Ad type
         const { state, city, subLocation, newImages: _, ...adData } = values;
@@ -267,19 +265,17 @@ export default function EditListingPage() {
         setUploadProgress(null);
     }
   }
-  
-  // Render loading state until all data is ready
-  if (isUserLoading || isAdLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
-      </div>
+
+  if (isLoading) {
+     return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+        </div>
     );
   }
 
-  // After loading, if ad doesn't exist or doesn't belong to the user, show 404
-  if (!ad || ad.dealerId !== user?.uid) {
-    return notFound();
+  if (!ad) {
+      return notFound();
   }
 
 
@@ -452,16 +448,6 @@ export default function EditListingPage() {
                         <FormMessage />
                     </FormItem>
                 )}/>
-                
-                <FormField control={form.control} name="addressLine" render={({ field }) => (
-                    <FormItem>
-                        <FormLabel>Street Address / Building</FormLabel>
-                         <FormControl>
-                            <Input placeholder="" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                    </FormItem>
-                )}/>
 
 
                 <FormField
@@ -590,3 +576,5 @@ export default function EditListingPage() {
     </Card>
   );
 }
+
+    

@@ -51,7 +51,6 @@ export type Ad = {
   price: number;
   description: string;
   location: string;
-  addressLine?: string;
   images: string[] | StaticImageData[];
   status: 'active' | 'sold' | 'removed';
   visibility: 'public' | 'private';
