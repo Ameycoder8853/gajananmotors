@@ -108,7 +108,7 @@ export function Header() {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('hashchange', onHashChange);
     };
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, user?.role]);
   
   const isMarketingPage = pathname === '/';
   
