@@ -13,6 +13,7 @@ import { useFirestore, useMemoFirebase } from "@/firebase/provider";
 import { doc, getDoc } from "firebase/firestore";
 import type { Ad, User as Dealer } from "@/lib/types";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 
 export default function AdDetailPage() {
   const params = useParams();
@@ -110,8 +111,10 @@ export default function AdDetailPage() {
                                 <Phone className="w-5 h-5" />
                                 <span>{dealer.phone}</span>
                             </div>
-                            <Button className="w-full mt-4">
-                                <Phone className="mr-2 h-4 w-4" /> Contact Dealer
+                            <Button asChild className="w-full mt-4">
+                                <a href={`tel:${dealer.phone}`}>
+                                    <Phone className="mr-2 h-4 w-4" /> Contact Dealer
+                                </a>
                             </Button>
                         </CardContent>
                     </Card>
