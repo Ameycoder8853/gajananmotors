@@ -48,15 +48,15 @@ export function AdFilters() {
         </CollapsibleTrigger>
       </div>
       <CollapsibleContent>
-        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 items-end">
-          <div className="col-span-2 lg:col-span-1 xl:col-span-2">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 items-end">
+          <div className="col-span-2 md:col-span-3 lg:col-span-4 xl:col-span-2">
             <Label className="text-sm font-medium" htmlFor="search">Search by keyword</Label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input id="search" placeholder="e.g., 'Hyundai Creta 2021'" className="pl-10" />
             </div>
           </div>
-          <div className="col-span-2 sm:col-span-1">
+          <div>
             <Label className="text-sm font-medium" htmlFor="make">Make</Label>
             <Select onValueChange={handleMakeChange}>
               <SelectTrigger id="make">
@@ -68,7 +68,7 @@ export function AdFilters() {
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2 sm:col-span-1">
+          <div>
             <Label className="text-sm font-medium" htmlFor="model">Model</Label>
             <Select disabled={!selectedMake}>
               <SelectTrigger id="model">
@@ -83,22 +83,22 @@ export function AdFilters() {
           <div className="col-span-2 sm:col-span-1">
               <Label className="text-sm font-medium">Year</Label>
               <div className="grid grid-cols-2 gap-2">
-                  <Input id="min-year" placeholder="Min (e.g., 2018)" type="number" />
-                  <Input id="max-year" placeholder="Max (e.g., 2022)" type="number" />
+                  <Input id="min-year" placeholder="Min" type="number" />
+                  <Input id="max-year" placeholder="Max" type="number" />
               </div>
           </div>
            <div className="col-span-2 sm:col-span-1">
               <Label className="text-sm font-medium">Price</Label>
               <div className="grid grid-cols-2 gap-2">
-                  <Input id="min-price" placeholder="Min (₹1 Lakh)" />
-                  <Input id="max-price" placeholder="Max (₹20 Lakh)" />
+                  <Input id="min-price" placeholder="Min" />
+                  <Input id="max-price" placeholder="Max" />
               </div>
           </div>
-          <div className="col-span-2 sm:col-span-1">
+          <div>
             <Label className="text-sm font-medium" htmlFor="fuel-type">Fuel Type</Label>
             <Select>
               <SelectTrigger id="fuel-type">
-                <SelectValue placeholder="Any Fuel Type" />
+                <SelectValue placeholder="Any" />
               </SelectTrigger>
               <SelectContent>
                   <SelectItem value="any">Any Fuel Type</SelectItem>
@@ -110,11 +110,11 @@ export function AdFilters() {
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2 sm:col-span-1">
+          <div>
             <Label className="text-sm font-medium" htmlFor="transmission">Transmission</Label>
             <Select>
               <SelectTrigger id="transmission">
-                <SelectValue placeholder="Any Transmission" />
+                <SelectValue placeholder="Any" />
               </SelectTrigger>
               <SelectContent>
                   <SelectItem value="any">Any Transmission</SelectItem>
@@ -123,9 +123,12 @@ export function AdFilters() {
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-2 flex gap-2 items-end">
-              <Button className="w-full"><Search className="mr-2 h-4 w-4" /> Apply</Button>
-              <Button variant="ghost" size="icon" className="shrink-0"><X className="h-4 w-4" /></Button>
+          <div className="col-span-2 md:col-span-3 lg:col-span-2 xl:col-span-2 flex gap-2 items-end">
+              <Button className="w-full"><Search className="mr-2 h-4 w-4" /> Apply Filters</Button>
+              <Button variant="ghost" className="w-full">
+                <X className="mr-2 h-4 w-4" />
+                Reset
+              </Button>
           </div>
         </div>
       </CollapsibleContent>
