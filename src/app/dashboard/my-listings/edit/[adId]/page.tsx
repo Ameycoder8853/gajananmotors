@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useForm } from 'react-hook-form';
@@ -59,6 +60,7 @@ const adFormSchema = z.object({
   state: z.string().min(1, 'State is required.'),
   city: z.string().min(2, 'City is required.'),
   subLocation: z.string().min(2, 'Area/Sub-location is required.'),
+  addressLine: z.string().optional(),
   newImages: z.array(z.instanceof(File)).max(5, 'You can upload a maximum of 5 images.').optional(),
   features: z.array(z.string()).optional(),
 });
@@ -101,6 +103,7 @@ export default function EditListingPage() {
       state: '',
       city: '',
       subLocation: '',
+      addressLine: '',
       newImages: [],
       features: [],
     },
@@ -111,12 +114,20 @@ export default function EditListingPage() {
         if (user && ad.dealerId !== user.uid) {
             return notFound();
         }
-        const [subLocation, city, state] = ad.location.split(',').map(s => s.trim());
+        
+        // Deconstruct location
+        const locationParts = ad.location.split(',').map(s => s.trim());
+        const state = locationParts.pop() || '';
+        const city = locationParts.pop() || '';
+        const subLocation = locationParts.pop() || '';
+        const addressLine = locationParts.join(', ');
+
         form.reset({
             ...ad,
             state,
             city,
             subLocation,
+            addressLine,
             newImages: [],
         });
         setExistingImages(ad.images as string[]);
@@ -228,7 +239,8 @@ export default function EditListingPage() {
         }
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
-        const location = `${values.subLocation}, ${values.city}, ${values.state}`;
+        const locationParts = [values.addressLine, values.subLocation, values.city, values.state].filter(Boolean);
+        const location = locationParts.join(', ');
         
         // Omit form-specific fields that are not in the Ad type
         const { state, city, subLocation, newImages: _, ...adData } = values;
@@ -437,6 +449,16 @@ export default function EditListingPage() {
                         <FormLabel>Sub-location / Area</FormLabel>
                          <FormControl>
                             <Input placeholder="e.g., Koregaon Park" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+                
+                <FormField control={form.control} name="addressLine" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Street Address / Building (Optional)</FormLabel>
+                         <FormControl>
+                            <Input placeholder="e.g., Front of Pawer Tower" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>

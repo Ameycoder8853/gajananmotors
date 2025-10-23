@@ -139,7 +139,11 @@
         },
         "location": {
           "type": "string",
-          "description": "The location where the car is being sold."
+          "description": "The full location where the car is being sold, composed of address, sub-location, city, and state."
+        },
+        "addressLine": {
+            "type": "string",
+            "description": "The specific street address or building details for the car's location."
         },
         "images": {
           "type": "array",
@@ -444,5 +448,3 @@
     "reasoning": "The Firestore structure is designed to provide a secure, scalable, and easily maintainable backend for the Gajanan Motors application, focusing on authorization independence and clear security rules.\n\n*   **Authorization Independence:** Achieved through denormalization. For instance, access to `cars` is based on the `dealerId` field within the `car` document itself. This strategy avoids hierarchical authorization dependencies and enables atomic operations.\n\n*   **Structural Segregation:** Collections are segregated based on their security requirements. User data, cars, payments, commissions, and audit logs are stored in separate top-level collections to simplify security rules.\n\n*   **Access Modeling:** Admin specific data will be stored in collections such as `roles_admin/{userId}` to denote user roles.\n\n*   **QAPs (Rules are not Filters):** Secure `list` operations are supported by structural segregation and authorization independence. For example, listing ads for a specific dealer is secured by querying the `cars` collection for a specific `dealerId`. The admin can use a collection group query on `/cars` to view all ads with appropriate authorization rules.\n\n*   **Invariants:** The structure supports the integrity of ownership, timestamps, and denormalized data. Ownership is enforced through the `dealerId` field in the `cars` collection. Timestamps (`createdAt`, `soldAt`, `removedAt`) maintain data integrity. Denormalization ensures that authorization context is readily available within each document.\n"
   }
 }
-
-    

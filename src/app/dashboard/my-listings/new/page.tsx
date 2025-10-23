@@ -59,6 +59,7 @@ const adFormSchema = z.object({
   state: z.string().min(1, 'State is required.'),
   city: z.string().min(2, 'City is required.'),
   subLocation: z.string().min(2, 'Area/Sub-location is required.'),
+  addressLine: z.string().optional(),
   images: z.array(z.instanceof(File)).min(1, 'At least one image is required.').max(5, 'You can upload a maximum of 5 images.'),
   features: z.array(z.string()).optional(),
 });
@@ -87,6 +88,7 @@ export default function NewListingPage() {
       state: '',
       city: '',
       subLocation: '',
+      addressLine: '',
       images: [],
       features: [],
     },
@@ -160,7 +162,8 @@ export default function NewListingPage() {
         setUploadProgress(100);
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
-        const location = `${values.subLocation}, ${values.city}, ${values.state}`;
+        const locationParts = [values.addressLine, values.subLocation, values.city, values.state].filter(Boolean);
+        const location = locationParts.join(', ');
         
         const userDocRef = doc(firestore, 'users', user.uid);
     
@@ -371,6 +374,16 @@ export default function NewListingPage() {
                         <FormLabel>Sub-location / Area</FormLabel>
                          <FormControl>
                             <Input placeholder="e.g., Koregaon Park" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+
+                 <FormField control={form.control} name="addressLine" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Street Address / Building (Optional)</FormLabel>
+                         <FormControl>
+                            <Input placeholder="e.g., Front of Pawer Tower" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>
