@@ -62,7 +62,7 @@ export default function MarketPage() {
   const isLoading = areAdsLoading || (ads && ads.length > 0 && adsWithDealers.length === 0);
 
   return (
-    <div className="px-8 py-8">
+    <div className="py-8">
       <div className="mb-8 text-center">
         <h1 className="text-4xl font-extrabold tracking-tight">Car Marketplace</h1>
         <p className="mt-2 text-lg text-muted-foreground">Browse and find your dream car from our trusted dealers.</p>

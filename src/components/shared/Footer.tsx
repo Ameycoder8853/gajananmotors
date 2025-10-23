@@ -5,7 +5,7 @@ import Link from "next/link";
 export function Footer() {
   return (
     <footer className="bg-card border-t mt-auto">
-      <div className="px-8 py-8">
+      <div className="px-4 md:px-8 py-8">
         <div className="flex flex-col md:flex-row justify-between items-center gap-8">
           <div>
             <Logo />

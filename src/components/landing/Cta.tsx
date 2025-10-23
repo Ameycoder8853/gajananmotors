@@ -6,7 +6,7 @@ import { ArrowRight } from 'lucide-react';
 export function Cta() {
     return (
         <section className="py-16 sm:py-24">
-            <div className="px-8">
+            <div className="px-4 md:px-8">
                 <div className="max-w-4xl mx-auto">
                     <div className="bg-primary/10 rounded-lg p-8 md:p-12 text-center animate-fade-in-up">
                         <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-primary">
