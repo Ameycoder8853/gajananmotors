@@ -6,7 +6,7 @@ import { Star } from 'lucide-react';
 
 const testimonials = [
   {
-    name: "Rohan Patel",
+    name: "Arthesh Patil",
     role: "First-Time Buyer",
     quote: "Gajanan Motors made finding my first car so easy. The dealers were verified, and the pricing was transparent. I found a great deal on a Swift and couldn't be happier!",
     imageId: "testimonial-1",
