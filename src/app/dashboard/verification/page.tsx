@@ -48,22 +48,30 @@ export default function VerificationPage() {
   const [files, setFiles] = useState<{ aadhar?: File; pan?: File; shopLicense?: File }>({});
   const [isUploading, setIsUploading] = useState(false);
 
+  // This effect ensures the reCAPTCHA verifier is set up once and cleaned up properly.
   useEffect(() => {
     if (!auth) return;
 
-    // Initialize reCAPTCHA verifier once on component mount
+    // This check prevents re-creating the verifier on every re-render.
     if (!window.recaptchaVerifier) {
+      // The 'recaptcha-container' div must be present in the DOM.
       window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
         'size': 'invisible',
         'callback': (response: any) => {
-          // reCAPTCHA solved.
+          // reCAPTCHA solved, allows signInWithPhoneNumber to proceed.
+        },
+        'expired-callback': () => {
+          // Response expired. Ask user to solve reCAPTCHA again.
         }
       });
     }
 
-    // Cleanup on unmount
+    // Cleanup function to clear the verifier when the component unmounts.
     return () => {
-      window.recaptchaVerifier?.clear();
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+        window.recaptchaVerifier = undefined;
+      }
     };
   }, [auth]);
 
@@ -93,14 +101,15 @@ export default function VerificationPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'User phone number not found.' });
         return;
     }
-    if (!window.recaptchaVerifier) {
-      toast({ variant: 'destructive', title: 'Error', description: 'reCAPTCHA not ready. Please try again in a moment.' });
+    const appVerifier = window.recaptchaVerifier;
+    if (!appVerifier) {
+      toast({ variant: 'destructive', title: 'Error', description: 'reCAPTCHA not ready. Please refresh and try again.' });
       return;
     }
 
     try {
         const phoneNumber = user.phone.startsWith('+') ? user.phone : `+91${user.phone}`;
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, window.recaptchaVerifier);
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
         
         window.confirmationResult = confirmationResult;
         setOtpSent(true);
@@ -109,10 +118,6 @@ export default function VerificationPage() {
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Failed to send OTP', description: error.message });
         console.error("OTP send error:", error);
-        // Reset reCAPTCHA on certain errors to allow retry
-        window.recaptchaVerifier?.render().then((widgetId) => {
-          window.grecaptcha?.reset(widgetId);
-        });
     }
   };
 
@@ -184,7 +189,7 @@ export default function VerificationPage() {
 
   return (
     <div className="space-y-8">
-      {/* This container is required for reCAPTCHA to anchor to. It's invisible. */}
+      {/* This container is required by reCAPTCHA. It is invisible. */}
       <div id="recaptcha-container"></div>
       <Card>
         <CardHeader>
@@ -286,5 +291,3 @@ export default function VerificationPage() {
     </div>
   );
 }
-
-    
