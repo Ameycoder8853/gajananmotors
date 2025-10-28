@@ -97,7 +97,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
-        const userDocRef = doc(firestore, 'users', firebaseUser.uid);
+        // Force a reload to get the latest user state (e.g., emailVerified)
+        await firebaseUser.reload();
+        // Use the reloaded user object from this point on
+        const refreshedFirebaseUser = auth.currentUser;
+
+        if (!refreshedFirebaseUser) {
+            setUser(null);
+            setIsUserLoading(false);
+            return;
+        }
+
+        const userDocRef = doc(firestore, 'users', refreshedFirebaseUser.uid);
         try {
           const userDoc = await getDoc(userDocRef);
           
@@ -119,7 +130,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               if (oldPlan) {
                   // Make excess ads private
                   const adsRef = collection(firestore, 'cars');
-                  const q = query(adsRef, where('dealerId', '==', firebaseUser.uid), orderBy('createdAt', 'desc'));
+                  const q = query(adsRef, where('dealerId', '==', refreshedFirebaseUser.uid), orderBy('createdAt', 'desc'));
                   const adsSnapshot = await getDocs(q);
                   
                   let publicAdsCount = 0;
@@ -130,7 +141,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                   });
 
                   if (publicAdsCount > 0) { // If there are more public ads than the new limit (which is 0)
-                      const adsToMakePrivateQuery = query(adsRef, where('dealerId', '==', firebaseUser.uid), orderBy('createdAt', 'asc'));
+                      const adsToMakePrivateQuery = query(adsRef, where('dealerId', '==', refreshedFirebaseUser.uid), orderBy('createdAt', 'asc'));
                       const adsToMakePrivateSnapshot = await getDocs(adsToMakePrivateQuery);
                       let privateNeeded = publicAdsCount;
                       
@@ -151,7 +162,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               });
             }
 
-            const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser, photoURL: firebaseUser.photoURL, emailVerified: firebaseUser.emailVerified, isPhoneVerified: appUser.isPhoneVerified ?? false };
+            const enhancedUser: FirebaseUser = { ...refreshedFirebaseUser, ...appUser, photoURL: refreshedFirebaseUser.photoURL, emailVerified: refreshedFirebaseUser.emailVerified, isPhoneVerified: appUser.isPhoneVerified ?? false };
             setUser(enhancedUser);
 
             // Redirect based on role after login
@@ -166,16 +177,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           } else {
              // New user from Google Sign in maybe, or something went wrong
              // Let's create a basic user doc if they don't have one
-            const displayName = firebaseUser.displayName || 'New User';
-            const email = firebaseUser.email;
+            const displayName = refreshedFirebaseUser.displayName || 'New User';
+            const email = refreshedFirebaseUser.email;
             if (email) {
                 const newUser: AppUser = {
-                    id: firebaseUser.uid,
+                    id: refreshedFirebaseUser.uid,
                     name: displayName,
                     email: email,
-                    photoURL: firebaseUser.photoURL || '',
+                    photoURL: refreshedFirebaseUser.photoURL || '',
                     role: 'dealer',
-                    phone: firebaseUser.phoneNumber || '',
+                    phone: refreshedFirebaseUser.phoneNumber || '',
                     isPro: false,
                     proExpiresAt: null,
                     createdAt: new Date(),
@@ -183,7 +194,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     verificationStatus: 'unverified'
                 };
                 setDocumentNonBlocking(userDocRef, newUser, { merge: false });
-                const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, photoURL: firebaseUser.photoURL, emailVerified: firebaseUser.emailVerified, isPhoneVerified: false };
+                const enhancedUser: FirebaseUser = { ...refreshedFirebaseUser, ...newUser, photoURL: refreshedFirebaseUser.photoURL, emailVerified: refreshedFirebaseUser.emailVerified, isPhoneVerified: false };
                 setUser(enhancedUser);
                 if (router) router.push('/dashboard/my-listings');
             }
@@ -289,5 +300,3 @@ export const useAuth = () => {
   }
   return context;
 };
-
-    
