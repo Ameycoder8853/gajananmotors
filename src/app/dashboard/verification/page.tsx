@@ -32,6 +32,7 @@ declare global {
   interface Window {
     recaptchaVerifier?: RecaptchaVerifier;
     confirmationResult?: ConfirmationResult;
+    grecaptcha?: any;
   }
 }
 
@@ -47,16 +48,15 @@ export default function VerificationPage() {
   const [files, setFiles] = useState<{ aadhar?: File; pan?: File; shopLicense?: File }>({});
   const [isUploading, setIsUploading] = useState(false);
 
+  // This container is still necessary for reCAPTCHA to anchor to.
   useEffect(() => {
-    if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        size: 'invisible',
-        callback: (response: any) => {
-          // reCAPTCHA solved, allow signInWithPhoneNumber.
-        },
-      });
-    }
-  }, [auth]);
+    return () => {
+      // Cleanup the verifier on component unmount
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+      }
+    };
+  }, []);
 
   const handleSendVerificationEmail = async () => {
     const currentUser = auth.currentUser;
@@ -80,25 +80,35 @@ export default function VerificationPage() {
 
   const handleSendOtp = async () => {
     if (user && user.phone) {
+      // Ensure the container is clean before creating a new verifier
+      if (window.recaptchaVerifier) {
+        window.recaptchaVerifier.clear();
+      }
+      
       try {
-        const appVerifier = window.recaptchaVerifier!;
-        const phoneNumber = user.phone.startsWith('+') ? user.phone : `+91${user.phone}`;
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-        window.confirmationResult = confirmationResult;
-        setOtpSent(true);
-        toast({ title: 'OTP Sent', description: `An OTP has been sent to ${phoneNumber}.` });
+        const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            size: 'invisible',
+            callback: (response: any) => {
+                // reCAPTCHA solved, allow signInWithPhoneNumber.
+            },
+        });
+        window.recaptchaVerifier = appVerifier;
+        
+        // Render the verifier and then sign in
+        appVerifier.render().then(async (widgetId) => {
+            const phoneNumber = user.phone.startsWith('+') ? user.phone : `+91${user.phone}`;
+            const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            window.confirmationResult = confirmationResult;
+            setOtpSent(true);
+            toast({ title: 'OTP Sent', description: `An OTP has been sent to ${phoneNumber}.` });
+        }).catch((error: any) => {
+            toast({ variant: 'destructive', title: 'reCAPTCHA Error', description: error.message });
+            console.error("reCAPTCHA render error:", error);
+        });
+
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Failed to send OTP', description: error.message });
         console.error("OTP error:", error);
-         // Reset reCAPTCHA for retries
-        if(window.recaptchaVerifier) {
-          window.recaptchaVerifier.render().then((widgetId) => {
-            // @ts-ignore
-            if (window.grecaptcha) {
-              window.grecaptcha.reset(widgetId);
-            }
-          });
-        }
       }
     }
   };
