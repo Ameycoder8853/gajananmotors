@@ -48,15 +48,35 @@ export default function LoginPage() {
     },
   });
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      loginWithEmail(values.email, values.password);
+      await loginWithEmail(values.email, values.password);
+      // The redirect is handled by the useAuth hook
     } catch (error: any) {
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred.',
-      });
+      let errorMessage = 'An unexpected error occurred. Please try again.';
+      switch (error.code) {
+        case 'auth/user-not-found':
+        case 'auth/invalid-email':
+          form.setError('email', {
+            type: 'manual',
+            message: 'No account found with this email address.',
+          });
+          break;
+        case 'auth/wrong-password':
+        case 'auth/invalid-credential':
+           form.setError('password', {
+            type: 'manual',
+            message: 'Incorrect password. Please try again.',
+          });
+          break;
+        default:
+           toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: errorMessage,
+          });
+      }
+      console.error("Login failed:", error);
     }
   }
 
@@ -122,8 +142,8 @@ export default function LoginPage() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full">
-              Log in
+            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
+              {form.formState.isSubmitting ? 'Logging in...' : 'Log in'}
             </Button>
             <Button variant="outline" className="w-full" onClick={loginWithGoogle} type="button">
               Log in with Google

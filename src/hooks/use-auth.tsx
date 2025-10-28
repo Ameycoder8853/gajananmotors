@@ -24,7 +24,7 @@ interface AuthContextType {
   user: FirebaseUser | null;
   auth: Auth;
   isUserLoading: boolean;
-  loginWithEmail: (email: string, pass: string) => void;
+  loginWithEmail: (email: string, pass: string) => Promise<any>;
   signUpWithEmail: (email: string, pass: string, name: string, phone: string) => void;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
@@ -217,16 +217,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => unsubscribe();
   }, [auth, firestore, router, toast, isFirebaseLoading]);
 
-  const loginWithEmail = (email: string, pass: string) => {
-    if (!auth) return;
-    signInWithEmailAndPassword(auth, email, pass).catch(error => {
-      toast({
-        variant: 'destructive',
-        title: 'Login Failed',
-        description: error.message || 'An unexpected error occurred.',
-      });
-      console.error("Login failed:", error);
-    });
+  const loginWithEmail = async (email: string, pass: string) => {
+    if (!auth) throw new Error("Auth service not initialized");
+    return signInWithEmailAndPassword(auth, email, pass);
   };
 
   const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
