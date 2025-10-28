@@ -52,9 +52,7 @@ export default function VerificationPage() {
   useEffect(() => {
     return () => {
       // Cleanup the verifier on component unmount
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-      }
+      window.recaptchaVerifier?.clear();
     };
   }, []);
 
@@ -79,37 +77,41 @@ export default function VerificationPage() {
 
 
   const handleSendOtp = async () => {
-    if (user && user.phone) {
-      // Ensure the container is clean before creating a new verifier
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-      }
-      
-      try {
+    if (!user || !user.phone) {
+        toast({ variant: 'destructive', title: 'Error', description: 'User phone number not found.' });
+        return;
+    }
+
+    try {
+        // Ensure the container is clean and verifier is cleared before creating a new one
+        if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.clear();
+        }
+        const recaptchaContainer = document.getElementById('recaptcha-container');
+        if (recaptchaContainer) {
+            recaptchaContainer.innerHTML = '';
+        }
+
         const appVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            size: 'invisible',
-            callback: (response: any) => {
+            'size': 'invisible',
+            'callback': (response: any) => {
                 // reCAPTCHA solved, allow signInWithPhoneNumber.
-            },
+            }
         });
         window.recaptchaVerifier = appVerifier;
-        
-        // Render the verifier and then sign in
-        appVerifier.render().then(async (widgetId) => {
-            const phoneNumber = user.phone.startsWith('+') ? user.phone : `+91${user.phone}`;
-            const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-            window.confirmationResult = confirmationResult;
-            setOtpSent(true);
-            toast({ title: 'OTP Sent', description: `An OTP has been sent to ${phoneNumber}.` });
-        }).catch((error: any) => {
-            toast({ variant: 'destructive', title: 'reCAPTCHA Error', description: error.message });
-            console.error("reCAPTCHA render error:", error);
-        });
 
-      } catch (error: any) {
+        const phoneNumber = user.phone.startsWith('+') ? user.phone : `+91${user.phone}`;
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        
+        window.confirmationResult = confirmationResult;
+        setOtpSent(true);
+        toast({ title: 'OTP Sent', description: `An OTP has been sent to ${phoneNumber}.` });
+
+    } catch (error: any) {
         toast({ variant: 'destructive', title: 'Failed to send OTP', description: error.message });
-        console.error("OTP error:", error);
-      }
+        console.error("OTP send error:", error);
+        // Attempt to clear verifier on failure to allow retry
+        window.recaptchaVerifier?.clear();
     }
   };
 
