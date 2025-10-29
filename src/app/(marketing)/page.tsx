@@ -1,4 +1,6 @@
 
+'use client';
+
 import { Features } from "@/components/landing/Features";
 import { Hero } from "@/components/landing/Hero";
 import { Button } from "@/components/ui/button";
@@ -10,8 +12,55 @@ import { Testimonials } from "@/components/landing/Testimonials";
 import { Cta } from "@/components/landing/Cta";
 import { Stats } from "@/components/landing/Stats";
 import { Faq } from "@/components/landing/Faq";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { sendContactEmail } from "@/ai/flows/send-contact-email";
+
+
+const contactFormSchema = z.object({
+    name: z.string().min(2, { message: 'Please enter your name.' }),
+    email: z.string().email({ message: 'Please enter a valid email address.' }),
+    subject: z.string().min(5, { message: 'Subject must be at least 5 characters.' }),
+    message: z.string().min(10, { message: 'Message must be at least 10 characters.' }),
+});
+
+type ContactFormValues = z.infer<typeof contactFormSchema>;
 
 function ContactForm() {
+    const { toast } = useToast();
+
+    const form = useForm<ContactFormValues>({
+        resolver: zodResolver(contactFormSchema),
+        defaultValues: {
+            name: '',
+            email: '',
+            subject: '',
+            message: '',
+        },
+    });
+
+    const onSubmit = async (values: ContactFormValues) => {
+        try {
+            await sendContactEmail(values);
+            toast({
+                title: 'Message Sent!',
+                description: "We've received your message and will get back to you shortly.",
+            });
+            form.reset();
+        } catch (error) {
+            console.error("Failed to send contact email:", error);
+            toast({
+                variant: 'destructive',
+                title: 'Failed to Send',
+                description: 'There was an error sending your message. Please try again later.',
+            });
+        }
+    };
+
     return (
         <section id="contact" className="py-16 sm:py-24 bg-secondary">
             <div className="px-4 md:px-8">
@@ -26,22 +75,71 @@ function ContactForm() {
                                     We're here to help. Fill out the form below and we'll get back to you as soon as possible.
                                 </p>
                             </div>
-                            <form className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                                <Input placeholder="Your Name" />
-                                <Input type="email" placeholder="Your Email" />
-                                <div className="sm:col-span-2">
-                                    <Input placeholder="Subject" />
-                                </div>
-                                <div className="sm:col-span-2">
-                                    <textarea
-                                        className="flex min-h-[120px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
-                                        placeholder="Your Message"
-                                    ></textarea>
-                                </div>
-                                <div className="sm:col-span-2 text-center">
-                                    <Button size="lg" type="submit" className="transition-transform duration-300 hover:scale-105">Send Message</Button>
-                                </div>
-                            </form>
+                            <Form {...form}>
+                                <form onSubmit={form.handleSubmit(onSubmit)} className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    <FormField
+                                        control={form.control}
+                                        name="name"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="sr-only">Name</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Your Name" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="email"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel className="sr-only">Email</FormLabel>
+                                                <FormControl>
+                                                    <Input type="email" placeholder="Your Email" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="subject"
+                                        render={({ field }) => (
+                                            <FormItem className="sm:col-span-2">
+                                                 <FormLabel className="sr-only">Subject</FormLabel>
+                                                <FormControl>
+                                                    <Input placeholder="Subject" {...field} />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <FormField
+                                        control={form.control}
+                                        name="message"
+                                        render={({ field }) => (
+                                            <FormItem className="sm:col-span-2">
+                                                <FormLabel className="sr-only">Message</FormLabel>
+                                                <FormControl>
+                                                    <Textarea
+                                                        className="min-h-[120px]"
+                                                        placeholder="Your Message"
+                                                        {...field}
+                                                    />
+                                                </FormControl>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                    <div className="sm:col-span-2 text-center">
+                                        <Button size="lg" type="submit" className="transition-transform duration-300 hover:scale-105" disabled={form.formState.isSubmitting}>
+                                            {form.formState.isSubmitting ? 'Sending...' : 'Send Message'}
+                                        </Button>
+                                    </div>
+                                </form>
+                            </Form>
                         </CardContent>
                     </Card>
                 </div>
