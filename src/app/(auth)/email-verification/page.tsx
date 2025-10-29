@@ -26,11 +26,34 @@ export default function EmailVerificationPage() {
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    // If the user is loaded and their email is verified, redirect them away.
+    // If the user is already verified when they land on the page, redirect immediately.
     if (!isUserLoading && user?.emailVerified) {
       router.replace('/dashboard');
+      return;
     }
-  }, [user, isUserLoading, router]);
+
+    // Set up an interval to periodically check the user's verification status.
+    // This handles the case where the user verifies their email in another tab.
+    const interval = setInterval(async () => {
+      const currentUser = auth.currentUser;
+      if (currentUser) {
+        // Force a reload of the user's profile to get the latest emailVerified status
+        await currentUser.reload();
+        // If the user is now verified, clear the interval and redirect.
+        if (currentUser.emailVerified) {
+          clearInterval(interval);
+          toast({
+            title: "Email Verified!",
+            description: "Redirecting you to the dashboard...",
+          });
+          router.replace('/dashboard');
+        }
+      }
+    }, 3000); // Check every 3 seconds
+
+    // Clean up the interval when the component unmounts.
+    return () => clearInterval(interval);
+  }, [user, isUserLoading, router, auth, toast]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -74,6 +97,15 @@ export default function EmailVerificationPage() {
   if (isUserLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
+          <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+      </div>
+    );
+  }
+
+  // Prevent flash of content for already verified users while redirecting
+  if (user?.emailVerified) {
+    return (
+       <div className="flex items-center justify-center min-h-screen">
           <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
       </div>
     );
