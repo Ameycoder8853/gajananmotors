@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { sendEmailVerification } from 'firebase/auth';
-import { Logo } from '@/components/shared/Logo';
 import { useRouter } from 'next/navigation';
 import { MailCheck } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -27,34 +26,13 @@ export default function EmailVerificationPage() {
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    // If the user is already verified when they land on the page, redirect immediately.
-    if (!isUserLoading && user?.emailVerified) {
+    // If the user lands here but is already verified, send them to the dashboard.
+    // This handles the case where they complete verification and then navigate back.
+    if (user?.emailVerified) {
       router.replace('/dashboard');
-      return;
     }
+  }, [user, router]);
 
-    // Set up an interval to periodically check the user's verification status.
-    // This handles the case where the user verifies their email in another tab.
-    const interval = setInterval(async () => {
-      const currentUser = auth.currentUser;
-      if (currentUser) {
-        // Force a reload of the user's profile to get the latest emailVerified status
-        await currentUser.reload();
-        // If the user is now verified, clear the interval and redirect.
-        if (currentUser.emailVerified) {
-          clearInterval(interval);
-          toast({
-            title: "Email Verified!",
-            description: "Redirecting you to the dashboard...",
-          });
-          router.replace('/dashboard');
-        }
-      }
-    }, 3000); // Check every 3 seconds
-
-    // Clean up the interval when the component unmounts.
-    return () => clearInterval(interval);
-  }, [user, isUserLoading, router, auth, toast]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;

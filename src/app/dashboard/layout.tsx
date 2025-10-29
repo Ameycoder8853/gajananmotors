@@ -26,23 +26,20 @@ export default function DashboardLayout({
       return;
     }
     
-    // Redirect unverified users to the verification page, unless they are already there or on settings.
-    // The admin user should bypass this check.
-    if (user.role !== 'admin' && !user.emailVerified && pathname !== '/email-verification') {
+    // Redirect unverified dealers to the verification page. Admins bypass this.
+    if (user.role === 'dealer' && !user.emailVerified && pathname !== '/email-verification') {
         router.push('/email-verification');
         return;
     }
 
-    // Bypass verification check for admin users
-    if (user.role === 'admin') {
-      if (pathname === '/dashboard/verification' || pathname === '/email-verification') {
-        router.replace('/dashboard');
-      }
-      return; // Admin doesn't need further checks
+    // Redirect admins away from dealer-specific verification pages.
+    if (user.role === 'admin' && (pathname === '/dashboard/verification' || pathname === '/email-verification')) {
+      router.replace('/dashboard');
+      return;
     }
     
     // This is the main entry point to the dashboard for dealers.
-    if (pathname === '/dashboard') {
+    if (user.role === 'dealer' && pathname === '/dashboard') {
       router.replace('/dashboard/my-listings');
     }
 
