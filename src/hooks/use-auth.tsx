@@ -166,15 +166,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             const enhancedUser: FirebaseUser = { ...refreshedFirebaseUser, ...appUser, photoURL: refreshedFirebaseUser.photoURL, emailVerified: refreshedFirebaseUser.emailVerified, isPhoneVerified: appUser.isPhoneVerified ?? false };
             setUser(enhancedUser);
 
-            // Redirect based on role after login
-            const isLoginPage = window.location.pathname === '/login' || window.location.pathname === '/signup';
-            if (router && isLoginPage) { 
-                if (appUser.role === 'admin') {
-                    router.push('/dashboard');
-                } else if (appUser.role === 'dealer') {
-                    router.push('/dashboard/my-listings');
-                }
-            }
           } else {
              // New user from Google Sign in maybe, or something went wrong
              // Let's create a basic user doc if they don't have one
@@ -197,7 +188,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 setDocumentNonBlocking(doc(firestore, 'users', refreshedFirebaseUser.uid), newUser, { merge: false });
                 const enhancedUser: FirebaseUser = { ...refreshedFirebaseUser, ...newUser, photoURL: refreshedFirebaseUser.photoURL, emailVerified: refreshedFirebaseUser.emailVerified, isPhoneVerified: false };
                 setUser(enhancedUser);
-                if (router) router.push('/dashboard/my-listings');
             }
           }
 
@@ -220,7 +210,20 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loginWithEmail = async (email: string, pass: string) => {
     if (!auth) throw new Error("Auth service not initialized");
-    return signInWithEmailAndPassword(auth, email, pass);
+    const creds = await signInWithEmailAndPassword(auth, email, pass);
+    
+    // Redirect after successful login
+    const userDocRef = doc(firestore, 'users', creds.user.uid);
+    const userDoc = await getDoc(userDocRef);
+    if (userDoc.exists()) {
+      const appUser = userDoc.data() as AppUser;
+      if (appUser.role === 'admin') {
+        router.push('/dashboard');
+      } else {
+        router.push('/dashboard/my-listings');
+      }
+    }
+    return creds;
   };
 
   const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
@@ -251,7 +254,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
       
       setDocumentNonBlocking(userDocRef, userData, { merge: false });
-      // Let the onAuthStateChanged handle the redirect
+      router.push('/dashboard/my-listings');
       
     } catch (error: any) {
         let description = 'An unexpected error occurred.';
@@ -272,8 +275,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const loginWithGoogle = async () => {
     if (!auth) return;
     const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-    // onAuthStateChanged will handle the rest
+    const result = await signInWithPopup(auth, provider);
+    const userDocRef = doc(firestore, 'users', result.user.uid);
+    const userDoc = await getDoc(userDocRef);
+     if (!userDoc.exists()) {
+        const newUser: AppUser = {
+            id: result.user.uid,
+            name: result.user.displayName || 'New User',
+            email: result.user.email!,
+            photoURL: result.user.photoURL || '',
+            role: 'dealer',
+            phone: result.user.phoneNumber || '',
+            isPro: false,
+            proExpiresAt: null,
+            createdAt: new Date(),
+            adCredits: 0,
+            verificationStatus: 'unverified'
+        };
+        setDocumentNonBlocking(doc(firestore, 'users', result.user.uid), newUser, { merge: false });
+    }
+    router.push('/dashboard/my-listings');
   };
 
   const logout = async () => {

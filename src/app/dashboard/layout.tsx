@@ -17,18 +17,24 @@ export default function DashboardLayout({
   const pathname = usePathname();
 
   useEffect(() => {
-    // If auth state is still being determined, do nothing.
     if (isUserLoading) {
-      return; 
+      return; // Wait until the user is loaded
     }
-    
-    // Only redirect if loading is complete AND there is definitively no user.
-    // This prevents redirects during the brief moment between Firebase auth loading
-    // and the custom user profile being attached.
-    if (!isUserLoading && !user) {
+
+    if (!user) {
       router.push('/login');
+      return;
     }
-  }, [user, isUserLoading, router]);
+
+    // This is the main entry point to the dashboard. Redirect to the correct "home" page based on role.
+    if (pathname === '/dashboard') {
+      if (user.role === 'dealer') {
+        router.replace('/dashboard/my-listings');
+      }
+      // If admin, they stay on /dashboard
+    }
+
+  }, [user, isUserLoading, router, pathname]);
 
   // Render a loading state while checking for user auth
   if (isUserLoading) {

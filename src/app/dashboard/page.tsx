@@ -10,15 +10,7 @@ export default function DashboardPage() {
     const { user, isUserLoading } = useAuth();
     const router = useRouter();
 
-    useEffect(() => {
-        // Only redirect if the user data has loaded and the user is a dealer.
-        if (!isUserLoading && user && user.role === 'dealer') {
-            router.replace('/dashboard/my-listings');
-        }
-    }, [user, isUserLoading, router]);
-
     // Show a loading spinner while auth state is being determined.
-    // Or if the user is a dealer and the redirect is in progress.
     if (isUserLoading || (user && user.role !== 'admin')) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
