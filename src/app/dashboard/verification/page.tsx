@@ -252,7 +252,12 @@ export default function VerificationPage() {
           </div>
           {otpSent && !isPhoneVerified && (
             <div className="flex items-center gap-4">
-              <Input value={otp} onChange={(e) => setOtp(e.target.value)} placeholder="Enter OTP" />
+              <Input
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.slice(0, 6))}
+                placeholder="Enter OTP"
+                maxLength={6}
+              />
               <Button onClick={handleVerifyOtp}>Verify OTP</Button>
             </div>
           )}
