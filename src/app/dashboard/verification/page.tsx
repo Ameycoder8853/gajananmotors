@@ -49,16 +49,34 @@ export default function VerificationPage() {
   const [otpSent, setOtpSent] = useState(false);
   const [files, setFiles] = useState<{ aadhar?: File; pan?: File; shopLicense?: File }>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [emailCooldown, setEmailCooldown] = useState(0);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (emailCooldown > 0) {
+      timer = setTimeout(() => setEmailCooldown(emailCooldown - 1), 1000);
+    }
+    return () => clearTimeout(timer);
+  }, [emailCooldown]);
 
   const handleSendVerificationEmail = async () => {
     const currentUser = auth.currentUser;
     if (currentUser && user?.email) {
+      if (emailCooldown > 0) {
+        toast({
+            variant: "destructive",
+            title: "Please wait",
+            description: `You can send another email in ${emailCooldown} seconds.`,
+        });
+        return;
+      }
       try {
         await sendEmailVerification(currentUser);
         toast({
           title: 'Verification Email Sent',
           description: `A verification link has been sent to ${user.email}. Please check your inbox.`,
         });
+        setEmailCooldown(60); // Start 60-second cooldown
       } catch (error: any) {
         toast({
           variant: 'destructive',
@@ -227,8 +245,8 @@ export default function VerificationPage() {
         </CardHeader>
         <CardContent className="flex items-center justify-between">
           <p className="text-muted-foreground">Status: {isEmailVerified ? <span className="text-green-600 font-semibold">Verified</span> : <span className="text-orange-600 font-semibold">Not Verified</span>}</p>
-          <Button onClick={handleSendVerificationEmail} disabled={isEmailVerified}>
-            {isEmailVerified ? 'Email Verified' : 'Send Verification Email'}
+          <Button onClick={handleSendVerificationEmail} disabled={isEmailVerified || emailCooldown > 0}>
+            {isEmailVerified ? 'Email Verified' : emailCooldown > 0 ? `Resend in ${emailCooldown}s` : 'Send Verification Email'}
           </Button>
         </CardContent>
          <CardFooter className="text-sm text-muted-foreground">

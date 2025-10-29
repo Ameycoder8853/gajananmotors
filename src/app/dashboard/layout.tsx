@@ -26,6 +26,12 @@ export default function DashboardLayout({
       return;
     }
 
+    // Redirect to verification if email is not verified, unless they are already there.
+    if (!user.emailVerified && pathname !== '/dashboard/verification') {
+      router.push('/dashboard/verification');
+      return;
+    }
+    
     // This is the main entry point to the dashboard. Redirect to the correct "home" page based on role.
     if (pathname === '/dashboard') {
       if (user.role === 'dealer') {
