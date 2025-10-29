@@ -47,7 +47,7 @@ export default function SignupPage() {
     defaultValues: {
       fullName: '',
       email: '',
-      phone: '',
+      phone: '+91 ',
       password: '',
     },
   });
