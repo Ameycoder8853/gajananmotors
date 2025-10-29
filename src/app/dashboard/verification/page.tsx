@@ -52,12 +52,12 @@ export default function VerificationPage() {
 
   const handleSendVerificationEmail = async () => {
     const currentUser = auth.currentUser;
-    if (currentUser) {
+    if (currentUser && user?.email) {
       try {
         await sendEmailVerification(currentUser);
         toast({
           title: 'Verification Email Sent',
-          description: 'Please check your inbox to verify your email address.',
+          description: `A verification link has been sent to ${user.email}. Please check your inbox.`,
         });
       } catch (error: any) {
         toast({
@@ -102,8 +102,11 @@ export default function VerificationPage() {
         toast({ variant: 'destructive', title: 'Failed to send OTP', description: error.message });
         console.error("OTP send error:", error);
          // Reset reCAPTCHA in case of error
+        if (window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
+            window.grecaptcha.reset();
+        }
         if (window.recaptchaVerifier) {
-            window.recaptchaVerifier.clear();
+          window.recaptchaVerifier.clear();
         }
     }
   };
