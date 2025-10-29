@@ -13,6 +13,7 @@ import {
   User as FirebaseUserInternal,
   updateProfile,
   Auth,
+  sendEmailVerification,
 } from 'firebase/auth';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore, collection, getDocs, writeBatch, query, orderBy, limit, where } from 'firebase/firestore';
 import { initializeFirebase, errorEmitter, FirestorePermissionError, useFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
@@ -193,7 +194,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     adCredits: 0,
                     verificationStatus: 'unverified'
                 };
-                setDocumentNonBlocking(userDocRef, newUser, { merge: false });
+                setDocumentNonBlocking(doc(firestore, 'users', refreshedFirebaseUser.uid), newUser, { merge: false });
                 const enhancedUser: FirebaseUser = { ...refreshedFirebaseUser, ...newUser, photoURL: refreshedFirebaseUser.photoURL, emailVerified: refreshedFirebaseUser.emailVerified, isPhoneVerified: false };
                 setUser(enhancedUser);
                 if (router) router.push('/dashboard/my-listings');
@@ -227,6 +228,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: name });
+      
+      // Send verification email
+      await sendEmailVerification(userCredential.user);
+      toast({
+        title: 'Account Created!',
+        description: `A verification link has been sent to ${email}. Please check your inbox.`,
+      });
+
       const userDocRef = doc(firestore, 'users', userCredential.user.uid);
       const userData: AppUser = {
         id: userCredential.user.uid,
