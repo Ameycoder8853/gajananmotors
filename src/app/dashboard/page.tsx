@@ -11,13 +11,15 @@ export default function DashboardPage() {
     const router = useRouter();
 
     useEffect(() => {
-        if (!isUserLoading && user?.role === 'dealer') {
+        // Only redirect if the user data has loaded and the user is a dealer.
+        if (!isUserLoading && user && user.role === 'dealer') {
             router.replace('/dashboard/my-listings');
         }
     }, [user, isUserLoading, router]);
 
-    // Show a loader while user data is being checked, especially if the role is not admin yet.
-    if (isUserLoading || user?.role !== 'admin') {
+    // Show a loading spinner while auth state is being determined.
+    // Or if the user is a dealer and the redirect is in progress.
+    if (isUserLoading || (user && user.role !== 'admin')) {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
                 <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
@@ -25,6 +27,7 @@ export default function DashboardPage() {
         );
     }
 
+    // Only render the admin dashboard if the user is explicitly an admin.
     return (
         <div className="animate-fade-in-up">
             <h1 className="text-3xl font-bold mb-6">Dashboard Overview</h1>
