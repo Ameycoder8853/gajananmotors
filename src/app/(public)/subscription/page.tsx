@@ -49,7 +49,7 @@ const yearlyTiers = [
         price: 5000,
         priceSuffix: '/year',
         credits: 120, // 10 * 12
-        features: ['120 ad listings', 'Standard support', 'Save ?1000'],
+        features: ['120 ad listings', 'Standard support', 'Save ₹1000'],
     },
     {
         name: 'Premium Yearly' as const,
@@ -57,7 +57,7 @@ const yearlyTiers = [
         price: 10000,
         priceSuffix: '/year',
         credits: 240, // 20 * 12
-        features: ['240 ad listings', 'Premium support', 'Featured listings', 'Save ?2000'],
+        features: ['240 ad listings', 'Premium support', 'Featured listings', 'Save ₹2000'],
     },
     {
         name: 'Pro Yearly' as const,
@@ -65,7 +65,7 @@ const yearlyTiers = [
         price: 20000,
         priceSuffix: '/year',
         credits: 600, // 50 * 12
-        features: ['600 ad listings', 'Premium support', 'Featured listings', 'Save ?4000'],
+        features: ['600 ad listings', 'Premium support', 'Featured listings', 'Save ₹4000'],
     }
 ];
 
@@ -221,7 +221,7 @@ export default function SubscriptionPage() {
              )}
           </div>
           <CardDescription>
-            <span className="text-4xl font-bold">?{tier.price}</span>
+            <span className="text-4xl font-bold">₹{tier.price}</span>
             <span className="text-muted-foreground">{tier.priceSuffix}</span>
           </CardDescription>
         </CardHeader>
