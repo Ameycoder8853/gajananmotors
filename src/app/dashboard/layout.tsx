@@ -12,7 +12,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, isUserLoading } = useAuth();
+  const { user, isUserLoading, auth } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
@@ -26,8 +26,11 @@ export default function DashboardLayout({
       return;
     }
     
+    // Use auth.currentUser to get the most immediate state for this session
+    const currentUser = auth.currentUser;
+
     // Redirect unverified dealers to the verification page. Admins bypass this.
-    if (user.role === 'dealer' && !user.emailVerified && pathname !== '/email-verification') {
+    if (user.role === 'dealer' && !currentUser?.emailVerified && pathname !== '/email-verification') {
         router.push('/email-verification');
         return;
     }
@@ -43,7 +46,7 @@ export default function DashboardLayout({
       router.replace('/dashboard/my-listings');
     }
 
-  }, [user, isUserLoading, router, pathname]);
+  }, [user, isUserLoading, router, pathname, auth]);
 
   // Render a loading state while checking for user auth
   if (isUserLoading) {

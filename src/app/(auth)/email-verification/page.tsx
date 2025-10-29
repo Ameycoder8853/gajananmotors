@@ -26,12 +26,12 @@ export default function EmailVerificationPage() {
   const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
-    // If the user lands here but is already verified, send them to the dashboard.
+    // If the user lands here but is already verified IN THIS SESSION, send them to the dashboard.
     // This handles the case where they complete verification and then navigate back.
-    if (user?.emailVerified) {
+    if (auth.currentUser?.emailVerified) {
       router.replace('/dashboard');
     }
-  }, [user, router]);
+  }, [auth.currentUser, router]);
 
 
   useEffect(() => {
@@ -82,7 +82,7 @@ export default function EmailVerificationPage() {
   }
 
   // Prevent flash of content for already verified users while redirecting
-  if (user?.emailVerified) {
+  if (auth.currentUser?.emailVerified) {
     return (
        <div className="flex items-center justify-center min-h-screen">
           <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
