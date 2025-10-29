@@ -79,10 +79,10 @@ export function Header() {
       if (user) {
         if (user.role === 'admin') {
           setNavLinks([
-            { href: '/market', label: 'Marketplace' },
-            { href: '/dashboard', label: 'Overview' },
+            { href: '/dashboard', label: 'Admin Dashboard' },
             { href: '/dashboard/listings', label: 'All Listings' },
-            { href: '/dashboard/dealers', label: 'Dealers' }
+            { href: '/dashboard/dealers', label: 'Dealers' },
+            { href: '/market', label: 'Market View' },
           ]);
         } else { // 'dealer'
           setNavLinks([
