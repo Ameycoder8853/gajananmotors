@@ -50,43 +50,6 @@ export default function VerificationPage() {
   const [files, setFiles] = useState<{ aadhar?: File; pan?: File; shopLicense?: File }>({});
   const [isUploading, setIsUploading] = useState(false);
 
-  // This effect ensures the reCAPTCHA verifier is set up once and cleaned up properly.
-  useEffect(() => {
-    if (!auth || window.recaptchaVerifier) return;
-
-    // The 'recaptcha-container' div must be present in the DOM.
-    // We create an instance of RecaptchaVerifier, which will be used for phone auth.
-    // It's invisible and solves challenges automatically.
-    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      'size': 'invisible',
-      'callback': (response: any) => {
-        // reCAPTCHA solved, allows signInWithPhoneNumber to proceed.
-        // This callback is often not needed for invisible reCAPTCHA but is good practice to have.
-      },
-      'expired-callback': () => {
-        // Response expired. Ask user to solve reCAPTCHA again.
-        // We can optionally try to re-render the verifier here.
-      }
-    });
-
-    window.recaptchaVerifier = verifier;
-
-    // Cleanup function to clear the verifier when the component unmounts.
-    return () => {
-      // Check if the verifier and its container still exist before clearing
-      if (window.recaptchaVerifier) {
-        window.recaptchaVerifier.clear();
-        window.recaptchaVerifier = undefined;
-      }
-      // Also, clear the recaptcha widget from the DOM
-      const recaptchaContainer = document.getElementById('recaptcha-container');
-      if (recaptchaContainer) {
-        recaptchaContainer.innerHTML = '';
-      }
-    };
-  }, [auth]);
-
-
   const handleSendVerificationEmail = async () => {
     const currentUser = auth.currentUser;
     if (currentUser) {
@@ -112,15 +75,24 @@ export default function VerificationPage() {
         toast({ variant: 'destructive', title: 'Error', description: 'User phone number not found.' });
         return;
     }
-    const appVerifier = window.recaptchaVerifier;
-    if (!appVerifier) {
-      toast({ variant: 'destructive', title: 'Error', description: 'reCAPTCHA not ready. Please refresh and try again.' });
-      return;
+    
+    // Ensure the reCAPTCHA container is clean
+    const recaptchaContainer = document.getElementById('recaptcha-container');
+    if (recaptchaContainer) {
+      recaptchaContainer.innerHTML = '';
     }
-
+    if (window.recaptchaVerifier) {
+      window.recaptchaVerifier.clear();
+    }
+    
     try {
+        const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+            'size': 'invisible',
+        });
+        window.recaptchaVerifier = verifier;
+
         const phoneNumber = user.phone.startsWith('+') ? user.phone : `+91${user.phone}`;
-        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+        const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, verifier);
         
         window.confirmationResult = confirmationResult;
         setOtpSent(true);
@@ -133,14 +105,6 @@ export default function VerificationPage() {
         if (window.recaptchaVerifier) {
             window.recaptchaVerifier.clear();
         }
-        const recaptchaContainer = document.getElementById('recaptcha-container');
-        if (recaptchaContainer) {
-            recaptchaContainer.innerHTML = '';
-        }
-         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-             'size': 'invisible'
-         });
-
     }
   };
 
