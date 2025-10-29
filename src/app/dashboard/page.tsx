@@ -1,3 +1,4 @@
+
 'use client';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, Car, BarChart } from "lucide-react";
@@ -15,6 +16,7 @@ export default function DashboardPage() {
         }
     }, [user, isUserLoading, router]);
 
+    // Show a loader while user data is being checked, especially if the role is not admin yet.
     if (isUserLoading || user?.role !== 'admin') {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
