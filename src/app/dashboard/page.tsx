@@ -10,8 +10,14 @@ export default function DashboardPage() {
     const { user, isUserLoading } = useAuth();
     const router = useRouter();
 
-    // Show a loading spinner while auth state is being determined.
-    if (isUserLoading || (user && user.role !== 'admin')) {
+    useEffect(() => {
+        if (!isUserLoading && user && user.role !== 'admin') {
+            router.replace('/dashboard/my-listings');
+        }
+    }, [isUserLoading, user, router]);
+
+    // Show a loading spinner while auth state is being determined or if user is not an admin.
+    if (isUserLoading || !user || user.role !== 'admin') {
         return (
             <div className="flex items-center justify-center min-h-[50vh]">
                 <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
