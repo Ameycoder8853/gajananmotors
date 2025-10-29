@@ -109,7 +109,7 @@ export default function EmailVerificationPage() {
             </Button>
             <Alert variant="default" className="mt-6 text-left">
                 <AlertDescription>
-                   For the best experience, please verify your email on the same device you are currently using.
+                   You must verify your email on the same device you are currently using.
                 </AlertDescription>
             </Alert>
             <div className="mt-6">
