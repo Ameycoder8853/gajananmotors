@@ -15,9 +15,6 @@ import { Resend } from 'resend';
 const RECIPIENT_EMAIL = 'amey35195@gmail.com';
 const FROM_EMAIL = 'onboarding@resend.dev'; // Resend requires a verified domain or allows this for testing.
 
-// Initialize Resend with the API key from environment variables
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const ContactEmailInputSchema = z.object({
   name: z.string().describe('The name of the person sending the message.'),
   email: z.string().email().describe('The email address of the sender.'),
@@ -56,15 +53,17 @@ const sendContactEmailFlow = ai.defineFlow(
     // 1. Check if the API key is available
     if (!process.env.RESEND_API_KEY) {
       console.error('RESEND_API_KEY is not set. Email will not be sent.');
-      // In a real app, you might throw an error here to let the caller know.
-      // For now, we'll log it and prevent the app from crashing.
+      // Throw an error that the client-side can catch and display.
       throw new Error('Email service is not configured on the server.');
     }
     
-    // 2. Use the AI to generate the email body based on the prompt
+    // 2. Initialize Resend inside the flow, only when it's needed.
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
+    // 3. Use the AI to generate the email body based on the prompt
     const { text } = await emailPrompt(input);
 
-    // 3. Send the email using Resend
+    // 4. Send the email using Resend
     try {
       await resend.emails.send({
         from: FROM_EMAIL,
