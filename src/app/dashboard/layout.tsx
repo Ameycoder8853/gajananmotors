@@ -26,18 +26,23 @@ export default function DashboardLayout({
       return;
     }
 
+    // Bypass verification check for admin users
+    if (user.role === 'admin') {
+      if (pathname === '/dashboard/verification') {
+        router.replace('/dashboard');
+      }
+      return; // Admin doesn't need further checks
+    }
+
     // Redirect to verification if email is not verified, unless they are already there.
     if (!user.emailVerified && pathname !== '/dashboard/verification') {
       router.push('/dashboard/verification');
       return;
     }
     
-    // This is the main entry point to the dashboard. Redirect to the correct "home" page based on role.
+    // This is the main entry point to the dashboard for dealers.
     if (pathname === '/dashboard') {
-      if (user.role === 'dealer') {
-        router.replace('/dashboard/my-listings');
-      }
-      // If admin, they stay on /dashboard
+      router.replace('/dashboard/my-listings');
     }
 
   }, [user, isUserLoading, router, pathname]);
