@@ -26,7 +26,7 @@ import {
 import { useAuth } from '@/hooks/use-auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
 const formSchema = z.object({
@@ -57,13 +57,17 @@ export default function LoginPage() {
       switch (error.code) {
         case 'auth/user-not-found':
         case 'auth/invalid-email':
+        case 'auth/invalid-credential': // This can mean user not found or wrong password
           form.setError('email', {
             type: 'manual',
             message: 'No account found with this email address.',
           });
+          form.setError('password', {
+            type: 'manual',
+            message: 'Or your password may be incorrect.',
+          });
           break;
         case 'auth/wrong-password':
-        case 'auth/invalid-credential':
            form.setError('password', {
             type: 'manual',
             message: 'Incorrect password. Please try again.',
