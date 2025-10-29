@@ -44,6 +44,7 @@ import { carData, makes } from '@/lib/car-data';
 import { states } from '@/lib/location-data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { carFeatures } from '@/lib/car-features';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
 
 const adFormSchema = z.object({
@@ -60,7 +61,7 @@ const adFormSchema = z.object({
   city: z.string().min(2, 'City is required.'),
   subLocation: z.string().min(2, 'Area/Sub-location is required.'),
   addressLine: z.string().optional(),
-  images: z.array(z.instanceof(File)).min(1, 'At least one image is required.').max(5, 'You can upload a maximum of 5 images.'),
+  images: z.array(z.instanceof(File)).min(1, 'At least one image is required.').max(20, 'You can upload a maximum of 20 images.'),
   features: z.array(z.string()).optional(),
 });
 
@@ -107,7 +108,7 @@ export default function NewListingPage() {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
       const currentImages = form.getValues('images') || [];
-      const combined = [...currentImages, ...files].slice(0, 5);
+      const combined = [...currentImages, ...files].slice(0, 20);
       form.setValue('images', combined);
 
       const previews = combined.map(file => URL.createObjectURL(file));
@@ -122,6 +123,20 @@ export default function NewListingPage() {
       const newPreviews = newImages.map(file => URL.createObjectURL(file));
       setImagePreviews(newPreviews);
   }
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+
+    const currentImages = form.getValues('images');
+    const items = Array.from(currentImages);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    form.setValue('images', items);
+
+    const newPreviews = items.map(file => URL.createObjectURL(file));
+    setImagePreviews(newPreviews);
+  };
 
   async function uploadImages(files: File[], adId: string): Promise<string[]> {
     if (!storage || !user) throw new Error("Storage or user not available");
@@ -413,16 +428,16 @@ export default function NewListingPage() {
                   name="images"
                   render={({ field }) => (
                     <FormItem className="lg:col-span-3">
-                      <FormLabel>Car Images (up to 5)</FormLabel>
+                      <FormLabel>Car Images (up to 20)</FormLabel>
                       <FormControl>
                         <div className="flex items-center justify-center w-full">
                           <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-secondary hover:bg-muted">
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                               <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
                               <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                              <p className="text-xs text-muted-foreground">PNG, JPG or WEBP (MAX. 5 images)</p>
+                              <p className="text-xs text-muted-foreground">PNG, JPG or WEBP (MAX. 20 images)</p>
                             </div>
-                            <Input id="dropzone-file" type="file" className="hidden" multiple accept="image/png, image/jpeg, image/webp" onChange={handleImageChange} disabled={imagePreviews.length >= 5} />
+                            <Input id="dropzone-file" type="file" className="hidden" multiple accept="image/png, image/jpeg, image/webp" onChange={handleImageChange} disabled={imagePreviews.length >= 20} />
                           </label>
                         </div>
                       </FormControl>
@@ -433,17 +448,37 @@ export default function NewListingPage() {
 
                 {imagePreviews.length > 0 && (
                     <div className="lg:col-span-3">
-                        <FormLabel>Image Previews</FormLabel>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2">
-                            {imagePreviews.map((src, index) => (
-                                <div key={index} className="relative aspect-square">
-                                    <Image src={src} alt={`Preview ${index}`} fill className="object-cover rounded-md" />
-                                    <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
-                                        <X className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
-                        </div>
+                        <FormLabel>Image Previews (Drag to reorder)</FormLabel>
+                        <DragDropContext onDragEnd={onDragEnd}>
+                            <Droppable droppableId="image-previews" direction="horizontal">
+                                {(provided) => (
+                                    <div
+                                        {...provided.droppableProps}
+                                        ref={provided.innerRef}
+                                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2"
+                                    >
+                                        {imagePreviews.map((src, index) => (
+                                            <Draggable key={src} draggableId={src} index={index}>
+                                                {(provided) => (
+                                                    <div
+                                                        ref={provided.innerRef}
+                                                        {...provided.draggableProps}
+                                                        {...provided.dragHandleProps}
+                                                        className="relative aspect-square"
+                                                    >
+                                                        <Image src={src} alt={`Preview ${index}`} fill className="object-cover rounded-md" />
+                                                        <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </Draggable>
+                                        ))}
+                                        {provided.placeholder}
+                                    </div>
+                                )}
+                            </Droppable>
+                        </DragDropContext>
                     </div>
                 )}
                 
@@ -513,8 +548,3 @@ export default function NewListingPage() {
     </Card>
   );
 }
-
-    
-    
-
-    

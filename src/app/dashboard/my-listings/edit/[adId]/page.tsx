@@ -46,6 +46,7 @@ import { states } from '@/lib/location-data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { carFeatures } from '@/lib/car-features';
 import type { Ad } from '@/lib/types';
+import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
 
 
 const adFormSchema = z.object({
@@ -61,11 +62,18 @@ const adFormSchema = z.object({
   state: z.string().min(1, 'State is required.'),
   city: z.string().min(2, 'City is required.'),
   subLocation: z.string().min(2, 'Area/Sub-location is required.'),
-  newImages: z.array(z.instanceof(File)).max(5, 'You can upload a maximum of 5 images.').optional(),
+  newImages: z.array(z.instanceof(File)).max(20, 'You can upload a maximum of 20 images.').optional(),
   features: z.array(z.string()).optional(),
 });
 
 type AdFormValues = z.infer<typeof adFormSchema>;
+
+interface ImageObject {
+  id: string;
+  url: string;
+  type: 'existing' | 'new';
+  file?: File;
+}
 
 export default function EditListingPage() {
   const { user, isUserLoading } = useAuth();
@@ -83,10 +91,8 @@ export default function EditListingPage() {
 
   const { data: ad, isLoading: isAdLoading } = useDoc<Ad>(adRef);
 
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [existingImages, setExistingImages] = useState<string[]>([]);
+  const [images, setImages] = useState<ImageObject[]>([]);
   const [imagesToRemove, setImagesToRemove] = useState<string[]>([]);
-
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [models, setModels] = useState<string[]>([]);
 
@@ -118,8 +124,13 @@ export default function EditListingPage() {
             subLocation,
             newImages: [],
         });
-        setExistingImages(ad.images as string[]);
-        setImagePreviews(ad.images as string[]);
+        
+        const existingImages: ImageObject[] = (ad.images as string[]).map(url => ({
+          id: url,
+          url: url,
+          type: 'existing'
+        }));
+        setImages(existingImages);
 
         if (ad.make && carData[ad.make]) {
             setModels(carData[ad.make]);
@@ -133,7 +144,6 @@ export default function EditListingPage() {
   if (!isLoading && ad && user && ad.dealerId !== user.uid) {
     return notFound();
   }
-
 
   const selectedMake = form.watch('make');
 
@@ -150,31 +160,32 @@ export default function EditListingPage() {
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
-      const currentNewImages = form.getValues('newImages') || [];
-      const combined = [...currentNewImages, ...files].slice(0, 5 - existingImages.length);
-      form.setValue('newImages', combined);
-
-      const newPreviews = combined.map(file => URL.createObjectURL(file));
-      setImagePreviews([...existingImages, ...newPreviews]);
+      const newImageObjects: ImageObject[] = files.map(file => ({
+        id: URL.createObjectURL(file),
+        url: URL.createObjectURL(file),
+        type: 'new',
+        file: file,
+      }));
+      
+      const combined = [...images, ...newImageObjects].slice(0, 20);
+      setImages(combined);
   }
 
-  const removeImage = (index: number, isExisting: boolean) => {
-      if (isExisting) {
-          const imageToRemove = existingImages[index];
-          setImagesToRemove(prev => [...prev, imageToRemove]);
-          const newExisting = existingImages.filter((_, i) => i !== index);
-          setExistingImages(newExisting);
-          setImagePreviews(imagePreviews.filter(p => p !== imageToRemove));
-      } else {
-          const newImageIndex = index - existingImages.length;
-          const currentNewImages = form.getValues('newImages')!;
-          const newImages = currentNewImages.filter((_, i) => i !== newImageIndex);
-          form.setValue('newImages', newImages);
-
-          const newPreviews = newImages.map(file => URL.createObjectURL(file));
-          setImagePreviews([...existingImages, ...newPreviews]);
+  const removeImage = (id: string, index: number) => {
+      const imageToRemove = images[index];
+      if (imageToRemove.type === 'existing') {
+          setImagesToRemove(prev => [...prev, imageToRemove.url]);
       }
+      setImages(images.filter((_, i) => i !== index));
   }
+
+  const onDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const items = Array.from(images);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    setImages(items);
+  };
 
   async function uploadImages(files: File[], adId: string): Promise<string[]> {
     if (!storage || !user) throw new Error("Storage or user not available");
@@ -220,14 +231,15 @@ export default function EditListingPage() {
         await deleteImages(imagesToRemove);
         
         // Handle new image uploads
+        const newFilesToUpload = images.filter(img => img.type === 'new' && img.file).map(img => img.file!);
         let newImageUrls: string[] = [];
-        const newImages = values.newImages || [];
-        if (newImages.length > 0) {
-            newImageUrls = await uploadImages(newImages, ad.id);
+        if (newFilesToUpload.length > 0) {
+            newImageUrls = await uploadImages(newFilesToUpload, ad.id);
         }
         setUploadProgress(100);
         
-        const updatedImageUrls = [...existingImages, ...newImageUrls];
+        const existingImageUrls = images.filter(img => img.type === 'existing').map(img => img.url);
+        const updatedImageUrls = [...existingImageUrls, ...newImageUrls];
         if (updatedImageUrls.length === 0) {
             toast({ variant: 'destructive', title: 'Image Required', description: 'You must have at least one image for the ad.' });
             setUploadProgress(null);
@@ -277,7 +289,6 @@ export default function EditListingPage() {
   if (!ad) {
       return notFound();
   }
-
 
   return (
     <Card>
@@ -449,7 +460,6 @@ export default function EditListingPage() {
                     </FormItem>
                 )}/>
 
-
                 <FormField
                     control={form.control}
                     name="description"
@@ -473,16 +483,16 @@ export default function EditListingPage() {
                   name="newImages"
                   render={({ field }) => (
                     <FormItem className="lg:col-span-3">
-                      <FormLabel>Car Images (up to 5 total)</FormLabel>
+                      <FormLabel>Car Images (up to 20 total)</FormLabel>
                       <FormControl>
                         <div className="flex items-center justify-center w-full">
                           <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-secondary hover:bg-muted">
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                               <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
                               <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                              <p className="text-xs text-muted-foreground">You can add {5 - imagePreviews.length} more images.</p>
+                              <p className="text-xs text-muted-foreground">You can add {20 - images.length} more images.</p>
                             </div>
-                            <Input id="dropzone-file" type="file" className="hidden" multiple accept="image/png, image/jpeg, image/webp" onChange={handleImageChange} disabled={imagePreviews.length >= 5} />
+                            <Input id="dropzone-file" type="file" className="hidden" multiple accept="image/png, image/jpeg, image/webp" onChange={handleImageChange} disabled={images.length >= 20} />
                           </label>
                         </div>
                       </FormControl>
@@ -490,23 +500,40 @@ export default function EditListingPage() {
                     </FormItem>
                   )}
                 />
-
-                {imagePreviews.length > 0 && (
+                
+                {images.length > 0 && (
                     <div className="lg:col-span-3">
-                        <FormLabel>Image Previews</FormLabel>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2">
-                            {imagePreviews.map((src, index) => {
-                                const isExisting = existingImages.includes(src);
-                                return (
-                                    <div key={index} className="relative aspect-square">
-                                        <Image src={src} alt={`Preview ${index}`} fill className="object-cover rounded-md" />
-                                        <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index, isExisting)}>
-                                            <X className="h-4 w-4" />
-                                        </Button>
+                        <FormLabel>Image Previews (Drag to reorder)</FormLabel>
+                        <DragDropContext onDragEnd={onDragEnd}>
+                            <Droppable droppableId="image-previews" direction="horizontal">
+                                {(provided) => (
+                                    <div
+                                        {...provided.droppableProps}
+                                        ref={provided.innerRef}
+                                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2"
+                                    >
+                                        {images.map((image, index) => (
+                                            <Draggable key={image.id} draggableId={image.id} index={index}>
+                                                {(provided) => (
+                                                    <div
+                                                        ref={provided.innerRef}
+                                                        {...provided.draggableProps}
+                                                        {...provided.dragHandleProps}
+                                                        className="relative aspect-square"
+                                                    >
+                                                        <Image src={image.url} alt={`Preview ${index}`} fill className="object-cover rounded-md" />
+                                                        <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(image.id, index)}>
+                                                            <X className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </Draggable>
+                                        ))}
+                                        {provided.placeholder}
                                     </div>
-                                )
-                            })}
-                        </div>
+                                )}
+                            </Droppable>
+                        </DragDropContext>
                     </div>
                 )}
                 
@@ -576,5 +603,3 @@ export default function EditListingPage() {
     </Card>
   );
 }
-
-    
