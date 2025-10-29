@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -28,9 +28,9 @@ export function AdFilters() {
   };
 
   // Sync collapsible state with screen size changes
-  useState(() => {
+  useEffect(() => {
     setIsOpen(!isMobile);
-  });
+  }, [isMobile]);
   
   return (
     <Collapsible
@@ -38,7 +38,7 @@ export function AdFilters() {
       onOpenChange={setIsOpen}
       className="bg-card p-4 rounded-lg border shadow-sm"
     >
-      <div className="flex items-center justify-between lg:hidden mb-4">
+      <div className="flex items-center justify-between mb-4">
         <h3 className="text-lg font-semibold">Filters</h3>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" size="sm">
