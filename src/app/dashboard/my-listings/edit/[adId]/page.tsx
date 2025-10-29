@@ -38,7 +38,7 @@ import { initializeFirebase, useDoc, useMemoFirebase, updateDocumentNonBlocking 
 import { doc } from 'firebase/firestore';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { carData, makes } from '@/lib/car-data';
@@ -46,7 +46,7 @@ import { states } from '@/lib/location-data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { carFeatures } from '@/lib/car-features';
 import type { Ad } from '@/lib/types';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { cn } from '@/lib/utils';
 
 
 const adFormSchema = z.object({
@@ -96,6 +96,10 @@ export default function EditListingPage() {
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [models, setModels] = useState<string[]>([]);
 
+  // Drag and drop state
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
+
   const form = useForm<AdFormValues>({
     resolver: zodResolver(adFormSchema),
     defaultValues: {
@@ -140,7 +144,6 @@ export default function EditListingPage() {
 
   const isLoading = isAdLoading || isUserLoading;
 
-  // Final check after loading is complete
   if (!isLoading && ad && user && ad.dealerId !== user.uid) {
     return notFound();
   }
@@ -150,7 +153,6 @@ export default function EditListingPage() {
   useEffect(() => {
     if (selectedMake) {
       setModels(carData[selectedMake] || []);
-      // Do not reset model if it's the initial load
       if (form.formState.isDirty) {
         form.setValue('model', '');
       }
@@ -171,7 +173,7 @@ export default function EditListingPage() {
       setImages(combined);
   }
 
-  const removeImage = (id: string, index: number) => {
+  const removeImage = (index: number) => {
       const imageToRemove = images[index];
       if (imageToRemove.type === 'existing') {
           setImagesToRemove(prev => [...prev, imageToRemove.url]);
@@ -179,12 +181,17 @@ export default function EditListingPage() {
       setImages(images.filter((_, i) => i !== index));
   }
 
-  const onDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
-    const items = Array.from(images);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-    setImages(items);
+  const handleDragEnd = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
+
+    const newImages = [...images];
+    const draggedItemContent = newImages.splice(dragItem.current, 1)[0];
+    newImages.splice(dragOverItem.current, 0, draggedItemContent);
+    
+    dragItem.current = null;
+    dragOverItem.current = null;
+    
+    setImages(newImages);
   };
 
   async function uploadImages(files: File[], adId: string): Promise<string[]> {
@@ -210,7 +217,6 @@ export default function EditListingPage() {
             const imageRef = ref(storage, url);
             await deleteObject(imageRef);
         } catch (error: any) {
-            // Ignore 'object-not-found' errors, as it might have been deleted already
             if (error.code !== 'storage/object-not-found') {
                 console.error("Failed to delete image:", url, error);
             }
@@ -227,10 +233,8 @@ export default function EditListingPage() {
     setUploadProgress(0);
 
     try {
-        // Handle image deletions
         await deleteImages(imagesToRemove);
         
-        // Handle new image uploads
         const newFilesToUpload = images.filter(img => img.type === 'new' && img.file).map(img => img.file!);
         let newImageUrls: string[] = [];
         if (newFilesToUpload.length > 0) {
@@ -249,7 +253,6 @@ export default function EditListingPage() {
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
         const location = `${values.subLocation}, ${values.city}, ${values.state}`;
         
-        // Omit form-specific fields that are not in the Ad type
         const { state, city, subLocation, newImages: _, ...adData } = values;
 
         updateDocumentNonBlocking(adRef, {
@@ -257,7 +260,7 @@ export default function EditListingPage() {
           title,
           location,
           images: updatedImageUrls,
-          updatedAt: serverTimestamp(), // Add an updated timestamp
+          updatedAt: serverTimestamp(),
         });
         
         toast({
@@ -504,36 +507,27 @@ export default function EditListingPage() {
                 {images.length > 0 && (
                     <div className="lg:col-span-3">
                         <FormLabel>Image Previews (Drag to reorder)</FormLabel>
-                        <DragDropContext onDragEnd={onDragEnd}>
-                            <Droppable droppableId="image-previews" direction="horizontal">
-                                {(provided) => (
-                                    <div
-                                        {...provided.droppableProps}
-                                        ref={provided.innerRef}
-                                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2"
-                                    >
-                                        {images.map((image, index) => (
-                                            <Draggable key={image.id} draggableId={image.id} index={index}>
-                                                {(provided) => (
-                                                    <div
-                                                        ref={provided.innerRef}
-                                                        {...provided.draggableProps}
-                                                        {...provided.dragHandleProps}
-                                                        className="relative aspect-square"
-                                                    >
-                                                        <Image src={image.url} alt={`Preview ${index}`} fill className="object-cover rounded-md" />
-                                                        <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(image.id, index)}>
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </Draggable>
-                                        ))}
-                                        {provided.placeholder}
-                                    </div>
-                                )}
-                            </Droppable>
-                        </DragDropContext>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2">
+                          {images.map((image, index) => (
+                            <div
+                              key={image.id}
+                              className={cn(
+                                "relative aspect-square cursor-grab",
+                                dragItem.current === index && "opacity-50"
+                              )}
+                              draggable
+                              onDragStart={() => (dragItem.current = index)}
+                              onDragEnter={() => (dragOverItem.current = index)}
+                              onDragEnd={handleDragEnd}
+                              onDragOver={(e) => e.preventDefault()}
+                            >
+                              <Image src={image.url} alt={`Preview ${index}`} fill className="object-cover rounded-md pointer-events-none" />
+                              <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
+                                  <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
                     </div>
                 )}
                 

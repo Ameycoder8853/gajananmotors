@@ -37,14 +37,14 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { initializeFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { carData, makes } from '@/lib/car-data';
 import { states } from '@/lib/location-data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { carFeatures } from '@/lib/car-features';
-import { DragDropContext, Droppable, Draggable, DropResult } from 'react-beautiful-dnd';
+import { cn } from '@/lib/utils';
 
 
 const adFormSchema = z.object({
@@ -71,10 +71,14 @@ export default function NewListingPage() {
   const router = useRouter();
   const { firestore } = initializeFirebase();
   const storage = getStorage();
+  
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-
   const [models, setModels] = useState<string[]>([]);
+  
+  // Drag and drop state
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
 
   const form = useForm<z.infer<typeof adFormSchema>>({
     resolver: zodResolver(adFormSchema),
@@ -96,6 +100,17 @@ export default function NewListingPage() {
   });
 
   const selectedMake = form.watch('make');
+  const images = form.watch('images');
+
+  useEffect(() => {
+    const previews = images.map(file => URL.createObjectURL(file));
+    setImagePreviews(previews);
+
+    // Clean up object URLs on unmount
+    return () => {
+      previews.forEach(url => URL.revokeObjectURL(url));
+    };
+  }, [images]);
 
   useEffect(() => {
     if (selectedMake) {
@@ -109,33 +124,26 @@ export default function NewListingPage() {
       const files = Array.from(e.target.files || []);
       const currentImages = form.getValues('images') || [];
       const combined = [...currentImages, ...files].slice(0, 20);
-      form.setValue('images', combined);
-
-      const previews = combined.map(file => URL.createObjectURL(file));
-      setImagePreviews(previews);
+      form.setValue('images', combined, { shouldValidate: true });
   }
 
   const removeImage = (index: number) => {
       const currentImages = form.getValues('images');
       const newImages = currentImages.filter((_, i) => i !== index);
-      form.setValue('images', newImages);
-
-      const newPreviews = newImages.map(file => URL.createObjectURL(file));
-      setImagePreviews(newPreviews);
+      form.setValue('images', newImages, { shouldValidate: true });
   }
 
-  const onDragEnd = (result: DropResult) => {
-    if (!result.destination) return;
+  const handleDragEnd = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
 
-    const currentImages = form.getValues('images');
-    const items = Array.from(currentImages);
-    const [reorderedItem] = items.splice(result.source.index, 1);
-    items.splice(result.destination.index, 0, reorderedItem);
-
-    form.setValue('images', items);
-
-    const newPreviews = items.map(file => URL.createObjectURL(file));
-    setImagePreviews(newPreviews);
+    const currentImages = [...form.getValues('images')];
+    const draggedItemContent = currentImages.splice(dragItem.current, 1)[0];
+    currentImages.splice(dragOverItem.current, 0, draggedItemContent);
+    
+    dragItem.current = null;
+    dragOverItem.current = null;
+    
+    form.setValue('images', currentImages);
   };
 
   async function uploadImages(files: File[], adId: string): Promise<string[]> {
@@ -182,7 +190,6 @@ export default function NewListingPage() {
         
         const userDocRef = doc(firestore, 'users', user.uid);
     
-        // Omit location fields from the values being spread
         const { state, city, subLocation, ...adData } = values;
 
         setDocumentNonBlocking(newCarDocRef, {
@@ -222,7 +229,6 @@ export default function NewListingPage() {
         setUploadProgress(null);
     }
   }
-
 
   return (
     <Card>
@@ -445,40 +451,31 @@ export default function NewListingPage() {
                     </FormItem>
                   )}
                 />
-
+                
                 {imagePreviews.length > 0 && (
                     <div className="lg:col-span-3">
                         <FormLabel>Image Previews (Drag to reorder)</FormLabel>
-                        <DragDropContext onDragEnd={onDragEnd}>
-                            <Droppable droppableId="image-previews" direction="horizontal">
-                                {(provided) => (
-                                    <div
-                                        {...provided.droppableProps}
-                                        ref={provided.innerRef}
-                                        className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2"
-                                    >
-                                        {imagePreviews.map((src, index) => (
-                                            <Draggable key={src} draggableId={src} index={index}>
-                                                {(provided) => (
-                                                    <div
-                                                        ref={provided.innerRef}
-                                                        {...provided.draggableProps}
-                                                        {...provided.dragHandleProps}
-                                                        className="relative aspect-square"
-                                                    >
-                                                        <Image src={src} alt={`Preview ${index}`} fill className="object-cover rounded-md" />
-                                                        <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
-                                                            <X className="h-4 w-4" />
-                                                        </Button>
-                                                    </div>
-                                                )}
-                                            </Draggable>
-                                        ))}
-                                        {provided.placeholder}
-                                    </div>
-                                )}
-                            </Droppable>
-                        </DragDropContext>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2">
+                          {imagePreviews.map((src, index) => (
+                            <div
+                              key={src}
+                              className={cn(
+                                "relative aspect-square cursor-grab",
+                                dragItem.current === index && "opacity-50"
+                              )}
+                              draggable
+                              onDragStart={() => (dragItem.current = index)}
+                              onDragEnter={() => (dragOverItem.current = index)}
+                              onDragEnd={handleDragEnd}
+                              onDragOver={(e) => e.preventDefault()}
+                            >
+                              <Image src={src} alt={`Preview ${index}`} fill className="object-cover rounded-md pointer-events-none" />
+                              <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
+                                  <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
                     </div>
                 )}
                 
