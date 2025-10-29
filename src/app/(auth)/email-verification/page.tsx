@@ -16,6 +16,7 @@ import { sendEmailVerification } from 'firebase/auth';
 import { Logo } from '@/components/shared/Logo';
 import { useRouter } from 'next/navigation';
 import { MailCheck } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 export default function EmailVerificationPage() {
   const { user, auth, isUserLoading } = useAuth();
@@ -128,6 +129,11 @@ export default function EmailVerificationPage() {
             <Button onClick={handleResendEmail} disabled={cooldown > 0 || isSending}>
               {isSending ? 'Sending...' : cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend Verification Email'}
             </Button>
+            <Alert variant="default" className="mt-6 text-left">
+                <AlertDescription>
+                   For the best experience, please verify your email on the same device you are currently using.
+                </AlertDescription>
+            </Alert>
             <div className="mt-6">
                 <Button variant="link" onClick={() => router.push('/login')}>Back to Login</Button>
             </div>
