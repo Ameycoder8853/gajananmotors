@@ -8,6 +8,7 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
@@ -27,6 +28,7 @@ import { doc } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
 import { AlertCircle, CheckCircle2, Upload } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import Link from 'next/link';
 
 declare global {
   interface Window {
@@ -50,27 +52,36 @@ export default function VerificationPage() {
 
   // This effect ensures the reCAPTCHA verifier is set up once and cleaned up properly.
   useEffect(() => {
-    if (!auth) return;
+    if (!auth || window.recaptchaVerifier) return;
 
-    // This check prevents re-creating the verifier on every re-render.
-    if (!window.recaptchaVerifier) {
-      // The 'recaptcha-container' div must be present in the DOM.
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-        'size': 'invisible',
-        'callback': (response: any) => {
-          // reCAPTCHA solved, allows signInWithPhoneNumber to proceed.
-        },
-        'expired-callback': () => {
-          // Response expired. Ask user to solve reCAPTCHA again.
-        }
-      });
-    }
+    // The 'recaptcha-container' div must be present in the DOM.
+    // We create an instance of RecaptchaVerifier, which will be used for phone auth.
+    // It's invisible and solves challenges automatically.
+    const verifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+      'size': 'invisible',
+      'callback': (response: any) => {
+        // reCAPTCHA solved, allows signInWithPhoneNumber to proceed.
+        // This callback is often not needed for invisible reCAPTCHA but is good practice to have.
+      },
+      'expired-callback': () => {
+        // Response expired. Ask user to solve reCAPTCHA again.
+        // We can optionally try to re-render the verifier here.
+      }
+    });
+
+    window.recaptchaVerifier = verifier;
 
     // Cleanup function to clear the verifier when the component unmounts.
     return () => {
+      // Check if the verifier and its container still exist before clearing
       if (window.recaptchaVerifier) {
         window.recaptchaVerifier.clear();
         window.recaptchaVerifier = undefined;
+      }
+      // Also, clear the recaptcha widget from the DOM
+      const recaptchaContainer = document.getElementById('recaptcha-container');
+      if (recaptchaContainer) {
+        recaptchaContainer.innerHTML = '';
       }
     };
   }, [auth]);
@@ -118,6 +129,18 @@ export default function VerificationPage() {
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Failed to send OTP', description: error.message });
         console.error("OTP send error:", error);
+         // Reset reCAPTCHA in case of error
+        if (window.recaptchaVerifier) {
+            window.recaptchaVerifier.clear();
+        }
+        const recaptchaContainer = document.getElementById('recaptcha-container');
+        if (recaptchaContainer) {
+            recaptchaContainer.innerHTML = '';
+        }
+         window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+             'size': 'invisible'
+         });
+
     }
   };
 
@@ -241,6 +264,14 @@ export default function VerificationPage() {
             {isEmailVerified ? 'Email Verified' : 'Send Verification Email'}
           </Button>
         </CardContent>
+         <CardFooter className="text-sm text-muted-foreground">
+          <p>
+            A verification link will be sent to {user?.email}. To change your email, go to{' '}
+            <Button variant="link" asChild className="p-0 h-auto">
+              <Link href="/dashboard/settings">Settings</Link>
+            </Button>.
+          </p>
+        </CardFooter>
       </Card>
 
       {/* Phone Verification */}
@@ -262,6 +293,14 @@ export default function VerificationPage() {
             </div>
           )}
         </CardContent>
+        <CardFooter className="text-sm text-muted-foreground">
+           <p>
+            An OTP will be sent to {user?.phone}. To change your phone number, go to{' '}
+            <Button variant="link" asChild className="p-0 h-auto">
+              <Link href="/dashboard/settings">Settings</Link>
+            </Button>.
+          </p>
+        </CardFooter>
       </Card>
 
       {/* Document Upload */}
