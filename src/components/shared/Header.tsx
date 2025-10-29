@@ -59,7 +59,7 @@ export function Header() {
     { href: '/market', label: 'Marketplace' },
     { href: '/#features', label: 'Features' },
     { href: '/#contact', label: 'Contact' },
-    { href: '/dashboard/subscription', label: 'Subscription' }
+    { href: '/subscription', label: 'Subscription' }
   ]);
 
   useEffect(() => {
@@ -87,10 +87,8 @@ export function Header() {
         } else { // 'dealer'
           setNavLinks([
             { href: '/market', label: 'Marketplace' },
-            { href: '/#features', label: 'Features' },
-            { href: '/#contact', label: 'Contact' },
             { href: '/dashboard/my-listings', label: 'My Listings' },
-            { href: '/dashboard/subscription', label: 'Subscription' },
+            { href: '/subscription', label: 'Subscription' },
             { href: '/dashboard/verification', label: 'Verification' }
           ]);
         }
@@ -99,7 +97,7 @@ export function Header() {
             { href: '/market', label: 'Marketplace' },
             { href: '/#features', label: 'Features' },
             { href: '/#contact', label: 'Contact' },
-            { href: '/dashboard/subscription', label: 'Subscription' }
+            { href: '/subscription', label: 'Subscription' }
         ]);
       }
     }
