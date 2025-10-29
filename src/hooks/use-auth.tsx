@@ -234,11 +234,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       
       // Send verification email
       await sendEmailVerification(userCredential.user);
-      toast({
-        title: 'Account Created!',
-        description: `A verification link has been sent to ${email}. Please check your inbox.`,
-      });
-
+      
       const userDocRef = doc(firestore, 'users', userCredential.user.uid);
       const userData: AppUser = {
         id: userCredential.user.uid,
@@ -254,7 +250,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       };
       
       setDocumentNonBlocking(userDocRef, userData, { merge: false });
-      router.push('/dashboard/my-listings');
+      router.push('/email-verification');
       
     } catch (error: any) {
         let description = 'An unexpected error occurred.';
