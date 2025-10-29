@@ -48,24 +48,24 @@ const yearlyTiers = [
         planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID || 'replace_with_standard_yearly_id',
         price: 5000,
         priceSuffix: '/year',
-        credits: 10,
-        features: ['10 ad listings', 'Standard support', 'Save ₹1000'],
+        credits: 120, // 10 * 12
+        features: ['120 ad listings', 'Standard support', 'Save ?1000'],
     },
     {
         name: 'Premium Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID || 'replace_with_premium_yearly_id',
         price: 10000,
         priceSuffix: '/year',
-        credits: 20,
-        features: ['20 ad listings', 'Premium support', 'Featured listings', 'Save ₹2000'],
+        credits: 240, // 20 * 12
+        features: ['240 ad listings', 'Premium support', 'Featured listings', 'Save ?2000'],
     },
     {
         name: 'Pro Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID || 'replace_with_pro_yearly_id',
         price: 20000,
         priceSuffix: '/year',
-        credits: 50,
-        features: ['50 ad listings', 'Premium support', 'Featured listings', 'Save ₹4000'],
+        credits: 600, // 50 * 12
+        features: ['600 ad listings', 'Premium support', 'Featured listings', 'Save ?4000'],
     }
 ];
 
@@ -171,6 +171,8 @@ export default function SubscriptionPage() {
         };
 
         if (isUpgrade) {
+            // For upgrades, we add the new credits.
+            // A more complex system might prorate this.
             updateData.adCredits = increment(credits);
         } else {
             updateData.adCredits = credits;
@@ -219,7 +221,7 @@ export default function SubscriptionPage() {
              )}
           </div>
           <CardDescription>
-            <span className="text-4xl font-bold">₹{tier.price}</span>
+            <span className="text-4xl font-bold">?{tier.price}</span>
             <span className="text-muted-foreground">{tier.priceSuffix}</span>
           </CardDescription>
         </CardHeader>
@@ -254,25 +256,18 @@ export default function SubscriptionPage() {
     );
   }
 
-  // If user is logged in and has a subscription
-  if (user && user.isPro && user.subscriptionType) {
-    const currentTier = allTiers.find(t => t.name === user.subscriptionType);
-    const isCurrentYearly = currentTier?.name.includes('Yearly');
-    
-    const possibleUpgradeTiers = isCurrentYearly ? yearlyTiers : monthlyTiers;
-    const currentTierIndex = possibleUpgradeTiers.findIndex(t => t.name === currentTier?.name);
-    const upgradeTier = (currentTierIndex !== -1 && currentTierIndex < possibleUpgradeTiers.length - 1) 
-        ? possibleUpgradeTiers[currentTierIndex + 1] 
-        : null;
-
-    return (
-        <div className="py-12 animate-fade-in-up">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
-                <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
-            </div>
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-               {currentTier && (
+  // Common layout for all subscription views
+  return (
+    <div className="py-12 animate-fade-in-up">
+        <div className="text-center mb-12">
+            <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
+            <p className="mt-2 text-lg text-muted-foreground">
+                {user?.isPro ? 'Manage your current plan or choose a different one.' : 'Choose a plan that fits your needs to start posting ads.'}
+            </p>
+        </div>
+        
+        {user && user.isPro && user.subscriptionType && (
+            <div className="max-w-2xl mx-auto mb-12">
                  <Card className="border-primary border-2 animate-fade-in-up">
                     <CardHeader>
                         <div className="flex justify-between items-center">
@@ -297,20 +292,9 @@ export default function SubscriptionPage() {
                         </div>
                     </CardContent>
                 </Card>
-               )}
-               {upgradeTier && renderTierCard(upgradeTier, false, true, isCurrentYearly)}
             </div>
-        </div>
-    );
-  }
+        )}
 
-  // If user is logged out or has no subscription, show all plans
-  return (
-    <div className="py-12 animate-fade-in-up">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
-        <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
-      </div>
        {user && user.verificationStatus !== 'verified' && (
         <Alert className="max-w-4xl mx-auto mb-8 animate-fade-in">
           <AlertCircle className="h-4 w-4" />
@@ -333,7 +317,7 @@ export default function SubscriptionPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {monthlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, false, false, false)}
+                        {renderTierCard(tier, user?.subscriptionType === tier.name, !!user?.isPro, false)}
                     </div>
                 ))}
             </div>
@@ -342,7 +326,7 @@ export default function SubscriptionPage() {
              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {yearlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, false, false, true)}
+                         {renderTierCard(tier, user?.subscriptionType === tier.name, !!user?.isPro, true)}
                     </div>
                 ))}
             </div>
@@ -351,3 +335,6 @@ export default function SubscriptionPage() {
     </div>
   );
 }
+
+
+    
