@@ -13,12 +13,14 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-const tiers = [
+const monthlyTiers = [
   {
     name: 'Standard' as const,
     planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_PLAN_ID || 'replace_with_your_standard_plan_id',
     price: 500,
+    priceSuffix: '/month',
     credits: 10,
     features: ['10 ad listings', 'Standard support'],
   },
@@ -26,10 +28,48 @@ const tiers = [
     name: 'Premium' as const,
     planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_PLAN_ID || 'replace_with_your_premium_plan_id',
     price: 1000,
+    priceSuffix: '/month',
     credits: 20,
     features: ['20 ad listings', 'Premium support', 'Featured listings'],
   },
+  {
+    name: 'Pro' as const,
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_PLAN_ID || 'replace_with_your_pro_plan_id',
+    price: 2000,
+    priceSuffix: '/month',
+    credits: 50,
+    features: ['50 ad listings', 'Premium support', 'Featured listings'],
+  }
 ];
+
+const yearlyTiers = [
+    {
+        name: 'Standard Yearly' as const,
+        planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID || 'replace_with_standard_yearly_id',
+        price: 5000,
+        priceSuffix: '/year',
+        credits: 10,
+        features: ['10 ad listings', 'Standard support', 'Save ₹1000'],
+    },
+    {
+        name: 'Premium Yearly' as const,
+        planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID || 'replace_with_premium_yearly_id',
+        price: 10000,
+        priceSuffix: '/year',
+        credits: 20,
+        features: ['20 ad listings', 'Premium support', 'Featured listings', 'Save ₹2000'],
+    },
+    {
+        name: 'Pro Yearly' as const,
+        planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID || 'replace_with_pro_yearly_id',
+        price: 20000,
+        priceSuffix: '/year',
+        credits: 50,
+        features: ['50 ad listings', 'Premium support', 'Featured listings', 'Save ₹4000'],
+    }
+];
+
+const allTiers = [...monthlyTiers, ...yearlyTiers];
 
 declare global {
   interface Window {
@@ -43,8 +83,7 @@ export default function SubscriptionPage() {
   const { firestore } = initializeFirebase();
   const router = useRouter();
 
-
-  const handlePayment = async (planId: string, credits: number, planName: 'Standard' | 'Premium', isUpgrade: boolean = false) => {
+  const handlePayment = async (planId: string, credits: number, planName: string, isUpgrade: boolean = false, isYearly: boolean = false) => {
     if (!user) {
       toast({
         variant: 'destructive',
@@ -118,14 +157,20 @@ export default function SubscriptionPage() {
 
         const userDocRef = doc(firestore, 'users', user.uid);
         
+        const expiryDate = new Date();
+        if (isYearly) {
+            expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+        } else {
+            expiryDate.setMonth(expiryDate.getMonth() + 1);
+        }
+
         const updateData: any = {
           isPro: true,
           subscriptionType: planName,
-          proExpiresAt: new Date(new Date().setMonth(new Date().getMonth() + 1)),
+          proExpiresAt: expiryDate,
         };
 
         if (isUpgrade) {
-            // Logic for adding credits on upgrade
             updateData.adCredits = increment(credits);
         } else {
             updateData.adCredits = credits;
@@ -160,7 +205,7 @@ export default function SubscriptionPage() {
     rzp.open();
   };
 
-  const renderTierCard = (tier: (typeof tiers)[0], isCurrent: boolean, isUpgradeOption: boolean) => {
+  const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
     return (
       <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
@@ -175,7 +220,7 @@ export default function SubscriptionPage() {
           </div>
           <CardDescription>
             <span className="text-4xl font-bold">₹{tier.price}</span>
-            <span className="text-muted-foreground">/month</span>
+            <span className="text-muted-foreground">{tier.priceSuffix}</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="flex-grow">
@@ -192,8 +237,8 @@ export default function SubscriptionPage() {
             {isCurrent ? (
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
-                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, isUpgradeOption)}>
-                    {isUpgradeOption ? 'Switch to Premium' : 'Choose Plan'}
+                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, isUpgradeOption, isYearly)}>
+                    {isUpgradeOption ? `Switch to ${tier.name}` : 'Choose Plan'}
                 </Button>
             )}
         </CardFooter>
@@ -202,8 +247,11 @@ export default function SubscriptionPage() {
   }
 
   if (user?.isPro && user.subscriptionType) {
-    const currentTier = tiers.find(t => t.name === user.subscriptionType);
-    const upgradeTier = user.subscriptionType === 'Standard' ? tiers.find(t => t.name === 'Premium') : null;
+    const currentTier = allTiers.find(t => t.name === user.subscriptionType);
+    
+    // Find possible upgrade tiers
+    const currentTierIndex = monthlyTiers.findIndex(t => t.name === currentTier?.name) ?? -1;
+    const upgradeTier = currentTierIndex !== -1 && currentTierIndex < monthlyTiers.length - 1 ? monthlyTiers[currentTierIndex + 1] : null;
 
     return (
         <div className="animate-fade-in-up">
@@ -238,7 +286,7 @@ export default function SubscriptionPage() {
                     </CardContent>
                 </Card>
                )}
-               {upgradeTier && renderTierCard(upgradeTier, false, true)}
+               {upgradeTier && renderTierCard(upgradeTier, false, true, false)}
             </div>
         </div>
     );
@@ -262,13 +310,33 @@ export default function SubscriptionPage() {
           </AlertDescription>
         </Alert>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-        {tiers.map((tier, index) => (
-            <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                {renderTierCard(tier, false, false)}
+
+      <Tabs defaultValue="monthly" className="max-w-5xl mx-auto">
+        <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="monthly">Monthly Plans</TabsTrigger>
+            <TabsTrigger value="yearly">Yearly Plans (Save up to 20%)</TabsTrigger>
+        </TabsList>
+        <TabsContent value="monthly">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+                {monthlyTiers.map((tier, index) => (
+                    <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+                        {renderTierCard(tier, false, false, false)}
+                    </div>
+                ))}
             </div>
-        ))}
-      </div>
+        </TabsContent>
+        <TabsContent value="yearly">
+             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
+                {yearlyTiers.map((tier, index) => (
+                    <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+                        {renderTierCard(tier, false, false, true)}
+                    </div>
+                ))}
+            </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
+
+    
