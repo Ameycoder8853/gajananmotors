@@ -168,8 +168,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     photoURL: firebaseUser.photoURL || '',
                     role: 'dealer',
                     phone: firebaseUser.phoneNumber || '',
-                    isPro: false,
-                    proExpiresAt: null,
                     createdAt: new Date(),
                     adCredits: 0,
                     verificationStatus: 'unverified'
@@ -231,8 +229,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         phone,
         email,
         role: 'dealer',
-        isPro: false,
-        proExpiresAt: null,
         createdAt: new Date(),
         adCredits: 0,
         verificationStatus: 'unverified'
@@ -271,8 +267,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             photoURL: result.user.photoURL || '',
             role: 'dealer',
             phone: result.user.phoneNumber || '',
-            isPro: false,
-            proExpiresAt: null,
             createdAt: new Date(),
             adCredits: 0,
             verificationStatus: 'unverified'

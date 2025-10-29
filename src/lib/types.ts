@@ -10,10 +10,10 @@ export type User = {
   photoURL?: string;
   emailVerified?: boolean; // Added from FirebaseUser
   role: 'dealer' | 'admin';
-  isPro: boolean;
-  proExpiresAt: Date | null;
+  isPro?: boolean;
+  proExpiresAt?: Date | null;
   createdAt: Date | Timestamp;
-  subscriptionType?: 'Standard' | 'Premium';
+  subscriptionType?: 'Standard' | 'Premium' | 'Pro' | 'Standard Yearly' | 'Premium Yearly' | 'Pro Yearly';
   adCredits?: number;
   isPhoneVerified?: boolean;
   verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
@@ -26,7 +26,7 @@ export type FirebaseUser = import('firebase/auth').User & {
     role?: 'admin' | 'dealer';
     phone?: string;
     photoURL?: string;
-    subscriptionType?: 'Standard' | 'Premium';
+    subscriptionType?: 'Standard' | 'Premium' | 'Pro' | 'Standard Yearly' | 'Premium Yearly' | 'Pro Yearly';
     adCredits?: number;
     isPro?: boolean;
     proExpiresAt?: Date | null;
