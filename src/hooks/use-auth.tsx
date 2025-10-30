@@ -68,8 +68,11 @@ const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
       role: 'admin',
       phone: 'N/A',
       createdAt: new Date(),
+      isPro: true,
       adCredits: Infinity,
       verificationStatus: 'verified',
+      emailVerified: true,
+      isPhoneVerified: true,
     };
     await setDoc(doc(firestore, 'users', adminCred.user.uid), adminData);
     console.log('Admin user successfully created.');
@@ -114,6 +117,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           
           if (userDoc.exists()) {
             let appUser = convertTimestamps(userDoc.data()) as AppUser;
+
+            // Explicitly set admin role if email matches
+            if (appUser.email === 'ameypatil261@gmail.com') {
+              appUser.role = 'admin';
+            }
             
             // Check for subscription expiry
             if (appUser.role === 'dealer' && appUser.isPro && appUser.proExpiresAt && new Date() > appUser.proExpiresAt) {
@@ -213,10 +221,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const userDoc = await getDoc(userDocRef);
     if (userDoc.exists()) {
       const appUser = userDoc.data() as AppUser;
-      if (appUser.role === 'admin') {
-        router.push('/dashboard');
+      if (appUser.email === 'ameypatil261@gmail.com' || appUser.role === 'admin') {
+        router.push('/admin');
       } else {
-        router.push('/dashboard/my-listings');
+        router.push('/dashboard');
       }
     }
     return creds;
@@ -280,7 +288,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setDocumentNonBlocking(doc(firestore, 'users', result.user.uid), newUser, { merge: false });
     }
-    router.push('/dashboard/my-listings');
+    router.push('/dashboard');
   };
 
   const logout = async () => {

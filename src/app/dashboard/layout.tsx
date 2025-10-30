@@ -26,18 +26,15 @@ export default function DashboardLayout({
       return;
     }
     
-    const currentUser = auth.currentUser;
-
-    // Handle role-based redirects
+    // Redirect admins away from the dealer dashboard
     if (user.role === 'admin') {
-        // If admin is on a dealer-specific page, redirect them to the main dashboard.
-        if (pathname === '/dashboard/my-listings' || pathname === '/dashboard/verification' || pathname === '/email-verification') {
-            router.replace('/dashboard');
-        }
-        return; // Admin flow ends here
+        router.replace('/admin');
+        return;
     }
 
+    // Dealer-specific logic
     if (user.role === 'dealer') {
+        const currentUser = auth.currentUser;
         // Redirect unverified dealers to the verification page
         if (!currentUser?.emailVerified && pathname !== '/email-verification') {
             router.push('/email-verification');
@@ -53,7 +50,7 @@ export default function DashboardLayout({
   }, [user, isUserLoading, router, pathname, auth]);
 
   // Render a loading state while checking for user auth
-  if (isUserLoading) {
+  if (isUserLoading || !user || user.role === 'admin') { // Also show loader if user is an admin to hide dealer dashboard flash
     return (
         <div className="flex items-center justify-center min-h-screen">
             <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
@@ -61,17 +58,7 @@ export default function DashboardLayout({
     );
   }
 
-  // If loading is finished and there's still no user, it means the redirect is in progress.
-  // Show a loader to prevent a flash of content.
-  if (!user) {
-     return (
-        <div className="flex items-center justify-center min-h-screen">
-            <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
-        </div>
-    );
-  }
-
-  // If we have a user, render the dashboard content
+  // If we have a dealer user, render the dashboard content
   return (
     <div className="flex flex-col min-h-screen">
       <Header />

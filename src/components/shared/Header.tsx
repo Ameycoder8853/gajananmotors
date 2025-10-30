@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import Link from 'next/link';
@@ -79,8 +78,8 @@ export function Header() {
       if (user) {
         if (user.role === 'admin') {
           setNavLinks([
-            { href: '/dashboard/listings', label: 'All Listings' },
-            { href: '/dashboard/dealers', label: 'Dealers' },
+            { href: '/admin/listings', label: 'All Listings' },
+            { href: '/admin/dealers', label: 'Dealers' },
             { href: '/market', label: 'Market View' },
           ]);
         } else { // 'dealer'
@@ -105,7 +104,7 @@ export function Header() {
       window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('hashchange', onHashChange);
     };
-  }, [user, isUserLoading, user?.role]);
+  }, [user, isUserLoading]);
   
   const isMarketingPage = pathname === '/';
   
@@ -197,7 +196,7 @@ export function Header() {
               <>
               {user.role === 'admin' && (
                 <Button asChild variant="outline">
-                  <Link href="/dashboard">Admin Dashboard</Link>
+                  <Link href="/admin">Admin Panel</Link>
                 </Button>
               )}
               {userMenu}
@@ -237,10 +236,10 @@ export function Header() {
                   ))}
                    {user?.role === 'admin' && (
                      <Link
-                      href="/dashboard"
+                      href="/admin"
                       className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                     >
-                      Admin Dashboard
+                      Admin Panel
                     </Link>
                    )}
                 </nav>

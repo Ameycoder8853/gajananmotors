@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AdCard } from "@/components/market/AdCard";
@@ -118,5 +119,3 @@ export default function ListingsPage() {
     </div>
   );
 }
-
-    
