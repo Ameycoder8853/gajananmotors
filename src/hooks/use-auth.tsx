@@ -49,6 +49,47 @@ const subscriptionLimits = {
     'Premium': 20,
 };
 
+// This function will run once to ensure the admin user exists in Firebase Auth and Firestore.
+// It is designed to be run manually or as part of a deployment script, not on every app load.
+const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
+  const adminEmail = 'admin@gmail.com';
+  const adminPassword = 'gajananmotors';
+
+  try {
+    // This will create the user if they don't exist.
+    // It throws 'auth/email-already-in-use' if they do, which we can safely ignore.
+    const adminCred = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
+    
+    // If creation was successful, this is the first time. Let's create their Firestore doc.
+    const adminData: AppUser = {
+      id: adminCred.user.uid,
+      name: 'Admin',
+      email: adminEmail,
+      role: 'admin',
+      phone: 'N/A',
+      createdAt: new Date(),
+      adCredits: Infinity,
+      verificationStatus: 'verified',
+    };
+    await setDoc(doc(firestore, 'users', adminCred.user.uid), adminData);
+    console.log('Admin user successfully created.');
+
+    // Important: Sign out the admin immediately after creation so it doesn't affect the current user's session.
+    if (auth.currentUser?.email === adminEmail) {
+      await signOut(auth);
+      console.log('Admin signed out post-creation.');
+    }
+  } catch (error: any) {
+    if (error.code === 'auth/email-already-in-use') {
+      // This is expected and fine. The admin user already exists.
+    } else {
+      // Log any other errors during this setup.
+      console.error('Critical error during admin user setup:', error);
+    }
+  }
+};
+
+
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
@@ -60,41 +101,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (isFirebaseLoading || !auth || !firestore) {
       return; // Wait for firebase to be initialized
     }
-    const ensureAdminExists = async () => {
-      const adminEmail = 'admin@gmail.com';
-      const adminPassword = 'gajananmotors';
-
-      try {
-        // Attempt to create the admin user. If the user already exists,
-        // this will throw an 'auth/email-already-in-use' error, which we can safely ignore.
-        const adminCred = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-        const adminData: AppUser = {
-          id: adminCred.user.uid,
-          name: 'Admin',
-          email: adminEmail,
-          role: 'admin',
-          phone: 'N/A',
-          isPro: true,
-          proExpiresAt: new Date(new Date().setDate(new Date().getDate() + 365 * 5)), // 5 years for admin
-          createdAt: new Date(),
-          adCredits: Infinity,
-          verificationStatus: 'verified',
-        };
-        setDocumentNonBlocking(doc(firestore, 'users', adminCred.user.uid), adminData, { merge: false });
-        // After creating the admin, sign them out immediately so it doesn't interfere with the current session.
-        if (auth.currentUser?.email === adminEmail) {
-            await signOut(auth);
-        }
-      } catch (error: any) {
-        // If the admin user already exists, the creation will fail. This is expected and safe to ignore.
-        // We only care about other potential errors during setup.
-        if (error.code !== 'auth/email-already-in-use') {
-          console.error('Failed to ensure admin user exists:', error);
-        }
-      }
-    };
     
-    ensureAdminExists();
+    // On the first load of the app, ensure the admin user exists.
+    // This is safer than running it on every state change.
+    ensureAdminExists(auth, firestore);
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
