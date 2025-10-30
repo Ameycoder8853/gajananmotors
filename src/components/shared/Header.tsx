@@ -79,7 +79,6 @@ export function Header() {
       if (user) {
         if (user.role === 'admin') {
           setNavLinks([
-            { href: '/dashboard', label: 'Admin Dashboard' },
             { href: '/dashboard/listings', label: 'All Listings' },
             { href: '/dashboard/dealers', label: 'Dealers' },
             { href: '/market', label: 'Market View' },
@@ -195,7 +194,14 @@ export function Header() {
            <ThemeSwitcher />
           <div className="hidden md:flex items-center space-x-2">
             {!isUserLoading && user ? (
-              userMenu
+              <>
+              {user.role === 'admin' && (
+                <Button asChild variant="outline">
+                  <Link href="/dashboard">Admin Dashboard</Link>
+                </Button>
+              )}
+              {userMenu}
+              </>
             ) : !isUserLoading ? (
               <>
                 <Button asChild variant={(scrolled || pathname !== '/') ? "ghost" : "outline"} className={cn(!scrolled && pathname === '/' && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
@@ -229,6 +235,14 @@ export function Header() {
                       {link.label}
                     </Link>
                   ))}
+                   {user?.role === 'admin' && (
+                     <Link
+                      href="/dashboard"
+                      className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                    >
+                      Admin Dashboard
+                    </Link>
+                   )}
                 </nav>
                 <div className="mt-auto border-t pt-6">
                   {!isUserLoading && user ? (
