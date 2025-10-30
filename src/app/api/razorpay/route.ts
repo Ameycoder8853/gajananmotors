@@ -7,6 +7,7 @@ config(); // Load environment variables from .env file
 
 const paymentSchema = z.object({
   planId: z.string(),
+  isYearly: z.boolean().optional().default(false),
 });
 
 export async function POST(req: Request) {
@@ -25,11 +26,11 @@ export async function POST(req: Request) {
     });
 
     const body = await req.json();
-    const { planId } = paymentSchema.parse(body);
+    const { planId, isYearly } = paymentSchema.parse(body);
 
     const options = {
         plan_id: planId,
-        total_count: 12, // For a 1-year subscription with monthly billing
+        total_count: isYearly ? 1 : 12, // 1 payment for yearly, 12 monthly payments for a year
         customer_notify: 1
     };
 

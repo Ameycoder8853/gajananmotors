@@ -117,7 +117,7 @@ export default function SubscriptionPage() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ planId }),
+      body: JSON.stringify({ planId, isYearly }),
     });
 
     if (!res.ok) {
