@@ -30,9 +30,10 @@ import { initializeFirebase } from '@/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState } from 'react';
-import { Eye, EyeOff, Upload } from 'lucide-react';
+import { Eye, EyeOff, Upload, CheckCircle2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
+import { Badge } from '@/components/ui/badge';
 
 
 const profileFormSchema = z.object({
@@ -185,13 +186,20 @@ export default function SettingsPage() {
         <CardContent>
           <Form {...profileForm}>
             <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="grid gap-8 md:grid-cols-3">
-              <div className="md:col-span-2 space-y-6">
+              <div className="md:col-span-2 space-y-4">
                 <FormField
                   control={profileForm.control}
                   name="name"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Full Name</FormLabel>
+                      <div className="flex items-center gap-4">
+                        <FormLabel>Full Name</FormLabel>
+                         {user?.verificationStatus === 'verified' && (
+                          <Badge variant="default" className="bg-green-500 hover:bg-green-600">
+                              <CheckCircle2 className="mr-1 h-3 w-3" />Verified
+                          </Badge>
+                        )}
+                      </div>
                       <FormControl>
                         <Input placeholder="Your Name" {...field} />
                       </FormControl>
@@ -263,7 +271,7 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent>
           <Form {...passwordForm}>
-            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
+            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4">
               <FormField
                 control={passwordForm.control}
                 name="currentPassword"
@@ -322,5 +330,3 @@ export default function SettingsPage() {
     </div>
   );
 }
-
-    
