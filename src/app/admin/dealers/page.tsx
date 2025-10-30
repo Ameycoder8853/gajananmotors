@@ -171,7 +171,7 @@ export default function DealersPage() {
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => handleViewDetails(user)}>View Details</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                             {user.verificationStatus === 'pending' && (
+                             {user.verificationStatus !== 'verified' && (
                                 <>
                                 <DropdownMenuItem onClick={() => handleApprove(user.id)}>Approve</DropdownMenuItem>
                                 <DropdownMenuItem className="text-red-600" onClick={() => handleReject(user.id)}>Reject</DropdownMenuItem>
@@ -255,7 +255,7 @@ export default function DealersPage() {
                     </div>
 
                     <DialogFooter className="pt-4">
-                      {selectedUser?.verificationStatus === 'pending' && (
+                      {selectedUser?.verificationStatus !== 'verified' && (
                           <div className="flex-1 flex justify-start gap-2">
                               <Button type="button" variant="outline" onClick={() => handleReject(selectedUser.id)}>Reject</Button>
                               <Button type="button" onClick={() => handleApprove(selectedUser.id)}>Approve</Button>
@@ -278,7 +278,7 @@ export default function DealersPage() {
                         <Label>Ad Credits Remaining</Label>
                         <p className="font-semibold">{selectedUser.adCredits}</p>
                       </div>
-                      <div>
+                       <div>
                         <Label>Subscription Start</Label>
                         <p className="font-semibold">{selectedUser.createdAt ? new Date(selectedUser.createdAt as any).toLocaleDateString() : 'N/A'}</p>
                       </div>
