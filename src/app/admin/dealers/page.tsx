@@ -1,6 +1,5 @@
-
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -31,8 +30,21 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog"
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormMessage } from '@/components/ui/form';
+
+const dealerFormSchema = z.object({
+  name: z.string().min(2, "Name is required."),
+  phone: z.string().min(10, "Phone number is required."),
+});
 
 
 export default function DealersPage() {
@@ -49,7 +61,20 @@ export default function DealersPage() {
     const [selectedUser, setSelectedUser] = useState<User | null>(null);
     const [isDialogOpen, setIsDialogOpen] = useState(false);
 
-    const handleViewDocuments = (user: User) => {
+    const form = useForm<z.infer<typeof dealerFormSchema>>({
+      resolver: zodResolver(dealerFormSchema),
+    });
+
+    useEffect(() => {
+      if (selectedUser) {
+        form.reset({
+          name: selectedUser.name,
+          phone: selectedUser.phone,
+        });
+      }
+    }, [selectedUser, form]);
+
+    const handleViewDetails = (user: User) => {
         setSelectedUser(user);
         setIsDialogOpen(true);
     };
@@ -69,6 +94,14 @@ export default function DealersPage() {
         toast({ variant: 'destructive', title: 'Dealer Rejected', description: 'The dealer has been marked as rejected.' });
         setIsDialogOpen(false);
     };
+    
+    async function onInfoSubmit(values: z.infer<typeof dealerFormSchema>) {
+      if (!selectedUser) return;
+      const userDocRef = doc(firestore, 'users', selectedUser.id);
+      updateDocumentNonBlocking(userDocRef, values);
+      toast({ title: 'Dealer Updated', description: "The dealer's information has been saved." });
+      setIsDialogOpen(false);
+    }
 
     const VerificationStatusBadge = ({ status }: { status: User['verificationStatus'] }) => {
         switch (status) {
@@ -136,7 +169,7 @@ export default function DealersPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleViewDocuments(user)}>View Documents</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleViewDetails(user)}>View Details</DropdownMenuItem>
                             <DropdownMenuSeparator />
                              {user.verificationStatus === 'pending' && (
                                 <>
@@ -156,45 +189,110 @@ export default function DealersPage() {
     </Card>
 
     <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
-                <DialogTitle>Verification Documents</DialogTitle>
+                <DialogTitle>Dealer Details</DialogTitle>
                 <DialogDescription>
-                    Documents uploaded by {selectedUser?.name}. Review and then approve or reject.
+                    View, edit, and manage details for {selectedUser?.name}.
                 </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4 py-4">
-                {selectedUser?.aadharUrl ? (
+            <Tabs defaultValue="info">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="info">Info & Verification</TabsTrigger>
+                <TabsTrigger value="subscription">Subscription</TabsTrigger>
+              </TabsList>
+              <TabsContent value="info">
+                <Form {...form}>
+                  <form onSubmit={form.handleSubmit(onInfoSubmit)} className="space-y-4 py-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>Full Name</Label>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="phone"
+                      render={({ field }) => (
+                        <FormItem>
+                          <Label>Phone Number</Label>
+                          <FormControl>
+                            <Input {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                     <div>
-                        <h3 className="font-semibold">Aadhar Card</h3>
-                        <a href={selectedUser.aadharUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline flex items-center gap-1">
-                            View Document <ExternalLink className="h-4 w-4" />
-                        </a>
+                      <Label>Email</Label>
+                      <Input value={selectedUser?.email} disabled />
                     </div>
-                ) : <p>No Aadhar Card uploaded.</p>}
-                {selectedUser?.panUrl ? (
-                    <div>
-                        <h3 className="font-semibold">PAN Card</h3>
-                         <a href={selectedUser.panUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline flex items-center gap-1">
-                            View Document <ExternalLink className="h-4 w-4" />
-                        </a>
+
+                    <div className="space-y-2 pt-4">
+                      <h3 className="font-semibold">Verification Documents</h3>
+                       {selectedUser?.aadharUrl ? (
+                          <a href={selectedUser.aadharUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline flex items-center gap-1">
+                              Aadhar Card <ExternalLink className="h-4 w-4" />
+                          </a>
+                      ) : <p className="text-sm text-muted-foreground">No Aadhar Card uploaded.</p>}
+                      {selectedUser?.panUrl ? (
+                          <a href={selectedUser.panUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline flex items-center gap-1">
+                              PAN Card <ExternalLink className="h-4 w-4" />
+                          </a>
+                      ) : <p className="text-sm text-muted-foreground">No PAN Card uploaded.</p>}
+                      {selectedUser?.shopLicenseUrl ? (
+                           <a href={selectedUser.shopLicenseUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline flex items-center gap-1">
+                              Shop License <ExternalLink className="h-4 w-4" />
+                          </a>
+                      ) : <p className="text-sm text-muted-foreground">No Shop License uploaded.</p>}
                     </div>
-                ) : <p>No PAN Card uploaded.</p>}
-                {selectedUser?.shopLicenseUrl ? (
-                    <div>
-                        <h3 className="font-semibold">Shop License</h3>
-                         <a href={selectedUser.shopLicenseUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-500 hover:underline flex items-center gap-1">
-                            View Document <ExternalLink className="h-4 w-4" />
-                        </a>
-                    </div>
-                ) : <p>No Shop License uploaded.</p>}
-            </div>
-            {selectedUser?.verificationStatus === 'pending' && (
-                <div className="flex justify-end gap-2">
-                    <Button variant="outline" onClick={() => handleReject(selectedUser.id)}>Reject</Button>
-                    <Button onClick={() => handleApprove(selectedUser.id)}>Approve</Button>
-                </div>
-            )}
+
+                    <DialogFooter className="pt-4">
+                      {selectedUser?.verificationStatus === 'pending' && (
+                          <div className="flex-1 flex justify-start gap-2">
+                              <Button type="button" variant="outline" onClick={() => handleReject(selectedUser.id)}>Reject</Button>
+                              <Button type="button" onClick={() => handleApprove(selectedUser.id)}>Approve</Button>
+                          </div>
+                      )}
+                      <Button type="submit">Save Changes</Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </TabsContent>
+              <TabsContent value="subscription">
+                 <div className="space-y-4 py-4">
+                  {selectedUser?.isPro ? (
+                    <>
+                      <div>
+                        <Label>Current Plan</Label>
+                        <p className="font-semibold">{selectedUser.subscriptionType}</p>
+                      </div>
+                       <div>
+                        <Label>Ad Credits Remaining</Label>
+                        <p className="font-semibold">{selectedUser.adCredits}</p>
+                      </div>
+                      <div>
+                        <Label>Subscription Start</Label>
+                        <p className="font-semibold">{selectedUser.createdAt ? new Date(selectedUser.createdAt as any).toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                      <div>
+                        <Label>Subscription End</Label>
+                        <p className="font-semibold">{selectedUser.proExpiresAt ? new Date(selectedUser.proExpiresAt).toLocaleDateString() : 'N/A'}</p>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-muted-foreground">This dealer does not have an active subscription.</p>
+                  )}
+                 </div>
+              </TabsContent>
+            </Tabs>
         </DialogContent>
     </Dialog>
     </>
