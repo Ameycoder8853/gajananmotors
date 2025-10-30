@@ -95,6 +95,14 @@ export default function DealersPage() {
         setIsDialogOpen(false);
     };
     
+    const handleUnverify = (userId: string) => {
+        if (!firestore) return;
+        const userDocRef = doc(firestore, 'users', userId);
+        updateDocumentNonBlocking(userDocRef, { verificationStatus: 'unverified' });
+        toast({ title: 'Dealer Unverified', description: 'The dealer has been marked as unverified.' });
+        setIsDialogOpen(false);
+    };
+
     async function onInfoSubmit(values: z.infer<typeof dealerFormSchema>) {
       if (!selectedUser) return;
       const userDocRef = doc(firestore, 'users', selectedUser.id);
@@ -177,6 +185,9 @@ export default function DealersPage() {
                                 <DropdownMenuItem className="text-red-600" onClick={() => handleReject(user.id)}>Reject</DropdownMenuItem>
                                 </>
                             )}
+                             {user.verificationStatus === 'verified' && (
+                                <DropdownMenuItem className="text-red-600" onClick={() => handleUnverify(user.id)}>Unverify</DropdownMenuItem>
+                            )}
                         </DropdownMenuContent>
                     </DropdownMenu>
                     </TableCell>
@@ -255,12 +266,16 @@ export default function DealersPage() {
                     </div>
 
                     <DialogFooter className="pt-4">
-                      {selectedUser?.verificationStatus !== 'verified' && (
-                          <div className="flex-1 flex justify-start gap-2">
-                              <Button type="button" variant="outline" onClick={() => handleReject(selectedUser.id)}>Reject</Button>
-                              <Button type="button" onClick={() => handleApprove(selectedUser.id)}>Approve</Button>
-                          </div>
-                      )}
+                       <div className="flex-1 flex justify-start gap-2">
+                            {selectedUser?.verificationStatus !== 'verified' ? (
+                                <>
+                                    <Button type="button" variant="outline" onClick={() => handleReject(selectedUser.id)}>Reject</Button>
+                                    <Button type="button" onClick={() => handleApprove(selectedUser.id)}>Approve</Button>
+                                </>
+                            ) : (
+                                <Button type="button" variant="destructive" onClick={() => handleUnverify(selectedUser.id)}>Unverify</Button>
+                            )}
+                        </div>
                       <Button type="submit">Save Changes</Button>
                     </DialogFooter>
                   </form>
