@@ -33,8 +33,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter, useParams, notFound } from 'next/navigation';
 import { serverTimestamp } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
-import { initializeFirebase, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { useFirestore, useStorage, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
@@ -82,7 +82,8 @@ export default function EditListingPage() {
   const params = useParams();
   const { adId } = params;
 
-  const { firestore, storage } = initializeFirebase();
+  const firestore = useFirestore();
+  const storage = useStorage();
   
   const adRef = useMemoFirebase(() => {
     if (!firestore || typeof adId !== 'string') return null;
@@ -212,6 +213,7 @@ export default function EditListingPage() {
   }
 
   async function deleteImages(urls: string[]) {
+    if (!storage) return;
     for (const url of urls) {
         try {
             const imageRef = ref(storage, url);

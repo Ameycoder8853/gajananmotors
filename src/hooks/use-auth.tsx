@@ -52,7 +52,7 @@ const subscriptionLimits = {
 // This function will run once to ensure the admin user exists in Firebase Auth and Firestore.
 // It is designed to be run manually or as part of a deployment script, not on every app load.
 const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
-  const adminEmail = 'admin@gmail.com';
+  const adminEmail = 'ameypatil261@gmail.com';
   const adminPassword = 'gajananmotors';
 
   try {
@@ -179,7 +179,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     role: 'dealer',
                     phone: firebaseUser.phoneNumber || '',
                     createdAt: new Date(),
-                    adCredits: 0,
                     verificationStatus: 'unverified'
                 };
                 setDocumentNonBlocking(doc(firestore, 'users', firebaseUser.uid), newUser, { merge: false });
@@ -240,7 +239,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email,
         role: 'dealer',
         createdAt: new Date(),
-        adCredits: 0,
         verificationStatus: 'unverified'
       };
       
@@ -278,7 +276,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             role: 'dealer',
             phone: result.user.phoneNumber || '',
             createdAt: new Date(),
-            adCredits: 0,
             verificationStatus: 'unverified'
         };
         setDocumentNonBlocking(doc(firestore, 'users', result.user.uid), newUser, { merge: false });
