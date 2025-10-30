@@ -26,24 +26,28 @@ export default function DashboardLayout({
       return;
     }
     
-    // Use auth.currentUser to get the most immediate state for this session
     const currentUser = auth.currentUser;
 
-    // Redirect unverified dealers to the verification page. Admins bypass this.
-    if (user.role === 'dealer' && !currentUser?.emailVerified && pathname !== '/email-verification') {
-        router.push('/email-verification');
-        return;
+    // Handle role-based redirects
+    if (user.role === 'admin') {
+        // If admin is on a dealer-specific page, redirect them to the main dashboard.
+        if (pathname === '/dashboard/my-listings' || pathname === '/dashboard/verification' || pathname === '/email-verification') {
+            router.replace('/dashboard');
+        }
+        return; // Admin flow ends here
     }
 
-    // Redirect admins away from dealer-specific verification pages.
-    if (user.role === 'admin' && (pathname === '/dashboard/verification' || pathname === '/email-verification')) {
-      router.replace('/dashboard');
-      return;
-    }
-    
-    // This is the main entry point to the dashboard for dealers.
-    if (user.role === 'dealer' && pathname === '/dashboard') {
-      router.replace('/dashboard/my-listings');
+    if (user.role === 'dealer') {
+        // Redirect unverified dealers to the verification page
+        if (!currentUser?.emailVerified && pathname !== '/email-verification') {
+            router.push('/email-verification');
+            return;
+        }
+
+        // If a verified dealer lands on the base dashboard, redirect to their listings.
+        if (pathname === '/dashboard') {
+            router.replace('/dashboard/my-listings');
+        }
     }
 
   }, [user, isUserLoading, router, pathname, auth]);
