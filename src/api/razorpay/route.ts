@@ -57,7 +57,8 @@ export async function POST(req: Request) {
     
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: error.errors }, { status: 400 });
+      // Return a user-friendly error string instead of the complex error object
+      return NextResponse.json({ error: 'Invalid data provided. Please check your details and try again.' }, { status: 400 });
     }
     console.error('Razorpay API Error:', error);
     const errorMessage = (error instanceof Error && 'message' in error && (error as any).error) ? (error as any).error.description : 'Something went wrong on the server.';
