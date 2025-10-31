@@ -97,8 +97,8 @@ export default {
           to: { opacity: '1', transform: 'translateY(0)' },
         },
         'zoom-in': {
-          from: { transform: 'scale(1)' },
-          to: { transform: 'scale(1.1)' },
+          from: { transform: 'scale(1.05)' },
+          to: { transform: 'scale(1.15)' },
         },
       },
       animation: {
