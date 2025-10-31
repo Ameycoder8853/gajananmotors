@@ -298,6 +298,8 @@ export default function SubscriptionPage() {
     );
   }
 
+  const showReferralInput = !user || !user.hasUsedReferral;
+
   // Common layout for all subscription views
   return (
     <div className="py-12 animate-fade-in-up">
@@ -308,7 +310,7 @@ export default function SubscriptionPage() {
             </p>
         </div>
 
-        {!user && (
+        {showReferralInput && (
           <div className="max-w-md mx-auto mb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
             <Card>
               <CardHeader>
