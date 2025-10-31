@@ -61,7 +61,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Invalid data provided. Please check your details and try again.' }, { status: 400 });
     }
     console.error('Razorpay API Error:', error);
-    const errorMessage = (error instanceof Error && 'message' in error && (error as any).error) ? (error as any).error.description : 'Something went wrong on the server.';
+    // Generic but safe error message for any other type of error
+    const errorMessage = 'An unexpected error occurred on the server. Please try again later.';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
