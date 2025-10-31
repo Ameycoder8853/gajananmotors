@@ -193,7 +193,15 @@ export default function SubscriptionPage() {
 
     const rzp = new window.Razorpay(options);
     rzp.on('payment.failed', (response: any) => {
-        toast({ variant: 'destructive', title: 'Payment Failed', description: response.error.description || 'Something went wrong.' });
+        let errorMessage = 'Something went wrong during payment.';
+        if (response?.error?.description && typeof response.error.description === 'string') {
+          errorMessage = response.error.description;
+        }
+        toast({ 
+            variant: 'destructive', 
+            title: 'Payment Failed', 
+            description: errorMessage
+        });
     });
     rzp.open();
   };
