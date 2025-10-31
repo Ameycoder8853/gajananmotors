@@ -15,7 +15,7 @@ import {
   Auth,
   sendEmailVerification,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore, collection, getDocs, writeBatch, query, orderBy, limit, where } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore, collection, getDocs, writeBatch, query, orderBy, limit, where, increment } from 'firebase/firestore';
 import { initializeFirebase, errorEmitter, FirestorePermissionError, useFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
@@ -157,6 +157,17 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               });
             }
 
+            // Reset referralsThisMonth if new month
+            if (appUser.lastReferralDate) {
+                const lastRefDate = (appUser.lastReferralDate as Timestamp).toDate();
+                const currentDate = new Date();
+                if (lastRefDate.getMonth() !== currentDate.getMonth() || lastRefDate.getFullYear() !== currentDate.getFullYear()) {
+                    appUser.referralsThisMonth = 0;
+                    updateDocumentNonBlocking(userDocRef, { referralsThisMonth: 0 });
+                }
+            }
+
+
             const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser, photoURL: firebaseUser.photoURL, emailVerified: firebaseUser.emailVerified, isPhoneVerified: appUser.isPhoneVerified ?? false };
             setUser(enhancedUser);
 
@@ -178,6 +189,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     referralCode: nanoid(10).toUpperCase(),
                     hasUsedReferral: false,
                     nextSubscriptionDiscount: false,
+                    referralsThisMonth: 0,
                 };
                 setDocumentNonBlocking(doc(firestore, 'users', firebaseUser.uid), newUser, { merge: false });
                 const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, photoURL: firebaseUser.photoURL, emailVerified: firebaseUser.emailVerified, isPhoneVerified: false };
@@ -243,6 +255,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         referralCode: nanoid(10).toUpperCase(),
         hasUsedReferral: false,
         nextSubscriptionDiscount: false,
+        referralsThisMonth: 0,
       };
       
       setDocumentNonBlocking(userDocRef, userData, { merge: false });
@@ -283,6 +296,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             referralCode: nanoid(10).toUpperCase(),
             hasUsedReferral: false,
             nextSubscriptionDiscount: false,
+            referralsThisMonth: 0,
         };
         setDocumentNonBlocking(doc(firestore, 'users', result.user.uid), newUser, { merge: false });
     }

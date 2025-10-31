@@ -7,7 +7,7 @@ import { Check, Star, Ticket } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, getDocs, increment, query, where, writeBatch } from 'firebase/firestore';
+import { collection, doc, getDocs, increment, query, where, writeBatch, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -110,6 +110,20 @@ export default function SubscriptionPage() {
       setDiscountApplied(false);
     } else {
       const referrerUser = querySnapshot.docs[0].data() as User;
+
+      // Check if the referrer has already made a referral this month
+      if (referrerUser.lastReferralDate) {
+        const lastRefDate = (referrerUser.lastReferralDate as Timestamp).toDate();
+        const currentDate = new Date();
+        if (
+            lastRefDate.getMonth() === currentDate.getMonth() &&
+            lastRefDate.getFullYear() === currentDate.getFullYear()
+        ) {
+            toast({ variant: 'destructive', title: 'Referral Limit Reached', description: 'This referral code has already been used this month.' });
+            return;
+        }
+      }
+
       setReferrer(referrerUser);
       toast({ title: 'Code Applied!', description: 'You get 50% off your first monthly subscription!' });
       setDiscountApplied(true);
@@ -192,9 +206,13 @@ export default function SubscriptionPage() {
             updateData.hasUsedReferral = true;
             updateData.referredBy = referrer.id;
 
-            // Give the referrer their discount
+            // Give the referrer their discount and update their referral date
             const referrerDocRef = doc(firestore, 'users', referrer.id);
-            batch.update(referrerDocRef, { nextSubscriptionDiscount: true });
+            batch.update(referrerDocRef, { 
+                nextSubscriptionDiscount: true,
+                lastReferralDate: new Date(),
+                referralsThisMonth: increment(1)
+            });
         }
 
         batch.update(userDocRef, updateData);

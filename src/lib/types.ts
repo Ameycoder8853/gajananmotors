@@ -25,6 +25,8 @@ export type User = {
   referredBy?: string;
   hasUsedReferral: boolean;
   nextSubscriptionDiscount: boolean;
+  lastReferralDate?: Date | Timestamp;
+  referralsThisMonth?: number;
 };
 
 export type FirebaseUser = import('firebase/auth').User & {
