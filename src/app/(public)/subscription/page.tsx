@@ -3,17 +3,21 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Star } from 'lucide-react';
+import { Check, Star, Ticket } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment } from 'firebase/firestore';
+import { collection, doc, getDocs, increment, query, where, writeBatch } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import type { User } from '@/lib/types';
+
 
 const monthlyTiers = [
   {
@@ -82,80 +86,88 @@ export default function SubscriptionPage() {
   const { toast } = useToast();
   const { firestore } = initializeFirebase();
   const router = useRouter();
+  
+  const [referralCode, setReferralCode] = useState('');
+  const [discountApplied, setDiscountApplied] = useState(false);
+  const [referrer, setReferrer] = useState<User | null>(null);
 
-  const handlePayment = async (planId: string, credits: number, planName: string, isUpgrade: boolean = false, isYearly: boolean = false) => {
-    if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Required',
-        description: 'You must be logged in to purchase a subscription. Redirecting to login...',
-      });
-      router.push('/login');
+  const handleApplyReferralCode = async () => {
+    if (!referralCode) {
+      toast({ variant: 'destructive', title: 'Invalid Code', description: 'Please enter a referral code.' });
       return;
     }
-
-    if (!planId || planId.startsWith('replace_with')) {
-        toast({
-            variant: 'destructive',
-            title: 'Configuration Error',
-            description: 'The subscription plan ID is not configured. Please contact support.',
-        });
+    if (user?.referralCode === referralCode) {
+        toast({ variant: 'destructive', title: 'Invalid Code', description: "You can't use your own referral code." });
         return;
     }
 
-    if (!window.Razorpay) {
-      toast({
-        variant: 'destructive',
-        title: 'Payment Error',
-        description: 'Razorpay checkout is not available. Please refresh the page.',
-      });
+    const usersRef = collection(firestore, 'users');
+    const q = query(usersRef, where('referralCode', '==', referralCode));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) {
+      toast({ variant: 'destructive', title: 'Invalid Code', description: 'This referral code does not exist.' });
+      setDiscountApplied(false);
+    } else {
+      const referrerUser = querySnapshot.docs[0].data() as User;
+      setReferrer(referrerUser);
+      toast({ title: 'Code Applied!', description: 'You get 50% off your first monthly subscription!' });
+      setDiscountApplied(true);
+    }
+  };
+
+
+  const handlePayment = async (planId: string, credits: number, planName: string, amount: number, isUpgrade: boolean = false, isYearly: boolean = false) => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Authentication Required', description: 'You must be logged in to purchase a subscription.', action: <Button onClick={() => router.push('/login')}>Login</Button> });
       return;
     }
 
+    if (!window.Razorpay) {
+      toast({ variant: 'destructive', title: 'Payment Error', description: 'Razorpay checkout is not available. Please refresh the page.' });
+      return;
+    }
+    
+    const finalAmount = discountApplied && !isYearly ? amount / 2 : amount;
+    const isReferralPurchase = discountApplied && !isYearly;
+
     const res = await fetch('/api/razorpay', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ planId, isYearly }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        planId, 
+        isYearly,
+        amount: finalAmount, // Send final amount to create an order
+        isReferralPurchase,
+      }),
     });
 
     if (!res.ok) {
         const errorData = await res.json();
-        toast({
-            variant: 'destructive',
-            title: 'Payment Error',
-            description: errorData.error || 'Failed to create Razorpay subscription.',
-        });
+        toast({ variant: 'destructive', title: 'Payment Error', description: errorData.error || 'Failed to create Razorpay order/subscription.' });
         return;
     }
 
     const data = await res.json();
-    if (!data || !data.id) {
-      toast({
-        variant: 'destructive',
-        title: 'Payment Error',
-        description: 'Failed to parse Razorpay subscription response.',
-      });
+    if (!data || !data.id || !data.amount) {
+      toast({ variant: 'destructive', title: 'Payment Error', description: 'Failed to parse Razorpay response.' });
       return;
     }
 
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: data.amount,
+      currency: data.currency,
       name: 'Gajanan Motors',
-      description: `${planName} Subscription Purchase`,
-      subscription_id: data.id,
-      handler: function (response: any) {
-        if (!user?.uid) {
-            toast({
-                variant: 'destructive',
-                title: 'Update failed',
-                description: 'User not found after payment. Please contact support.',
-            });
-            return;
-        };
+      description: `${planName} Purchase ${isReferralPurchase ? '(50% Off)' : ''}`,
+      order_id: isReferralPurchase ? data.id : undefined,
+      subscription_id: !isReferralPurchase ? data.id : undefined,
+
+      handler: async function (response: any) {
+        if (!user?.uid) { return; };
 
         const userDocRef = doc(firestore, 'users', user.uid);
+        const batch = writeBatch(firestore);
         
         const expiryDate = new Date();
         if (isYearly) {
@@ -171,18 +183,26 @@ export default function SubscriptionPage() {
         };
 
         if (isUpgrade) {
-            // For upgrades, we add the new credits.
-            // A more complex system might prorate this.
             updateData.adCredits = increment(credits);
         } else {
             updateData.adCredits = credits;
         }
 
-        updateDocumentNonBlocking(userDocRef, updateData);
+        if (isReferralPurchase && referrer) {
+            updateData.hasUsedReferral = true;
+            updateData.referredBy = referrer.id;
+
+            // Give the referrer their discount
+            const referrerDocRef = doc(firestore, 'users', referrer.id);
+            batch.update(referrerDocRef, { nextSubscriptionDiscount: true });
+        }
+
+        batch.update(userDocRef, updateData);
+        await batch.commit();
 
         toast({
-          title: isUpgrade ? 'Upgrade Successful!' : 'Payment Successful',
-          description: `${credits} ad credits have been added to your account.`,
+          title: 'Payment Successful',
+          description: `${credits} ad credits have been added.`,
         });
         router.push('/dashboard/my-listings');
       },
@@ -191,23 +211,20 @@ export default function SubscriptionPage() {
         email: user.email || '',
         contact: user.phone || '',
       },
-      theme: {
-        color: '#F56565',
-      },
+      theme: { color: '#F56565' },
     };
 
     const rzp = new window.Razorpay(options);
-    rzp.on('payment.failed', function (response: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Payment Failed',
-            description: response.error.description || 'Something went wrong during payment.',
-        });
+    rzp.on('payment.failed', (response: any) => {
+        toast({ variant: 'destructive', title: 'Payment Failed', description: response.error.description || 'Something went wrong.' });
     });
     rzp.open();
   };
 
   const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
+    const isMonthly = !isYearly;
+    const finalPrice = discountApplied && isMonthly ? tier.price / 2 : tier.price;
+
     return (
       <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
@@ -221,7 +238,10 @@ export default function SubscriptionPage() {
              )}
           </div>
           <CardDescription>
-            <span className="text-4xl font-bold">₹{tier.price}</span>
+            {discountApplied && isMonthly && (
+                 <span className="text-xl font-bold text-muted-foreground line-through">₹{tier.price}</span>
+            )}
+            <span className="text-4xl font-bold">₹{finalPrice}</span>
             <span className="text-muted-foreground">{tier.priceSuffix}</span>
           </CardDescription>
         </CardHeader>
@@ -233,13 +253,19 @@ export default function SubscriptionPage() {
                 <span>{feature}</span>
               </li>
             ))}
+             {discountApplied && isMonthly && (
+                <li className="flex items-center font-bold text-primary">
+                    <Ticket className="mr-2 h-5 w-5" />
+                    <span>50% Referral Discount!</span>
+                </li>
+             )}
           </ul>
         </CardContent>
         <CardFooter>
             {isCurrent ? (
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
-                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, isUpgradeOption, isYearly)}>
+                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, tier.price, isUpgradeOption, isYearly)}>
                     {isUpgradeOption ? `Switch to ${tier.name.replace(' Yearly', '')}` : 'Choose Plan'}
                 </Button>
             )}
@@ -265,6 +291,31 @@ export default function SubscriptionPage() {
                 {user?.isPro ? 'Manage your current plan or choose a different one.' : 'Choose a plan that fits your needs to start posting ads.'}
             </p>
         </div>
+
+        {!user?.isPro && !user?.hasUsedReferral && (
+          <div className="max-w-md mx-auto mb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
+            <Card>
+              <CardHeader>
+                <CardTitle>Have a Referral Code?</CardTitle>
+                <CardDescription>Enter a code to get 50% off your first monthly subscription.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex w-full items-center space-x-2">
+                  <Input 
+                    type="text" 
+                    placeholder="Enter code" 
+                    value={referralCode}
+                    onChange={(e) => setReferralCode(e.target.value)}
+                    disabled={discountApplied}
+                  />
+                  <Button type="button" onClick={handleApplyReferralCode} disabled={discountApplied}>
+                    {discountApplied ? 'Applied' : 'Apply'}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        )}
         
         {user && user.isPro && user.subscriptionType && (
             <div className="max-w-2xl mx-auto mb-12">
@@ -290,6 +341,11 @@ export default function SubscriptionPage() {
                             <span className="text-muted-foreground">Plan Expires On</span>
                             <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt).toLocaleDateString() : 'N/A'}</span>
                         </div>
+                        {user.nextSubscriptionDiscount && (
+                            <div className="flex justify-between items-baseline text-primary font-bold">
+                                <span className="flex items-center gap-2"><Ticket /> 50% Discount on Next Renewal!</span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>
@@ -335,6 +391,5 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-
 
     
