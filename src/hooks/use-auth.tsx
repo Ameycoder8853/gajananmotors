@@ -80,10 +80,6 @@ const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
       verificationStatus: 'verified',
       emailVerified: true,
       isPhoneVerified: true,
-      referralCode: `ADMIN-${nanoid(6)}`,
-      hasUsedReferral: false,
-      nextSubscriptionDiscount: false,
-      referralsThisMonth: 0,
     };
     await setDoc(doc(firestore, 'users', adminCred.user.uid), adminData);
     console.log('Admin user successfully created.');
@@ -133,12 +129,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (appUser.email === 'ameypatil261@gmail.com') {
               appUser.role = 'admin';
             }
-
-            // If user has no referral code, generate and save one.
-            if (!appUser.referralCode) {
-              appUser.referralCode = nanoid(10).toUpperCase();
-              updateDocumentNonBlocking(userDocRef, { referralCode: appUser.referralCode });
-            }
             
             // Check for subscription expiry
             if (appUser.role === 'dealer' && appUser.isPro && appUser.proExpiresAt && new Date() > appUser.proExpiresAt) {
@@ -181,17 +171,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               });
             }
 
-            // Reset referralsThisMonth if new month
-            if (appUser.lastReferralDate) {
-                const lastRefDate = appUser.lastReferralDate instanceof Timestamp ? appUser.lastReferralDate.toDate() : new Date(appUser.lastReferralDate);
-                const currentDate = new Date();
-                if (lastRefDate.getMonth() !== currentDate.getMonth() || lastRefDate.getFullYear() !== currentDate.getFullYear()) {
-                    appUser.referralsThisMonth = 0;
-                    updateDocumentNonBlocking(userDocRef, { referralsThisMonth: 0 });
-                }
-            }
-
-
             const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser };
             setUser(enhancedUser);
 
@@ -211,10 +190,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     createdAt: new Date(),
                     verificationStatus: 'unverified',
                     isPhoneVerified: false,
-                    referralCode: nanoid(10).toUpperCase(),
-                    hasUsedReferral: false,
-                    nextSubscriptionDiscount: false,
-                    referralsThisMonth: 0,
                 };
                 setDocumentNonBlocking(doc(firestore, 'users', firebaseUser.uid), newUser, { merge: false });
                 const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, photoURL: firebaseUser.photoURL };
@@ -278,10 +253,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         createdAt: new Date(),
         verificationStatus: 'unverified',
         isPhoneVerified: false,
-        referralCode: nanoid(10).toUpperCase(),
-        hasUsedReferral: false,
-        nextSubscriptionDiscount: false,
-        referralsThisMonth: 0,
       };
       
       setDocumentNonBlocking(userDocRef, userData, { merge: false });
@@ -320,10 +291,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             createdAt: new Date(),
             isPhoneVerified: false,
             verificationStatus: 'unverified',
-            referralCode: nanoid(10).toUpperCase(),
-            hasUsedReferral: false,
-            nextSubscriptionDiscount: false,
-            referralsThisMonth: 0,
         };
         setDocumentNonBlocking(doc(firestore, 'users', result.user.uid), newUser, { merge: false });
     }

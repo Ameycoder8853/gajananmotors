@@ -21,12 +21,6 @@ export type User = {
   aadharUrl?: string;
   panUrl?: string;
   shopLicenseUrl?: string;
-  referralCode: string;
-  referredBy?: string;
-  hasUsedReferral: boolean;
-  nextSubscriptionDiscount: boolean;
-  lastReferralDate?: Date | Timestamp;
-  referralsThisMonth?: number;
 };
 
 export type FirebaseUser = import('firebase/auth').User & {
@@ -42,11 +36,6 @@ export type FirebaseUser = import('firebase/auth').User & {
     aadharUrl?: string;
     panUrl?: string;
     shopLicenseUrl?: string;
-    referralCode: string;
-    hasUsedReferral?: boolean;
-    nextSubscriptionDiscount?: boolean;
-    lastReferralDate?: Date | Timestamp;
-    referralsThisMonth?: number;
 }
 
 export type Ad = {

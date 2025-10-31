@@ -70,31 +70,6 @@
         "shopLicenseUrl": {
             "type": "string",
             "description": "Storage URL for the user's Shop License image."
-        },
-        "referralCode": {
-          "type": "string",
-          "description": "The user's unique referral code."
-        },
-        "referredBy": {
-          "type": "string",
-          "description": "The ID of the user who referred this user."
-        },
-        "hasUsedReferral": {
-          "type": "boolean",
-          "description": "Indicates if the user has already used a referral code for a discount."
-        },
-        "nextSubscriptionDiscount": {
-          "type": "boolean",
-          "description": "Indicates if the user should get a 50% discount on their next subscription renewal."
-        },
-        "lastReferralDate": {
-          "type": "string",
-          "description": "Timestamp indicating when the user's referral code was last successfully used.",
-          "format": "date-time"
-        },
-        "referralsThisMonth": {
-          "type": "number",
-          "description": "The number of successful referrals made in the current calendar month."
         }
       },
       "required": [
@@ -105,8 +80,7 @@
         "role",
         "isPro",
         "createdAt",
-        "verificationStatus",
-        "referralCode"
+        "verificationStatus"
       ]
     },
     "Ad": {

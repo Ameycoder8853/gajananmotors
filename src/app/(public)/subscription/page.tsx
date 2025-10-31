@@ -3,10 +3,10 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Star, Ticket, Copy } from 'lucide-react';
+import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { initializeFirebase } from '@/firebase';
+import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
 import { collection, doc, getDocs, increment, query, where, writeBatch, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -14,15 +14,11 @@ import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import type { User } from '@/lib/types';
-
 
 const monthlyTiers = [
   {
     name: 'Standard' as const,
-    planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_PLAN_ID || 'replace_with_your_standard_plan_id',
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_PLAN_ID || 'plan_Obr8n7WDSgEtV1',
     price: 500,
     priceSuffix: '/month',
     credits: 10,
@@ -30,7 +26,7 @@ const monthlyTiers = [
   },
   {
     name: 'Premium' as const,
-    planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_PLAN_ID || 'replace_with_your_premium_plan_id',
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_PLAN_ID || 'plan_Obr9e2bXPajg6z',
     price: 1000,
     priceSuffix: '/month',
     credits: 20,
@@ -38,7 +34,7 @@ const monthlyTiers = [
   },
   {
     name: 'Pro' as const,
-    planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_PLAN_ID || 'replace_with_your_pro_plan_id',
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_PLAN_ID || 'plan_ObrAcBeN4dK2wN',
     price: 2000,
     priceSuffix: '/month',
     credits: 50,
@@ -49,7 +45,7 @@ const monthlyTiers = [
 const yearlyTiers = [
     {
         name: 'Standard Yearly' as const,
-        planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID || 'replace_with_standard_yearly_id',
+        planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID || 'plan_ObrBbyyGdn0ihc',
         price: 5000,
         priceSuffix: '/year',
         credits: 10,
@@ -57,7 +53,7 @@ const yearlyTiers = [
     },
     {
         name: 'Premium Yearly' as const,
-        planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID || 'replace_with_premium_yearly_id',
+        planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID || 'plan_ObrCnxk3r5FqM1',
         price: 10000,
         priceSuffix: '/year',
         credits: 20,
@@ -65,7 +61,7 @@ const yearlyTiers = [
     },
     {
         name: 'Pro Yearly' as const,
-        planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID || 'replace_with_pro_yearly_id',
+        planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID || 'plan_ObrDY0Lp1YJ57r',
         price: 20000,
         priceSuffix: '/year',
         credits: 50,
@@ -87,60 +83,10 @@ export default function SubscriptionPage() {
   const { firestore } = initializeFirebase();
   const router = useRouter();
   
-  const [referralCode, setReferralCode] = useState('');
-  const [discountApplied, setDiscountApplied] = useState(false);
-  const [referrer, setReferrer] = useState<User | null>(null);
-
-  const handleApplyReferralCode = async () => {
-    if (!referralCode) {
-      toast({ variant: 'destructive', title: 'Invalid Code', description: 'Please enter a referral code.' });
-      return;
-    }
-    if (user?.referralCode === referralCode) {
-        toast({ variant: 'destructive', title: 'Invalid Code', description: "You can't use your own referral code." });
-        return;
-    }
-    
-    if (user?.hasUsedReferral) {
-        toast({ variant: 'destructive', title: 'Referral Used', description: 'You have already used a referral discount.'});
-        return;
-    }
-
-    if (!firestore) return;
-    const usersRef = collection(firestore, 'users');
-    const q = query(usersRef, where('referralCode', '==', referralCode));
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.empty) {
-      toast({ variant: 'destructive', title: 'Invalid Code', description: 'This referral code does not exist.' });
-      setDiscountApplied(false);
-    } else {
-      const referrerUser = querySnapshot.docs[0].data() as User;
-      setReferrer(referrerUser);
-      toast({ title: 'Code Applied!', description: 'You get 50% off your first monthly subscription!' });
-      setDiscountApplied(true);
-    }
-  };
-
-  const handleCopyToClipboard = (code: string) => {
-    navigator.clipboard.writeText(code).then(() => {
-        toast({ title: 'Copied!', description: 'Referral code copied to clipboard.' });
-    }, (err) => {
-        console.error('Could not copy text: ', err);
-        toast({ variant: 'destructive', title: 'Failed to Copy', description: 'Could not copy code to clipboard.' });
-    });
-  };
-
-
   const handlePayment = async (planId: string, credits: number, planName: string, amount: number, isUpgrade: boolean = false, isYearly: boolean = false) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Required', description: 'You must be logged in to purchase a subscription.', action: <Button onClick={() => router.push('/login')}>Login</Button> });
       return;
-    }
-
-    if (user.hasUsedReferral && discountApplied) {
-        toast({ variant: 'destructive', title: 'Referral Used', description: 'You have already used a referral discount.'});
-        return;
     }
 
     if (!window.Razorpay) {
@@ -148,26 +94,18 @@ export default function SubscriptionPage() {
       return;
     }
     
-    const isReferralPurchase = discountApplied && !isYearly;
-    const isRenewalDiscount = user.nextSubscriptionDiscount && !isYearly && !isReferralPurchase;
-    const isDiscountApplicable = isReferralPurchase || isRenewalDiscount;
-    const finalAmount = isDiscountApplicable ? amount / 2 : amount;
-
-
     const res = await fetch('/api/razorpay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        planId: isDiscountApplicable ? undefined : planId,
+        planId,
         isYearly,
-        amount: finalAmount, 
-        isReferralPurchase: isDiscountApplicable,
       }),
     });
 
     if (!res.ok) {
         const errorData = await res.json();
-        toast({ variant: 'destructive', title: 'Payment Error', description: errorData.error || 'Failed to create Razorpay order/subscription.' });
+        toast({ variant: 'destructive', title: 'Payment Error', description: errorData.error || 'Failed to create Razorpay subscription.' });
         return;
     }
 
@@ -182,15 +120,13 @@ export default function SubscriptionPage() {
       amount: data.amount,
       currency: data.currency,
       name: 'Gajanan Motors',
-      description: `${planName} Purchase ${isDiscountApplicable ? '(50% Off)' : ''}`,
-      order_id: isDiscountApplicable ? data.id : undefined,
-      subscription_id: !isDiscountApplicable ? data.id : undefined,
+      description: `${planName} Purchase`,
+      subscription_id: data.id,
 
       handler: async function (response: any) {
         if (!user?.uid || !firestore) { return; };
 
         const userDocRef = doc(firestore, 'users', user.uid);
-        const batch = writeBatch(firestore);
         
         const expiryDate = new Date();
         if (isYearly) {
@@ -211,24 +147,7 @@ export default function SubscriptionPage() {
             updateData.adCredits = credits;
         }
 
-        if (isReferralPurchase && referrer) {
-            updateData.hasUsedReferral = true;
-            updateData.referredBy = referrer.id;
-
-            const referrerDocRef = doc(firestore, 'users', referrer.id);
-            batch.update(referrerDocRef, { 
-                nextSubscriptionDiscount: true,
-                lastReferralDate: new Date(),
-                referralsThisMonth: increment(1)
-            });
-        }
-
-        if (isRenewalDiscount) {
-            updateData.nextSubscriptionDiscount = false;
-        }
-
-        batch.update(userDocRef, updateData);
-        await batch.commit();
+        updateDocumentNonBlocking(userDocRef, updateData);
 
         toast({
           title: 'Payment Successful',
@@ -252,10 +171,6 @@ export default function SubscriptionPage() {
   };
 
   const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
-    const isMonthly = !isYearly;
-    const isDiscountApplicable = (discountApplied || user?.nextSubscriptionDiscount) && isMonthly;
-    const finalPrice = isDiscountApplicable ? tier.price / 2 : tier.price;
-
     return (
       <Card key={tier.name} className={cn("flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
@@ -269,10 +184,7 @@ export default function SubscriptionPage() {
              )}
           </div>
           <CardDescription>
-            {isDiscountApplicable && (
-                 <span className="text-xl font-bold text-muted-foreground line-through">₹{tier.price}</span>
-            )}
-            <span className="text-4xl font-bold">₹{finalPrice}</span>
+            <span className="text-4xl font-bold">₹{tier.price}</span>
             <span className="text-muted-foreground">{tier.priceSuffix}</span>
           </CardDescription>
         </CardHeader>
@@ -284,12 +196,6 @@ export default function SubscriptionPage() {
                 <span>{feature}</span>
               </li>
             ))}
-             {isDiscountApplicable && (
-                <li className="flex items-center font-bold text-primary">
-                    <Ticket className="mr-2 h-5 w-5" />
-                    <span>50% Discount Applied!</span>
-                </li>
-             )}
           </ul>
         </CardContent>
         <CardFooter>
@@ -313,10 +219,6 @@ export default function SubscriptionPage() {
     );
   }
 
-  // Show referral input if user is not logged in OR is logged in, not a pro, and hasn't used a referral.
-  const showReferralInput = !user || (!user.isPro && !user.hasUsedReferral);
-
-
   // Common layout for all subscription views
   return (
     <div className="py-12 animate-fade-in-up">
@@ -326,52 +228,7 @@ export default function SubscriptionPage() {
                 {user?.isPro ? 'Manage your current plan or choose a different one.' : 'Choose a plan that fits your needs to start posting ads.'}
             </p>
         </div>
-
-        {showReferralInput && (
-          <div className="max-w-md mx-auto mb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
-            <Card>
-              <CardHeader>
-                <CardTitle>Have a Referral Code?</CardTitle>
-                <CardDescription>Enter a code to get 50% off your first monthly subscription.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex w-full items-center space-x-2">
-                  <Input 
-                    type="text" 
-                    placeholder="Enter code" 
-                    value={referralCode}
-                    onChange={(e) => setReferralCode(e.target.value)}
-                    disabled={discountApplied}
-                  />
-                  <Button type="button" onClick={handleApplyReferralCode} disabled={discountApplied}>
-                    {discountApplied ? 'Applied' : 'Apply'}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        )}
         
-        {user && (
-           <div className="max-w-md mx-auto mb-12 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
-              <Card>
-                  <CardHeader>
-                      <CardTitle>Share Your Referral Code</CardTitle>
-                      <CardDescription>Share this code with friends! They get 50% off their first month, and you get 50% off your next renewal.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                      <div className="flex w-full items-center space-x-2">
-                          <Input type="text" value={user.referralCode || 'No Code'} readOnly />
-                          <Button type="button" variant="secondary" onClick={() => handleCopyToClipboard(user.referralCode || '')} disabled={!user.referralCode}>
-                              <Copy className="mr-2 h-4 w-4" />
-                              Copy
-                          </Button>
-                      </div>
-                  </CardContent>
-              </Card>
-           </div>
-        )}
-
         {user && user.isPro && user.subscriptionType && (
             <div className="max-w-2xl mx-auto mb-12">
                  <Card className="border-primary border-2 animate-fade-in-up">
@@ -394,13 +251,8 @@ export default function SubscriptionPage() {
                         </div>
                         <div className="flex justify-between items-baseline">
                             <span className="text-muted-foreground">Plan Expires On</span>
-                            <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt as any).toLocaleDateString() : 'N/A'}</span>
+                            <span className="font-semibold">{user.proExpiresAt ? (user.proExpiresAt instanceof Timestamp ? user.proExpiresAt.toDate() : new Date(user.proExpiresAt as any)).toLocaleDateString() : 'N/A'}</span>
                         </div>
-                        {user.nextSubscriptionDiscount && (
-                            <div className="flex justify-between items-baseline text-primary font-bold">
-                                <span className="flex items-center gap-2"><Ticket /> 50% Discount on Next Renewal!</span>
-                            </div>
-                        )}
                     </CardContent>
                 </Card>
             </div>
