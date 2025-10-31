@@ -86,6 +86,8 @@ export function Header() {
           setNavLinks([
             { href: '/market', label: 'Marketplace' },
             { href: '/dashboard/my-listings', label: 'My Listings' },
+            { href: '/#features', label: 'Features' },
+            { href: '/#contact', label: 'Contact' },
             { href: '/subscription', label: 'Subscription' },
             { href: '/dashboard/verification', label: 'Verification' }
           ]);
