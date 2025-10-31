@@ -1,3 +1,4 @@
+
 'use client';
 import Image from "next/image";
 import Link from "next/link";
@@ -15,12 +16,13 @@ import { Input } from "../ui/input";
 import { useState } from "react";
 import { deleteDocumentNonBlocking, initializeFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
+import { getStorage, ref, deleteObject } from "firebase/storage";
 
 type AdCardProps = {
   ad: Ad;
 };
 
-const subscriptionLimits = {
+const subscriptionLimits: { [key: string]: number } = {
     'Standard': 10,
     'Premium': 20,
 };
@@ -28,7 +30,7 @@ const subscriptionLimits = {
 export function AdCard({ ad }: AdCardProps) {
   const { user } = useAuth();
   const pathname = usePathname();
-  const { firestore } = initializeFirebase();
+  const { firestore, storage } = initializeFirebase();
   const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
@@ -52,28 +54,48 @@ export function AdCard({ ad }: AdCardProps) {
   const isOwnerOnMyListings = user && user.uid === ad.dealerId && pathname.includes('/my-listings');
 
   const handleDelete = async () => {
-    if (!user || !firestore) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Authentication error.' });
+    if (!user || !firestore || !storage) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Authentication or storage service error.' });
         return;
     }
 
-    const adRef = doc(firestore, 'cars', ad.id);
-    const userRef = doc(firestore, 'users', user.uid);
-
-    deleteDocumentNonBlocking(adRef);
-
-    const currentUserPlan = user.subscriptionType;
-    const creditLimit = currentUserPlan ? subscriptionLimits[currentUserPlan] : 0;
-    
-    // Only increment if the current credits are less than the limit
-    if (user.adCredits !== undefined && user.adCredits < creditLimit) {
-        updateDocumentNonBlocking(userRef, {
-            adCredits: increment(1)
+    try {
+        // 1. Delete images from Firebase Storage
+        const imageDeletePromises = (ad.images as string[]).map(imageUrl => {
+            // Don't try to delete placeholder images
+            if (imageUrl.includes('picsum.photos')) {
+                return Promise.resolve();
+            }
+            const imageRef = ref(storage, imageUrl);
+            return deleteObject(imageRef);
         });
-    }
 
-    toast({ title: 'Ad Deleted', description: 'Your ad has been successfully removed.' });
-    setIsDialogOpen(false);
+        await Promise.all(imageDeletePromises);
+
+        // 2. Delete the Firestore document
+        const adRef = doc(firestore, 'cars', ad.id);
+        deleteDocumentNonBlocking(adRef);
+
+        // 3. Increment user's ad credits if applicable
+        const userRef = doc(firestore, 'users', user.uid);
+        const currentUserPlan = user.subscriptionType;
+        const creditLimit = currentUserPlan ? subscriptionLimits[currentUserPlan] ?? Infinity : 0;
+        
+        if (user.adCredits !== undefined && user.adCredits < creditLimit) {
+            updateDocumentNonBlocking(userRef, {
+                adCredits: increment(1)
+            });
+        }
+
+        toast({ title: 'Ad Deleted', description: 'Your ad and its images have been successfully removed.' });
+
+    } catch (error) {
+        console.error("Failed to delete ad and its assets:", error);
+        toast({ variant: 'destructive', title: 'Deletion Failed', description: 'There was an error removing the ad. Please try again.' });
+    } finally {
+        setIsDialogOpen(false);
+        setDeleteInput('');
+    }
   }
 
   return (
@@ -160,7 +182,7 @@ export function AdCard({ ad }: AdCardProps) {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete your ad and restore one ad credit (if your plan allows).
+                                This action cannot be undone. This will permanently delete your ad and all its images. This will restore one ad credit (if your plan allows).
                                 Please type <strong className="text-destructive">delete</strong> to confirm.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
