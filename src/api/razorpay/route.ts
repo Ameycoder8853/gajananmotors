@@ -9,6 +9,7 @@ config(); // Load environment variables from .env file
 const paymentSchema = z.object({
   planId: z.string().optional(),
   isYearly: z.boolean().optional().default(false),
+  amount: z.number(), // Amount in INR
 });
 
 
@@ -28,19 +29,31 @@ export async function POST(req: Request) {
     });
 
     const body = await req.json();
-    const { planId, isYearly } = paymentSchema.parse(body);
+    const { planId, isYearly, amount } = paymentSchema.parse(body);
 
-    // Create a subscription for regular purchases
-    if (!planId) {
-      return NextResponse.json({ error: 'Plan ID is required for subscription.' }, { status: 400 });
+    if (isYearly) {
+      // Create a subscription for yearly plans
+      if (!planId) {
+        return NextResponse.json({ error: 'Plan ID is required for a yearly subscription.' }, { status: 400 });
+      }
+      const options = {
+          plan_id: planId,
+          total_count: 1, // Only 1 payment for a yearly plan
+          customer_notify: 1
+      };
+      const subscription = await razorpay.subscriptions.create(options);
+      return NextResponse.json(subscription, { status: 200 });
+
+    } else {
+      // Create a one-time order for monthly plans
+      const options = {
+        amount: amount * 100, // Amount in paise
+        currency: 'INR',
+        receipt: `receipt_order_${new Date().getTime()}`,
+      };
+      const order = await razorpay.orders.create(options);
+      return NextResponse.json(order, { status: 200 });
     }
-    const options = {
-        plan_id: planId,
-        total_count: isYearly ? 1 : 12, // 1 payment for yearly, 12 monthly payments for a year
-        customer_notify: 1
-    };
-    const subscription = await razorpay.subscriptions.create(options);
-    return NextResponse.json(subscription, { status: 200 });
     
   } catch (error) {
     if (error instanceof z.ZodError) {

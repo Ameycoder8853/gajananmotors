@@ -7,7 +7,7 @@ import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, getDocs, increment, query, where, writeBatch, Timestamp } from 'firebase/firestore';
+import { doc, increment, writeBatch, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -100,6 +100,7 @@ export default function SubscriptionPage() {
       body: JSON.stringify({ 
         planId,
         isYearly,
+        amount
       }),
     });
 
@@ -121,11 +122,13 @@ export default function SubscriptionPage() {
       currency: data.currency,
       name: 'Gajanan Motors',
       description: `${planName} Purchase`,
-      subscription_id: data.id,
+      order_id: isYearly ? undefined : data.id,
+      subscription_id: isYearly ? data.id : undefined,
 
       handler: async function (response: any) {
         if (!user?.uid || !firestore) { return; };
 
+        const batch = writeBatch(firestore);
         const userDocRef = doc(firestore, 'users', user.uid);
         
         const expiryDate = new Date();
@@ -147,7 +150,9 @@ export default function SubscriptionPage() {
             updateData.adCredits = credits;
         }
 
-        updateDocumentNonBlocking(userDocRef, updateData);
+        batch.update(userDocRef, updateData);
+
+        await batch.commit();
 
         toast({
           title: 'Payment Successful',
