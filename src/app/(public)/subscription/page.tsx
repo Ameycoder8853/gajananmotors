@@ -19,7 +19,7 @@ import type { Payment } from '@/lib/types';
 const monthlyTiers = [
   {
     name: 'Standard' as const,
-    planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_PLAN_ID || 'plan_Obr8n7WDSgEtV1',
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_PLAN_ID,
     price: 500,
     priceSuffix: '/month',
     credits: 10,
@@ -27,7 +27,7 @@ const monthlyTiers = [
   },
   {
     name: 'Premium' as const,
-    planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_PLAN_ID || 'plan_Obr9e2bXPajg6z',
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_PLAN_ID,
     price: 1000,
     priceSuffix: '/month',
     credits: 20,
@@ -35,7 +35,7 @@ const monthlyTiers = [
   },
   {
     name: 'Pro' as const,
-    planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_PLAN_ID || 'plan_ObrAcBeN4dK2wN',
+    planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_PLAN_ID,
     price: 2000,
     priceSuffix: '/month',
     credits: 50,
@@ -46,7 +46,7 @@ const monthlyTiers = [
 const yearlyTiers = [
     {
         name: 'Standard Yearly' as const,
-        planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID || 'plan_ObrBbyyGdn0ihc',
+        planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID,
         price: 5000,
         priceSuffix: '/year',
         credits: 120, // 10 credits/month * 12
@@ -54,7 +54,7 @@ const yearlyTiers = [
     },
     {
         name: 'Premium Yearly' as const,
-        planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID || 'plan_ObrCnxk3r5FqM1',
+        planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID,
         price: 10000,
         priceSuffix: '/year',
         credits: 240, // 20 credits/month * 12
@@ -62,7 +62,7 @@ const yearlyTiers = [
     },
     {
         name: 'Pro Yearly' as const,
-        planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID || 'plan_ObrDY0Lp1YJ57r',
+        planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID,
         price: 20000,
         priceSuffix: '/year',
         credits: 600, // 50 credits/month * 12
@@ -84,10 +84,15 @@ export default function SubscriptionPage() {
   const { firestore } = initializeFirebase();
   const router = useRouter();
   
-  const handlePayment = async (planId: string, credits: number, planName: string, amount: number, isUpgrade: boolean = false, isYearly: boolean = false) => {
+  const handlePayment = async (planId: string | undefined, credits: number, planName: string, amount: number, isUpgrade: boolean = false, isYearly: boolean = false) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Required', description: 'You must be logged in to purchase a subscription.', action: <Button onClick={() => router.push('/login')}>Login</Button> });
       return;
+    }
+    
+    if (!planId) {
+       toast({ variant: 'destructive', title: 'Configuration Error', description: 'This plan is not configured correctly. Please contact support.' });
+       return;
     }
 
     if (!window.Razorpay) {
@@ -183,7 +188,7 @@ export default function SubscriptionPage() {
         email: user.email || '',
         contact: user.phone || '',
       },
-      theme: { color: '#F56565' },
+      theme: { color: '#3F51B5' },
     };
 
     const rzp = new window.Razorpay(options);
