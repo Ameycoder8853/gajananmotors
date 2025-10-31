@@ -150,16 +150,18 @@ function ContactForm() {
 
 export default function LandingPage() {
   return (
-    <>
+    <div className="relative">
       <Hero />
-      <Features />
-      <FeaturedCars />
-      <Stats />
-      <HowItWorks />
-      <Testimonials />
-      <Faq />
-      <Cta />
-      <ContactForm />
-    </>
+      <div className="relative bg-background z-10">
+        <Features />
+        <FeaturedCars />
+        <Stats />
+        <HowItWorks />
+        <Testimonials />
+        <Faq />
+        <Cta />
+        <ContactForm />
+      </div>
+    </div>
   );
 }
