@@ -100,6 +100,11 @@ export default function SubscriptionPage() {
         toast({ variant: 'destructive', title: 'Invalid Code', description: "You can't use your own referral code." });
         return;
     }
+    
+    if (user?.hasUsedReferral) {
+        toast({ variant: 'destructive', title: 'Referral Used', description: 'You have already used a referral discount.'});
+        return;
+    }
 
     const usersRef = collection(firestore, 'users');
     const q = query(usersRef, where('referralCode', '==', referralCode));
@@ -298,7 +303,9 @@ export default function SubscriptionPage() {
     );
   }
 
-  const showReferralInput = !user || !user.hasUsedReferral;
+  // Show referral input if user is not logged in OR is logged in, not a pro, and hasn't used a referral.
+  const showReferralInput = !user || (!user.isPro && !user.hasUsedReferral);
+
 
   // Common layout for all subscription views
   return (
