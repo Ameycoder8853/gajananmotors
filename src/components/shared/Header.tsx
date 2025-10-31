@@ -50,6 +50,7 @@ function ThemeSwitcher() {
 
 export function Header() {
   const { user, isUserLoading, logout } = useAuth();
+  const { resolvedTheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -116,20 +117,16 @@ export function Header() {
       ? "border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60"
       : "bg-transparent"
   );
+  
+  // Fix for FOUC: Default to white on marketing page unless scrolled and light theme
+  const linkColor = (isMarketingPage && !scrolled) 
+      ? "text-white" 
+      : "text-foreground";
+  
+  const activeLinkColor = (isMarketingPage && !scrolled)
+      ? "text-white font-bold"
+      : "text-primary";
 
-  const linkColor = scrolled || !isMarketingPage ? "text-foreground" : "text-white";
-  const activeLinkColor = scrolled || !isMarketingPage ? "text-primary" : "text-white font-bold";
-
-
-  const getNavLinkStyle = (path?: string) => {
-    const isActive = (pathname === path) || (isMarketingPage && path?.startsWith('/#') && activeHash === path.substring(1));
-    return cn(
-      "relative transition-colors text-sm font-medium",
-      linkColor,
-      "hover:text-primary",
-       isActive && activeLinkColor
-    );
-  };
   
   const userMenu = user ? (
       <DropdownMenu>
@@ -181,11 +178,11 @@ export function Header() {
                     "relative transition-colors text-sm font-medium",
                     linkColor,
                     "hover:text-primary",
-                    ((pathname === link.href && !link.href.includes('#')) || (isMarketingPage && link.href.includes('#') && activeHash === link.href.substring(1))) && activeLinkColor
+                    isActive && activeLinkColor
                 )}
               >
                 <span>{link.label}</span>
-                {((pathname === link.href && !link.href.includes('#')) || (isMarketingPage && link.href.includes('#') && activeHash === link.href.substring(1))) && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>}
+                {isActive && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>}
               </Link>
             )
           })}
