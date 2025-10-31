@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check, Star, Ticket } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { initializeFirebase } from '@/firebase';
 import { collection, doc, getDocs, increment, query, where, writeBatch, Timestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -110,20 +110,6 @@ export default function SubscriptionPage() {
       setDiscountApplied(false);
     } else {
       const referrerUser = querySnapshot.docs[0].data() as User;
-
-      // Check if the referrer has already made a referral this month
-      if (referrerUser.lastReferralDate) {
-        const lastRefDate = (referrerUser.lastReferralDate instanceof Timestamp) ? referrerUser.lastReferralDate.toDate() : new Date(referrerUser.lastReferralDate);
-        const currentDate = new Date();
-        if (
-            lastRefDate.getMonth() === currentDate.getMonth() &&
-            lastRefDate.getFullYear() === currentDate.getFullYear()
-        ) {
-            toast({ variant: 'destructive', title: 'Referral Limit Reached', description: 'This referral code has already been used this month.' });
-            return;
-        }
-      }
-
       setReferrer(referrerUser);
       toast({ title: 'Code Applied!', description: 'You get 50% off your first monthly subscription!' });
       setDiscountApplied(true);
@@ -137,12 +123,16 @@ export default function SubscriptionPage() {
       return;
     }
 
+    if (user.hasUsedReferral && discountApplied) {
+        toast({ variant: 'destructive', title: 'Referral Used', description: 'You have already used a referral discount.'});
+        return;
+    }
+
     if (!window.Razorpay) {
       toast({ variant: 'destructive', title: 'Payment Error', description: 'Razorpay checkout is not available. Please refresh the page.' });
       return;
     }
     
-    // Determine if the discount is based on a referral code entered on this page, or an existing discount on the user's account
     const isReferralPurchase = discountApplied && !isYearly;
     const isRenewalDiscount = user.nextSubscriptionDiscount && !isYearly && !isReferralPurchase;
     const isDiscountApplicable = isReferralPurchase || isRenewalDiscount;
@@ -156,7 +146,7 @@ export default function SubscriptionPage() {
         planId: isDiscountApplicable ? undefined : planId,
         isYearly,
         amount: finalAmount, 
-        isReferralPurchase: isDiscountApplicable, // Use a generic flag for any one-time discounted purchase
+        isReferralPurchase: isDiscountApplicable,
       }),
     });
 
@@ -210,7 +200,6 @@ export default function SubscriptionPage() {
             updateData.hasUsedReferral = true;
             updateData.referredBy = referrer.id;
 
-            // Give the referrer their discount and update their referral date
             const referrerDocRef = doc(firestore, 'users', referrer.id);
             batch.update(referrerDocRef, { 
                 nextSubscriptionDiscount: true,
@@ -319,7 +308,7 @@ export default function SubscriptionPage() {
             </p>
         </div>
 
-        {!user?.isPro && !user?.hasUsedReferral && (
+        {!user && (
           <div className="max-w-md mx-auto mb-12 animate-fade-in-up" style={{ animationDelay: '150ms' }}>
             <Card>
               <CardHeader>
@@ -418,5 +407,3 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-
-    

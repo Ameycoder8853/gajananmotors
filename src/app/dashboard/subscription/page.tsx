@@ -6,17 +6,14 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check, Star, Ticket } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc, getDocs, increment, query, where, writeBatch, Timestamp } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
+import { doc, increment } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import type { User } from '@/lib/types';
 
 
 const monthlyTiers = [
@@ -52,24 +49,24 @@ const yearlyTiers = [
         planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID || 'replace_with_standard_yearly_id',
         price: 5000,
         priceSuffix: '/year',
-        credits: 120, // 10 * 12
-        features: ['120 ad listings', 'Standard support', 'Save ₹1000'],
+        credits: 10,
+        features: ['10 ad listings for the year', 'Standard support', 'Save ₹1000'],
     },
     {
         name: 'Premium Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID || 'replace_with_premium_yearly_id',
         price: 10000,
         priceSuffix: '/year',
-        credits: 240, // 20 * 12
-        features: ['240 ad listings', 'Premium support', 'Featured listings', 'Save ₹2000'],
+        credits: 20,
+        features: ['20 ad listings for the year', 'Premium support', 'Featured listings', 'Save ₹2000'],
     },
     {
         name: 'Pro Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID || 'replace_with_pro_yearly_id',
         price: 20000,
         priceSuffix: '/year',
-        credits: 600, // 50 * 12
-        features: ['600 ad listings', 'Premium support', 'Featured listings', 'Save ₹4000'],
+        credits: 50,
+        features: ['50 ad listings for the year', 'Premium support', 'Featured listings', 'Save ₹4000'],
     }
 ];
 
@@ -100,7 +97,7 @@ export default function SubscriptionPage() {
 
     const isDiscountApplicable = user.nextSubscriptionDiscount && !isYearly;
     const finalAmount = isDiscountApplicable ? amount / 2 : amount;
-    const isOneTimePayment = isDiscountApplicable; // Use one-time order for discounted payments
+    const isOneTimePayment = isDiscountApplicable;
 
     const res = await fetch('/api/razorpay', {
       method: 'POST',
@@ -109,7 +106,7 @@ export default function SubscriptionPage() {
         planId: isOneTimePayment ? undefined : planId, 
         isYearly,
         amount: finalAmount,
-        isReferralPurchase: isOneTimePayment, // Use isReferralPurchase flag which API understands
+        isReferralPurchase: isOneTimePayment,
       }),
     });
 
@@ -150,20 +147,18 @@ export default function SubscriptionPage() {
           isPro: true,
           subscriptionType: planName,
           proExpiresAt: expiryDate,
+          adCredits: isUpgrade ? increment(credits) : credits,
         };
-
-        if (isUpgrade) {
-            updateData.adCredits = increment(credits);
-        } else {
-            updateData.adCredits = credits;
-        }
         
-        // Consume the discount if it was applied
         if (isDiscountApplicable) {
             updateData.nextSubscriptionDiscount = false;
         }
 
-        updateDocumentNonBlocking(userDocRef, updateData);
+        await fetch(`/api/update-user`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ userId: user.uid, data: updateData })
+        });
 
         toast({
           title: 'Payment Successful',
@@ -248,7 +243,6 @@ export default function SubscriptionPage() {
     );
   }
 
-  // Common layout for all subscription views
   return (
     <div className="py-12 animate-fade-in-up">
         <div className="text-center mb-12">
@@ -332,7 +326,3 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-
-    
-
-    
