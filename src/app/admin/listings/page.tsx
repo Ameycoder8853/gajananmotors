@@ -25,6 +25,7 @@ export default function ListingsPage() {
 
   const adsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
+    // Admin view: fetch all cars
     return query(collection(firestore, 'cars'));
   }, [firestore]);
 
