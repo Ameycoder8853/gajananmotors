@@ -52,24 +52,24 @@ const yearlyTiers = [
         planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID || 'replace_with_standard_yearly_id',
         price: 5000,
         priceSuffix: '/year',
-        credits: 120, // 10 * 12
-        features: ['120 ad listings', 'Standard support', 'Save ₹1000'],
+        credits: 10,
+        features: ['10 ad listings for the year', 'Standard support', 'Save ₹1000'],
     },
     {
         name: 'Premium Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID || 'replace_with_premium_yearly_id',
         price: 10000,
         priceSuffix: '/year',
-        credits: 240, // 20 * 12
-        features: ['240 ad listings', 'Premium support', 'Featured listings', 'Save ₹2000'],
+        credits: 20,
+        features: ['20 ad listings for the year', 'Premium support', 'Featured listings', 'Save ₹2000'],
     },
     {
         name: 'Pro Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID || 'replace_with_pro_yearly_id',
         price: 20000,
         priceSuffix: '/year',
-        credits: 600, // 50 * 12
-        features: ['600 ad listings', 'Premium support', 'Featured listings', 'Save ₹4000'],
+        credits: 50,
+        features: ['50 ad listings for the year', 'Premium support', 'Featured listings', 'Save ₹4000'],
     }
 ];
 
