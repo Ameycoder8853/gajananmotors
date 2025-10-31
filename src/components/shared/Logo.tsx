@@ -31,7 +31,7 @@ export function Logo({ className }: { className?: string }) {
       ) : (
         <div style={{ width: '28px', height: '28px' }} /> // Placeholder to prevent layout shift
       )}
-      <span className="font-bold text-xl hidden sm:inline-block">Gajanan Motors</span>
+      <span className="font-bold text-xl">Gajanan Motors</span>
     </Link>
   );
 }
