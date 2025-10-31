@@ -35,8 +35,7 @@ const formSchema = z.object({
 });
 
 export default function LoginPage() {
-  const { user, loginWithEmail, loginWithGoogle } = useAuth();
-  const router = useRouter();
+  const { loginWithEmail, loginWithGoogle } = useAuth();
   const { toast } = useToast();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -51,20 +50,15 @@ export default function LoginPage() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
       await loginWithEmail(values.email, values.password);
-      // The redirect is handled by the useAuth hook
+      // The redirect is handled by the useAuth hook after successful login
     } catch (error: any) {
       let errorMessage = 'An unexpected error occurred. Please try again.';
       switch (error.code) {
         case 'auth/user-not-found':
         case 'auth/invalid-email':
-        case 'auth/invalid-credential': // This can mean user not found or wrong password
           form.setError('email', {
             type: 'manual',
             message: 'No account found with this email address.',
-          });
-          form.setError('password', {
-            type: 'manual',
-            message: 'Or your password may be incorrect.',
           });
           break;
         case 'auth/wrong-password':
@@ -73,23 +67,26 @@ export default function LoginPage() {
             message: 'Incorrect password. Please try again.',
           });
           break;
+        case 'auth/invalid-credential':
+           form.setError('email', {
+            type: 'manual',
+            message: 'Invalid credentials. Please check your email and password.',
+          });
+           form.setError('password', {
+            type: 'manual',
+            message: ' ', // Add space to show the error field without duplicate message
+          });
+          break;
         default:
            toast({
             variant: 'destructive',
             title: 'Login Failed',
-            description: errorMessage,
+            description: error.message || errorMessage,
           });
       }
       console.error("Login failed:", error);
     }
   }
-
-  // This useEffect is no longer needed as redirection is handled in useAuth
-  // useEffect(() => {
-  //   if (user) {
-  //     router.push('/dashboard');
-  //   }
-  // }, [user, router]);
 
 
   return (

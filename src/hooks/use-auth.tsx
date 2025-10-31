@@ -216,22 +216,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const loginWithEmail = async (email: string, pass: string) => {
     if (!auth) throw new Error("Auth service not initialized");
-    const creds = await signInWithEmailAndPassword(auth, email, pass);
-    
-    // Redirect after successful login
-    const userDocRef = doc(firestore, 'users', creds.user.uid);
-    const userDoc = await getDoc(userDocRef);
-    if (userDoc.exists()) {
-      const appUser = userDoc.data() as AppUser;
-      if (appUser.email === 'ameypatil261@gmail.com' || appUser.role === 'admin') {
-        router.push('/admin');
+    try {
+      const creds = await signInWithEmailAndPassword(auth, email, pass);
+      
+      // Redirect after successful login
+      const userDocRef = doc(firestore, 'users', creds.user.uid);
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        const appUser = userDoc.data() as AppUser;
+        if (appUser.email === 'ameypatil261@gmail.com' || appUser.role === 'admin') {
+          router.push('/admin');
+        } else {
+          router.push('/dashboard/my-listings');
+        }
       } else {
-        router.push('/dashboard/my-listings');
+          router.push('/dashboard/my-listings');
       }
-    } else {
-        router.push('/dashboard/my-listings');
+      return creds;
+    } catch (error: any) {
+      // This is now the source of truth for the login form's errors
+      throw error;
     }
-    return creds;
   };
 
   const signUpWithEmail = async (email: string, pass: string, name: string, phone: string) => {
@@ -263,7 +268,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (error.code === 'auth/email-already-in-use') {
             description = 'This email is already in use. Please log in or use a different email.';
         } else {
-            description = error.message;
+            description = error.message || 'An unknown error occurred during sign up.';
         }
         toast({
             variant: 'destructive',
