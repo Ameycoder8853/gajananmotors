@@ -6,14 +6,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment, writeBatch, Timestamp } from 'firebase/firestore';
+import { initializeFirebase } from '@/firebase';
+import { doc, increment, writeBatch, Timestamp, collection } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { Payment } from '@/lib/types';
 
 const monthlyTiers = [
   {
@@ -48,24 +49,24 @@ const yearlyTiers = [
         planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID || 'plan_ObrBbyyGdn0ihc',
         price: 5000,
         priceSuffix: '/year',
-        credits: 10,
-        features: ['10 ad listings for the year', 'Standard support', 'Save ₹1000'],
+        credits: 120, // 10 credits/month * 12
+        features: ['120 ad listings for the year', 'Standard support', 'Save ₹1000'],
     },
     {
         name: 'Premium Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID || 'plan_ObrCnxk3r5FqM1',
         price: 10000,
         priceSuffix: '/year',
-        credits: 20,
-        features: ['20 ad listings for the year', 'Premium support', 'Featured listings', 'Save ₹2000'],
+        credits: 240, // 20 credits/month * 12
+        features: ['240 ad listings for the year', 'Premium support', 'Featured listings', 'Save ₹2000'],
     },
     {
         name: 'Pro Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID || 'plan_ObrDY0Lp1YJ57r',
         price: 20000,
         priceSuffix: '/year',
-        credits: 50,
-        features: ['50 ad listings for the year', 'Premium support', 'Featured listings', 'Save ₹4000'],
+        credits: 600, // 50 credits/month * 12
+        features: ['600 ad listings for the year', 'Premium support', 'Featured listings', 'Save ₹4000'],
     }
 ];
 
@@ -105,8 +106,8 @@ export default function SubscriptionPage() {
     });
 
     if (!res.ok) {
-        const errorData = await res.json();
-        toast({ variant: 'destructive', title: 'Payment Error', description: errorData.error || 'Failed to create Razorpay subscription.' });
+        const errorData = await res.json().catch(() => ({error: "Failed to parse error response from server."}));
+        toast({ variant: 'destructive', title: 'Payment Error', description: errorData.error || 'Failed to create Razorpay transaction.' });
         return;
     }
 
@@ -138,19 +139,36 @@ export default function SubscriptionPage() {
             expiryDate.setMonth(expiryDate.getMonth() + 1);
         }
 
-        const updateData: any = {
+        const updateUserPayload: any = {
           isPro: true,
           subscriptionType: planName,
           proExpiresAt: expiryDate,
+          adCredits: isUpgrade ? increment(credits) : credits,
         };
 
-        if (isUpgrade) {
-            updateData.adCredits = increment(credits);
-        } else {
-            updateData.adCredits = credits;
+        batch.update(userDocRef, updateUserPayload);
+        
+        const paymentsCollectionRef = collection(firestore, 'payments');
+        const newPaymentRef = doc(paymentsCollectionRef);
+
+        const paymentRecord: Payment = {
+            id: newPaymentRef.id,
+            dealerId: user.uid,
+            adId: null, // This is a subscription payment, not related to a single ad
+            type: 'subscription',
+            amount: amount,
+            currency: 'INR',
+            razorpayPaymentId: response.razorpay_payment_id,
+            status: 'paid',
+            createdAt: new Date(),
+        };
+
+        // Only add subscription ID if it exists (for yearly plans)
+        if (response.razorpay_subscription_id) {
+            (paymentRecord as any).razorpaySubscriptionId = response.razorpay_subscription_id;
         }
 
-        batch.update(userDocRef, updateData);
+        batch.set(newPaymentRef, paymentRecord);
 
         await batch.commit();
 
@@ -176,8 +194,10 @@ export default function SubscriptionPage() {
   };
 
   const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
+    const isTierDisabled = isCurrent && isUpgradeOption && user?.subscriptionType?.includes('Yearly') && !isYearly;
+
     return (
-      <Card key={tier.name} className={cn("flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
+      <Card key={tier.name} className={cn("flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2", isTierDisabled && "opacity-50")}>
         <CardHeader>
           <div className="flex justify-between items-center">
              <CardTitle className="text-2xl">{tier.name.replace(' Yearly', '')}</CardTitle>
@@ -207,7 +227,7 @@ export default function SubscriptionPage() {
             {isCurrent ? (
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
-                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, tier.price, isUpgradeOption, isYearly)}>
+                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, tier.price, isUpgradeOption, isYearly)} disabled={isTierDisabled}>
                     {isUpgradeOption ? `Switch to ${tier.name.replace(' Yearly', '')}` : 'Choose Plan'}
                 </Button>
             )}
