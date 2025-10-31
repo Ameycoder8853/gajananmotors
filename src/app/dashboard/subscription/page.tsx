@@ -3,17 +3,21 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Star } from 'lucide-react';
+import { Check, Star, Ticket } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment } from 'firebase/firestore';
+import { collection, doc, getDocs, increment, query, where, writeBatch } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import type { User } from '@/lib/types';
+
 
 const monthlyTiers = [
   {
@@ -48,24 +52,24 @@ const yearlyTiers = [
         planId: process.env.NEXT_PUBLIC_RAZORPAY_STANDARD_YEARLY_PLAN_ID || 'replace_with_standard_yearly_id',
         price: 5000,
         priceSuffix: '/year',
-        credits: 10,
-        features: ['10 ad listings', 'Standard support', 'Save ₹1000'],
+        credits: 120, // 10 * 12
+        features: ['120 ad listings', 'Standard support', 'Save ₹1000'],
     },
     {
         name: 'Premium Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PREMIUM_YEARLY_PLAN_ID || 'replace_with_premium_yearly_id',
         price: 10000,
         priceSuffix: '/year',
-        credits: 20,
-        features: ['20 ad listings', 'Premium support', 'Featured listings', 'Save ₹2000'],
+        credits: 240, // 20 * 12
+        features: ['240 ad listings', 'Premium support', 'Featured listings', 'Save ₹2000'],
     },
     {
         name: 'Pro Yearly' as const,
         planId: process.env.NEXT_PUBLIC_RAZORPAY_PRO_YEARLY_PLAN_ID || 'replace_with_pro_yearly_id',
         price: 20000,
         priceSuffix: '/year',
-        credits: 50,
-        features: ['50 ad listings', 'Premium support', 'Featured listings', 'Save ₹4000'],
+        credits: 600, // 50 * 12
+        features: ['600 ad listings', 'Premium support', 'Featured listings', 'Save ₹4000'],
     }
 ];
 
@@ -78,82 +82,60 @@ declare global {
 }
 
 export default function SubscriptionPage() {
-  const { user } = useAuth();
+  const { user, isUserLoading } = useAuth();
   const { toast } = useToast();
   const { firestore } = initializeFirebase();
   const router = useRouter();
 
-  const handlePayment = async (planId: string, credits: number, planName: string, isUpgrade: boolean = false, isYearly: boolean = false) => {
+  const handlePayment = async (planId: string, credits: number, planName: string, amount: number, isUpgrade: boolean = false, isYearly: boolean = false) => {
     if (!user) {
-      toast({
-        variant: 'destructive',
-        title: 'Authentication Required',
-        description: 'You must be logged in to purchase a subscription. Redirecting to login...',
-      });
-      router.push('/login');
+      toast({ variant: 'destructive', title: 'Authentication Required', description: 'You must be logged in to purchase a subscription.', action: <Button onClick={() => router.push('/login')}>Login</Button> });
       return;
-    }
-
-    if (!planId || planId.startsWith('replace_with')) {
-        toast({
-            variant: 'destructive',
-            title: 'Configuration Error',
-            description: 'The subscription plan ID is not configured. Please contact support.',
-        });
-        return;
     }
 
     if (!window.Razorpay) {
-      toast({
-        variant: 'destructive',
-        title: 'Payment Error',
-        description: 'Razorpay checkout is not available. Please refresh the page.',
-      });
+      toast({ variant: 'destructive', title: 'Payment Error', description: 'Razorpay checkout is not available. Please refresh the page.' });
       return;
     }
 
+    const isDiscountApplicable = user.nextSubscriptionDiscount && !isYearly;
+    const finalAmount = isDiscountApplicable ? amount / 2 : amount;
+    const isOneTimePayment = isDiscountApplicable; // Use one-time order for discounted payments
+
     const res = await fetch('/api/razorpay', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ planId, isYearly }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        planId: isOneTimePayment ? undefined : planId, 
+        isYearly,
+        amount: finalAmount,
+        isReferralPurchase: isOneTimePayment, // Use isReferralPurchase flag which API understands
+      }),
     });
 
     if (!res.ok) {
         const errorData = await res.json();
-        toast({
-            variant: 'destructive',
-            title: 'Payment Error',
-            description: errorData.error || 'Failed to create Razorpay subscription.',
-        });
+        toast({ variant: 'destructive', title: 'Payment Error', description: errorData.error || 'Failed to create Razorpay order/subscription.' });
         return;
     }
 
     const data = await res.json();
-    if (!data || !data.id) {
-      toast({
-        variant: 'destructive',
-        title: 'Payment Error',
-        description: 'Failed to parse Razorpay subscription response.',
-      });
+    if (!data || !data.id || !data.amount) {
+      toast({ variant: 'destructive', title: 'Payment Error', description: 'Failed to parse Razorpay response.' });
       return;
     }
 
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+      amount: data.amount,
+      currency: data.currency,
       name: 'Gajanan Motors',
-      description: `${planName} Subscription Purchase`,
-      subscription_id: data.id,
-      handler: function (response: any) {
-        if (!user?.uid) {
-            toast({
-                variant: 'destructive',
-                title: 'Update failed',
-                description: 'User not found after payment. Please contact support.',
-            });
-            return;
-        };
+      description: `${planName} Purchase ${isDiscountApplicable ? '(50% Off)' : ''}`,
+      order_id: isOneTimePayment ? data.id : undefined,
+      subscription_id: !isOneTimePayment ? data.id : undefined,
+
+      handler: async function (response: any) {
+        if (!user?.uid) { return; };
 
         const userDocRef = doc(firestore, 'users', user.uid);
         
@@ -175,12 +157,17 @@ export default function SubscriptionPage() {
         } else {
             updateData.adCredits = credits;
         }
+        
+        // Consume the discount if it was applied
+        if (isDiscountApplicable) {
+            updateData.nextSubscriptionDiscount = false;
+        }
 
         updateDocumentNonBlocking(userDocRef, updateData);
 
         toast({
-          title: isUpgrade ? 'Upgrade Successful!' : 'Payment Successful',
-          description: `${credits} ad credits have been added to your account.`,
+          title: 'Payment Successful',
+          description: `${credits} ad credits have been added.`,
         });
         router.push('/dashboard/my-listings');
       },
@@ -189,23 +176,21 @@ export default function SubscriptionPage() {
         email: user.email || '',
         contact: user.phone || '',
       },
-      theme: {
-        color: '#F56565',
-      },
+      theme: { color: '#F56565' },
     };
 
     const rzp = new window.Razorpay(options);
-    rzp.on('payment.failed', function (response: any) {
-        toast({
-            variant: 'destructive',
-            title: 'Payment Failed',
-            description: response.error.description || 'Something went wrong during payment.',
-        });
+    rzp.on('payment.failed', (response: any) => {
+        toast({ variant: 'destructive', title: 'Payment Failed', description: response.error.description || 'Something went wrong.' });
     });
     rzp.open();
   };
 
   const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
+    const isMonthly = !isYearly;
+    const isDiscountApplicable = user?.nextSubscriptionDiscount && isMonthly;
+    const finalPrice = isDiscountApplicable ? tier.price / 2 : tier.price;
+
     return (
       <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
@@ -219,7 +204,10 @@ export default function SubscriptionPage() {
              )}
           </div>
           <CardDescription>
-            <span className="text-4xl font-bold">₹{tier.price}</span>
+             {isDiscountApplicable && (
+                 <span className="text-xl font-bold text-muted-foreground line-through">₹{tier.price}</span>
+            )}
+            <span className="text-4xl font-bold">₹{finalPrice}</span>
             <span className="text-muted-foreground">{tier.priceSuffix}</span>
           </CardDescription>
         </CardHeader>
@@ -231,13 +219,19 @@ export default function SubscriptionPage() {
                 <span>{feature}</span>
               </li>
             ))}
+             {isDiscountApplicable && (
+                <li className="flex items-center font-bold text-primary">
+                    <Ticket className="mr-2 h-5 w-5" />
+                    <span>50% Referral Discount!</span>
+                </li>
+             )}
           </ul>
         </CardContent>
         <CardFooter>
             {isCurrent ? (
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
-                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, isUpgradeOption, isYearly)}>
+                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, tier.price, isUpgradeOption, isYearly)}>
                     {isUpgradeOption ? `Switch to ${tier.name.replace(' Yearly', '')}` : 'Choose Plan'}
                 </Button>
             )}
@@ -245,22 +239,27 @@ export default function SubscriptionPage() {
       </Card>
     )
   }
-
-  if (user?.isPro && user.subscriptionType) {
-    const currentTier = allTiers.find(t => t.name === user.subscriptionType);
-    
-    // Find possible upgrade tiers
-    const currentTierIndex = monthlyTiers.findIndex(t => t.name === currentTier?.name.replace(' Yearly', '')) ?? -1;
-    const upgradeTier = currentTierIndex !== -1 && currentTierIndex < monthlyTiers.length - 1 ? monthlyTiers[currentTierIndex + 1] : null;
-
+  
+  if (isUserLoading) {
     return (
-        <div className="animate-fade-in-up">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
-                <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
-            </div>
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-               {currentTier && (
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+        </div>
+    );
+  }
+
+  // Common layout for all subscription views
+  return (
+    <div className="py-12 animate-fade-in-up">
+        <div className="text-center mb-12">
+            <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
+            <p className="mt-2 text-lg text-muted-foreground">
+                {user?.isPro ? 'Manage your current plan or choose a different one.' : 'Choose a plan that fits your needs to start posting ads.'}
+            </p>
+        </div>
+        
+        {user && user.isPro && user.subscriptionType && (
+            <div className="max-w-2xl mx-auto mb-12">
                  <Card className="border-primary border-2 animate-fade-in-up">
                     <CardHeader>
                         <div className="flex justify-between items-center">
@@ -283,27 +282,16 @@ export default function SubscriptionPage() {
                             <span className="text-muted-foreground">Plan Expires On</span>
                             <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt).toLocaleDateString() : 'N/A'}</span>
                         </div>
+                        {user.nextSubscriptionDiscount && (
+                            <div className="flex justify-between items-baseline text-primary font-bold">
+                                <span className="flex items-center gap-2"><Ticket /> 50% Discount on Next Renewal!</span>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
-               )}
-               {upgradeTier && renderTierCard(upgradeTier, false, true, false)}
             </div>
-             <div className="max-w-4xl mx-auto mt-8 text-center">
-                <p className="text-muted-foreground">Need a different plan?</p>
-                <Button variant="link" asChild>
-                    <Link href="/subscription">View All Plans</Link>
-                </Button>
-            </div>
-        </div>
-    );
-  }
+        )}
 
-  return (
-    <div className="animate-fade-in-up">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
-        <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
-      </div>
        {user && user.verificationStatus !== 'verified' && (
         <Alert className="max-w-4xl mx-auto mb-8 animate-fade-in">
           <AlertCircle className="h-4 w-4" />
@@ -326,7 +314,7 @@ export default function SubscriptionPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {monthlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, false, false, false)}
+                        {renderTierCard(tier, user?.subscriptionType === tier.name, !!user?.isPro, false)}
                     </div>
                 ))}
             </div>
@@ -335,7 +323,7 @@ export default function SubscriptionPage() {
              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {yearlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, false, false, true)}
+                         {renderTierCard(tier, user?.subscriptionType === tier.name, !!user?.isPro, true)}
                     </div>
                 ))}
             </div>
