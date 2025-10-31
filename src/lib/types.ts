@@ -42,7 +42,7 @@ export type FirebaseUser = import('firebase/auth').User & {
     aadharUrl?: string;
     panUrl?: string;
     shopLicenseUrl?: string;
-    referralCode?: string;
+    referralCode: string;
     hasUsedReferral?: boolean;
     nextSubscriptionDiscount?: boolean;
     lastReferralDate?: Date | Timestamp;

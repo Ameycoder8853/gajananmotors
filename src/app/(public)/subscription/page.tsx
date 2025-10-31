@@ -3,7 +3,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check, Star, Ticket } from 'lucide-react';
+import { Check, Star, Ticket, Copy } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase } from '@/firebase';
@@ -120,6 +120,15 @@ export default function SubscriptionPage() {
       toast({ title: 'Code Applied!', description: 'You get 50% off your first monthly subscription!' });
       setDiscountApplied(true);
     }
+  };
+
+  const handleCopyToClipboard = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+        toast({ title: 'Copied!', description: 'Referral code copied to clipboard.' });
+    }, (err) => {
+        console.error('Could not copy text: ', err);
+        toast({ variant: 'destructive', title: 'Failed to Copy', description: 'Could not copy code to clipboard.' });
+    });
   };
 
 
@@ -343,6 +352,26 @@ export default function SubscriptionPage() {
           </div>
         )}
         
+        {user && (
+           <div className="max-w-md mx-auto mb-12 animate-fade-in-up" style={{ animationDelay: '300ms' }}>
+              <Card>
+                  <CardHeader>
+                      <CardTitle>Share Your Referral Code</CardTitle>
+                      <CardDescription>Share this code with friends! They get 50% off their first month, and you get 50% off your next renewal.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      <div className="flex w-full items-center space-x-2">
+                          <Input type="text" value={user.referralCode || 'No Code'} readOnly />
+                          <Button type="button" variant="secondary" onClick={() => handleCopyToClipboard(user.referralCode || '')} disabled={!user.referralCode}>
+                              <Copy className="mr-2 h-4 w-4" />
+                              Copy
+                          </Button>
+                      </div>
+                  </CardContent>
+              </Card>
+           </div>
+        )}
+
         {user && user.isPro && user.subscriptionType && (
             <div className="max-w-2xl mx-auto mb-12">
                  <Card className="border-primary border-2 animate-fade-in-up">

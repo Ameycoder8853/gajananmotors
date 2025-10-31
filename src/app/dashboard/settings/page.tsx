@@ -30,9 +30,9 @@ import { initializeFirebase } from '@/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState } from 'react';
-import { Eye, EyeOff, Upload, CheckCircle2, Copy, RefreshCw } from 'lucide-react';
+import { Eye, EyeOff, Upload, CheckCircle2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { nanoid } from 'nanoid';
+import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 
 
@@ -173,21 +173,6 @@ export default function SettingsPage() {
     }
   };
 
-  const copyReferralCode = () => {
-    if (user?.referralCode) {
-      navigator.clipboard.writeText(user.referralCode);
-      toast({ title: 'Copied!', description: 'Referral code copied to clipboard.' });
-    }
-  };
-
-  const handleGenerateNewCode = async () => {
-    if (!user || !firestore) return;
-    const newCode = nanoid(10).toUpperCase();
-    const userDocRef = doc(firestore, 'users', user.uid);
-    updateDocumentNonBlocking(userDocRef, { referralCode: newCode });
-    toast({ title: 'New Code Generated!', description: 'Your new referral code is ready.' });
-  };
-
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -279,35 +264,6 @@ export default function SettingsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Referral Program</CardTitle>
-          <CardDescription>
-            Share your code with friends. They get 50% off their first monthly subscription, and you get 50% off your next one!
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <FormLabel>Your Referral Code</FormLabel>
-            <div className="flex items-center gap-2">
-                <Input value={user?.referralCode || 'Generating...'} readOnly />
-                <Button variant="outline" size="icon" onClick={copyReferralCode} disabled={!user?.referralCode}>
-                    <Copy className="h-4 w-4" />
-                    <span className="sr-only">Copy</span>
-                </Button>
-                <Button variant="outline" size="icon" onClick={handleGenerateNewCode} disabled={!user}>
-                    <RefreshCw className="h-4 w-4" />
-                    <span className="sr-only">Generate New Code</span>
-                </Button>
-            </div>
-            <div>
-              <FormLabel>Successful Referrals this Month</FormLabel>
-              <p className="text-2xl font-bold">{user?.referralsThisMonth ?? 0}</p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Change Password</CardTitle>
           <CardDescription>
             Update your password for better security.
@@ -373,5 +329,3 @@ export default function SettingsPage() {
       </Card>
     </div>
   );
-
-    
