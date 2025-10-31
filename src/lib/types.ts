@@ -12,7 +12,7 @@ export type User = {
   emailVerified?: boolean; // Added from FirebaseUser
   role: 'dealer' | 'admin';
   isPro?: boolean;
-  proExpiresAt?: Date | null;
+  proExpiresAt?: Date | Timestamp | null;
   createdAt: Date | Timestamp;
   subscriptionType?: 'Standard' | 'Premium' | 'Pro' | 'Standard Yearly' | 'Premium Yearly' | 'Pro Yearly';
   adCredits?: number;
@@ -36,13 +36,17 @@ export type FirebaseUser = import('firebase/auth').User & {
     subscriptionType?: 'Standard' | 'Premium' | 'Pro' | 'Standard Yearly' | 'Premium Yearly' | 'Pro Yearly';
     adCredits?: number;
     isPro?: boolean;
-    proExpiresAt?: Date | null;
+    proExpiresAt?: Date | Timestamp | null;
     isPhoneVerified?: boolean;
     verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
     aadharUrl?: string;
     panUrl?: string;
     shopLicenseUrl?: string;
     referralCode?: string;
+    hasUsedReferral?: boolean;
+    nextSubscriptionDiscount?: boolean;
+    lastReferralDate?: Date | Timestamp;
+    referralsThisMonth?: number;
 }
 
 export type Ad = {

@@ -40,6 +40,8 @@ const convertTimestamps = (data: any) => {
   for (const key in data) {
     if (data[key] instanceof Timestamp) {
       data[key] = data[key].toDate();
+    } else if (typeof data[key] === 'object' && data[key] !== null) {
+      convertTimestamps(data[key]);
     }
   }
   return data;
@@ -48,6 +50,10 @@ const convertTimestamps = (data: any) => {
 const subscriptionLimits: { [key: string]: number } = {
     'Standard': 10,
     'Premium': 20,
+    'Pro': 50,
+    'Standard Yearly': 10,
+    'Premium Yearly': 20,
+    'Pro Yearly': 50,
 };
 
 // This function will run once to ensure the admin user exists in Firebase Auth and Firestore.
@@ -77,6 +83,7 @@ const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
       referralCode: `ADMIN-${nanoid(6)}`,
       hasUsedReferral: false,
       nextSubscriptionDiscount: false,
+      referralsThisMonth: 0,
     };
     await setDoc(doc(firestore, 'users', adminCred.user.uid), adminData);
     console.log('Admin user successfully created.');
@@ -138,15 +145,26 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               const batch = writeBatch(firestore);
               batch.update(userDocRef, { isPro: false, adCredits: 0, subscriptionType: null });
               
-              // Make all ads private since the subscription has expired
               const adsRef = collection(firestore, 'cars');
               const q = query(adsRef, where('dealerId', '==', firebaseUser.uid), where('visibility', '==', 'public'));
               const adsSnapshot = await getDocs(q);
               
               if (!adsSnapshot.empty) {
-                adsSnapshot.forEach(adDoc => {
-                  batch.update(adDoc.ref, { visibility: 'private' });
-                });
+                const creditLimit = 0;
+                let publicAdsCount = adsSnapshot.size;
+
+                // Sort ads by creation date, oldest first
+                const sortedAds = adsSnapshot.docs.sort((a, b) => (a.data().createdAt as Timestamp).toMillis() - (b.data().createdAt as Timestamp).toMillis());
+                
+                // Set excess ads to private
+                for (const adDoc of sortedAds) {
+                    if (publicAdsCount > creditLimit) {
+                        batch.update(adDoc.ref, { visibility: 'private' });
+                        publicAdsCount--;
+                    } else {
+                        break;
+                    }
+                }
               }
 
               await batch.commit();
@@ -159,7 +177,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
             // Reset referralsThisMonth if new month
             if (appUser.lastReferralDate) {
-                const lastRefDate = (appUser.lastReferralDate as Timestamp).toDate();
+                const lastRefDate = appUser.lastReferralDate instanceof Timestamp ? appUser.lastReferralDate.toDate() : new Date(appUser.lastReferralDate);
                 const currentDate = new Date();
                 if (lastRefDate.getMonth() !== currentDate.getMonth() || lastRefDate.getFullYear() !== currentDate.getFullYear()) {
                     appUser.referralsThisMonth = 0;
@@ -168,7 +186,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             }
 
 
-            const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser, photoURL: firebaseUser.photoURL, emailVerified: firebaseUser.emailVerified, isPhoneVerified: appUser.isPhoneVerified ?? false };
+            const enhancedUser: FirebaseUser = { ...firebaseUser, ...appUser };
             setUser(enhancedUser);
 
           } else {
@@ -186,13 +204,14 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     phone: firebaseUser.phoneNumber || '',
                     createdAt: new Date(),
                     verificationStatus: 'unverified',
+                    isPhoneVerified: false,
                     referralCode: nanoid(10).toUpperCase(),
                     hasUsedReferral: false,
                     nextSubscriptionDiscount: false,
                     referralsThisMonth: 0,
                 };
                 setDocumentNonBlocking(doc(firestore, 'users', firebaseUser.uid), newUser, { merge: false });
-                const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, photoURL: firebaseUser.photoURL, emailVerified: firebaseUser.emailVerified, isPhoneVerified: false };
+                const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, photoURL: firebaseUser.photoURL };
                 setUser(enhancedUser);
             }
           }
@@ -252,6 +271,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         role: 'dealer',
         createdAt: new Date(),
         verificationStatus: 'unverified',
+        isPhoneVerified: false,
         referralCode: nanoid(10).toUpperCase(),
         hasUsedReferral: false,
         nextSubscriptionDiscount: false,
@@ -292,6 +312,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             role: 'dealer',
             phone: result.user.phoneNumber || '',
             createdAt: new Date(),
+            isPhoneVerified: false,
             verificationStatus: 'unverified',
             referralCode: nanoid(10).toUpperCase(),
             hasUsedReferral: false,
