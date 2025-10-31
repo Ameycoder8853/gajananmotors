@@ -167,7 +167,7 @@ export function Header() {
     <header className={headerClasses}>
       <div className="flex h-16 items-center px-4 md:px-8">
         <div className="flex-none mr-4">
-          <Logo className={cn(scrolled || !isMarketingPage ? "text-foreground" : "text-white")} />
+          <Logo />
         </div>
         
         <nav className="hidden md:flex flex-1 justify-center items-center space-x-4 lg:space-x-6">
