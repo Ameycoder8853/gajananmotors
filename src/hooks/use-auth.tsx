@@ -133,6 +133,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             if (appUser.email === 'ameypatil261@gmail.com') {
               appUser.role = 'admin';
             }
+
+            // If user has no referral code, generate and save one.
+            if (!appUser.referralCode) {
+              appUser.referralCode = nanoid(10).toUpperCase();
+              updateDocumentNonBlocking(userDocRef, { referralCode: appUser.referralCode });
+            }
             
             // Check for subscription expiry
             if (appUser.role === 'dealer' && appUser.isPro && appUser.proExpiresAt && new Date() > appUser.proExpiresAt) {
