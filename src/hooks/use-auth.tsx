@@ -268,7 +268,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         toast({
             variant: 'destructive',
             title: 'Sign Up Failed',
-            description,
+            description: description,
         });
         console.error("Sign up failed:", error);
     }
