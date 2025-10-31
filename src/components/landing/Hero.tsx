@@ -1,7 +1,8 @@
+
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Star } from "lucide-react";
+import { ArrowRight, Star, ChevronDown } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export function Hero() {
@@ -44,6 +45,11 @@ export function Hero() {
             </Link>
           </Button>
         </div>
+      </div>
+       <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-fade-in-up" style={{ animationDelay: '1000ms' }}>
+        <a href="#features" aria-label="Scroll down">
+          <ChevronDown className="w-10 h-10 text-white animate-bounce-slow" />
+        </a>
       </div>
     </section>
   );

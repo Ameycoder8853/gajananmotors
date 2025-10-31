@@ -1,3 +1,4 @@
+
 import type {Config} from 'tailwindcss';
 
 export default {
@@ -100,6 +101,16 @@ export default {
           from: { transform: 'scale(1.05)' },
           to: { transform: 'scale(1.15)' },
         },
+        'bounce-slow': {
+          '0%, 100%': {
+            transform: 'translateY(-25%)',
+            animationTimingFunction: 'cubic-bezier(0.8, 0, 1, 1)',
+          },
+          '50%': {
+            transform: 'translateY(0)',
+            animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)',
+          },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -107,6 +118,7 @@ export default {
         'fade-in': 'fade-in 0.5s ease-out forwards',
         'fade-in-up': 'fade-in-up 0.5s ease-out forwards',
         'zoom-in': 'zoom-in 8s ease-out forwards',
+        'bounce-slow': 'bounce-slow 2s infinite',
       },
     },
   },
