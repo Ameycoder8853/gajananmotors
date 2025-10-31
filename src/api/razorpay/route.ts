@@ -7,9 +7,9 @@ import { config } from 'dotenv';
 config(); // Load environment variables from .env file
 
 const paymentSchema = z.object({
-  planId: z.string().optional(),
+  planId: z.string().optional(), // planId is only for yearly subscriptions
   isYearly: z.boolean().optional().default(false),
-  amount: z.number(), // Amount in INR
+  amount: z.number(), // Amount in INR, required for all transactions
 });
 
 
@@ -29,7 +29,13 @@ export async function POST(req: Request) {
     });
 
     const body = await req.json();
-    const { planId, isYearly, amount } = paymentSchema.parse(body);
+    const validationResult = paymentSchema.safeParse(body);
+
+    if (!validationResult.success) {
+      return NextResponse.json({ error: 'Invalid data provided. Please check your details and try again.' }, { status: 400 });
+    }
+    
+    const { planId, isYearly, amount } = validationResult.data;
 
     if (isYearly) {
       // Create a subscription for yearly plans
@@ -55,14 +61,10 @@ export async function POST(req: Request) {
       return NextResponse.json(order, { status: 200 });
     }
     
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      // Return a user-friendly error string instead of the complex error object
-      return NextResponse.json({ error: 'Invalid data provided. Please check your details and try again.' }, { status: 400 });
-    }
+  } catch (error: any) {
     console.error('Razorpay API Error:', error);
-    // Generic but safe error message for any other type of error
-    const errorMessage = 'An unexpected error occurred on the server. Please try again later.';
+    // Create a safe, generic error message for any type of error
+    const errorMessage = error?.error?.description || 'An unexpected error occurred on the server. Please try again later.';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }

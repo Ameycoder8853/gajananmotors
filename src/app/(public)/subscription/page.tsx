@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button } from '@/components/ui/button';
@@ -90,7 +89,8 @@ export default function SubscriptionPage() {
       return;
     }
     
-    if (!planId && isYearly) {
+    // Yearly plans require a planId from environment variables
+    if (isYearly && (!planId || planId.startsWith('plan_undefined'))) {
        toast({ variant: 'destructive', title: 'Configuration Error', description: 'This yearly plan is not configured correctly. Please contact support.' });
        return;
     }
@@ -100,88 +100,103 @@ export default function SubscriptionPage() {
       return;
     }
     
+    // Call the backend to create a Razorpay Order or Subscription
     const res = await fetch('/api/razorpay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        planId: isYearly ? planId : undefined,
+        planId: isYearly ? planId : undefined, // Only send planId for yearly subscriptions
         isYearly,
-        amount
+        amount // Always send amount for both types
       }),
     });
 
     if (!res.ok) {
-        const errorData = await res.json().catch(() => ({error: "Failed to parse error response from server."}));
+        const errorData = await res.json().catch(() => ({error: "An unknown server error occurred."}));
         toast({ variant: 'destructive', title: 'Payment Error', description: errorData.error || 'Failed to create Razorpay transaction.' });
         return;
     }
 
     const data = await res.json();
-    if (!data || !data.id || !data.amount) {
-      toast({ variant: 'destructive', title: 'Payment Error', description: 'Failed to parse Razorpay response.' });
+    if (!data || !data.id || (isYearly ? !data.entity : !data.amount)) {
+      toast({ variant: 'destructive', title: 'Payment Error', description: 'Failed to parse Razorpay response from server.' });
       return;
     }
 
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       amount: data.amount,
-      currency: data.currency,
+      currency: data.currency || 'INR',
       name: 'Gajanan Motors',
       description: `${planName} Purchase`,
-      order_id: isYearly ? undefined : data.id,
+      // Dynamically set order_id or subscription_id based on what the backend created
+      order_id: isYearly ? undefined : data.id, 
       subscription_id: isYearly ? data.id : undefined,
 
       handler: async function (response: any) {
         if (!user?.uid || !firestore) { return; };
 
-        const batch = writeBatch(firestore);
-        const userDocRef = doc(firestore, 'users', user.uid);
-        
-        const expiryDate = new Date();
-        if (isYearly) {
-            expiryDate.setFullYear(expiryDate.getFullYear() + 1);
-        } else {
-            expiryDate.setMonth(expiryDate.getMonth() + 1);
+        try {
+          const batch = writeBatch(firestore);
+          const userDocRef = doc(firestore, 'users', user.uid);
+          
+          const expiryDate = new Date();
+          if (isYearly) {
+              expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+          } else {
+              expiryDate.setMonth(expiryDate.getMonth() + 1);
+          }
+
+          // In an upgrade scenario, credits are added. For a new subscription, they are set.
+          const finalCredits = isUpgrade ? increment(credits) : credits;
+
+          const updateUserPayload: any = {
+            isPro: true,
+            subscriptionType: planName,
+            proExpiresAt: Timestamp.fromDate(expiryDate),
+            adCredits: finalCredits,
+          };
+
+          batch.update(userDocRef, updateUserPayload);
+          
+          const paymentsCollectionRef = collection(firestore, 'payments');
+          const newPaymentRef = doc(paymentsCollectionRef);
+
+          const paymentRecord: Payment = {
+              id: newPaymentRef.id,
+              dealerId: user.uid,
+              adId: null, // This is a subscription payment, not related to a single ad
+              type: 'subscription',
+              amount: amount,
+              currency: 'INR',
+              razorpayPaymentId: response.razorpay_payment_id,
+              status: 'paid',
+              createdAt: Timestamp.now(),
+          };
+
+          // Only add subscription ID if it exists (for yearly plans)
+          if (response.razorpay_subscription_id) {
+              (paymentRecord as any).razorpaySubscriptionId = response.razorpay_subscription_id;
+          }
+
+          batch.set(newPaymentRef, paymentRecord);
+
+          await batch.commit();
+
+          toast({
+            title: 'Payment Successful',
+            description: `${credits} ad credits have been added.`,
+          });
+          router.push('/dashboard/my-listings');
+
+        } catch (error: any) {
+            console.error("Failed to update user data after payment:", error);
+            toast({
+              variant: 'destructive',
+              title: 'Update Failed',
+              description: 'Your payment was successful, but we failed to update your account. Please contact support.',
+            });
         }
-
-        const updateUserPayload: any = {
-          isPro: true,
-          subscriptionType: planName,
-          proExpiresAt: expiryDate,
-          adCredits: isUpgrade ? increment(credits) : credits,
-        };
-
-        batch.update(userDocRef, updateUserPayload);
-        
-        const paymentsCollectionRef = collection(firestore, 'payments');
-        const newPaymentRef = doc(paymentsCollectionRef);
-
-        const paymentRecord: Payment = {
-            id: newPaymentRef.id,
-            dealerId: user.uid,
-            adId: null, // This is a subscription payment, not related to a single ad
-            type: 'subscription',
-            amount: amount,
-            currency: 'INR',
-            razorpayPaymentId: response.razorpay_payment_id,
-            status: 'paid',
-            createdAt: new Date(),
-        };
-
-        // Only add subscription ID if it exists (for yearly plans)
-        if (response.razorpay_subscription_id) {
-            (paymentRecord as any).razorpaySubscriptionId = response.razorpay_subscription_id;
-        }
-
-        batch.set(newPaymentRef, paymentRecord);
-
-        await batch.commit();
-
-        toast({
-          title: 'Payment Successful',
-          description: `${credits} ad credits have been added.`,
-        });
-        router.push('/dashboard/my-listings');
       },
       prefill: {
         name: user.displayName || 'Gajanan User',
@@ -200,17 +215,18 @@ export default function SubscriptionPage() {
         toast({ 
             variant: 'destructive', 
             title: 'Payment Failed', 
-            description: errorMessage
+            description: errorMessage,
         });
     });
     rzp.open();
   };
 
   const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
-    const isTierDisabled = isCurrent && isUpgradeOption && user?.subscriptionType?.includes('Yearly') && !isYearly;
+    // A yearly plan can't be chosen if the user is already on a yearly plan.
+    const isTierDisabled = isCurrent || (user?.subscriptionType?.includes('Yearly') && isUpgradeOption);
 
     return (
-      <Card key={tier.name} className={cn("flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2", isTierDisabled && "opacity-50")}>
+      <Card key={tier.name} className={cn("flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2", isTierDisabled && "opacity-60")}>
         <CardHeader>
           <div className="flex justify-between items-center">
              <CardTitle className="text-2xl">{tier.name.replace(' Yearly', '')}</CardTitle>
@@ -241,7 +257,7 @@ export default function SubscriptionPage() {
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
                  <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, tier.price, isUpgradeOption, isYearly)} disabled={isTierDisabled}>
-                    {isUpgradeOption ? `Switch to ${tier.name.replace(' Yearly', '')}` : 'Choose Plan'}
+                    {isTierDisabled ? 'Plan Cannot Be Changed' : isUpgradeOption ? `Switch to ${tier.name.replace(' Yearly', '')}` : 'Choose Plan'}
                 </Button>
             )}
         </CardFooter>
@@ -259,16 +275,12 @@ export default function SubscriptionPage() {
 
   const getProExpiresDate = () => {
     if (!user?.proExpiresAt) return 'N/A';
-    // Handle both Timestamp and Date objects
     if (user.proExpiresAt instanceof Timestamp) {
       return user.proExpiresAt.toDate().toLocaleDateString();
     }
-    // It's likely already a Date object from the auth hook conversion
     return new Date(user.proExpiresAt as any).toLocaleDateString();
   };
 
-
-  // Common layout for all subscription views
   return (
     <div className="py-12 animate-fade-in-up">
         <div className="text-center mb-12">
