@@ -30,10 +30,9 @@ import { initializeFirebase } from '@/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState } from 'react';
-import { Eye, EyeOff, Upload, CheckCircle2, Copy } from 'lucide-react';
+import { Eye, EyeOff, Upload, CheckCircle2, Copy, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import Image from 'next/image';
-import { Badge } from '@/components/ui/badge';
+import { nanoid } from 'nanoid';
 
 
 const profileFormSchema = z.object({
@@ -165,7 +164,7 @@ export default function SettingsPage() {
       toast({ title: 'Profile Picture Updated', description: 'Your new picture has been saved.' });
       setPfpFile(null);
       setPfpPreview(null);
-    } catch (error: any) {
+    } catch (error: any) => {
       console.error('PFP upload failed:', error);
       toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
     } finally {
@@ -178,6 +177,14 @@ export default function SettingsPage() {
       navigator.clipboard.writeText(user.referralCode);
       toast({ title: 'Copied!', description: 'Referral code copied to clipboard.' });
     }
+  };
+
+  const handleGenerateNewCode = async () => {
+    if (!user || !firestore) return;
+    const newCode = nanoid(10).toUpperCase();
+    const userDocRef = doc(firestore, 'users', user.uid);
+    updateDocumentNonBlocking(userDocRef, { referralCode: newCode });
+    toast({ title: 'New Code Generated!', description: 'Your new referral code is ready.' });
   };
 
 
@@ -285,14 +292,15 @@ export default function SettingsPage() {
                     <Copy className="h-4 w-4" />
                     <span className="sr-only">Copy</span>
                 </Button>
+                <Button variant="outline" size="icon" onClick={handleGenerateNewCode} disabled={!user}>
+                    <RefreshCw className="h-4 w-4" />
+                    <span className="sr-only">Generate New Code</span>
+                </Button>
             </div>
-            {/* You can add referral tracking here in the future */}
-            {/*
             <div>
-              <FormLabel>Successful Referrals</FormLabel>
-              <p className="text-2xl font-bold">0</p>
+              <FormLabel>Successful Referrals this Month</FormLabel>
+              <p className="text-2xl font-bold">{user?.referralsThisMonth ?? 0}</p>
             </div>
-            */}
           </div>
         </CardContent>
       </Card>
@@ -365,3 +373,5 @@ export default function SettingsPage() {
     </div>
   );
 }
+
+    
