@@ -224,8 +224,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (appUser.email === 'ameypatil261@gmail.com' || appUser.role === 'admin') {
         router.push('/admin');
       } else {
-        router.push('/dashboard');
+        router.push('/dashboard/my-listings');
       }
+    } else {
+        router.push('/dashboard/my-listings');
     }
     return creds;
   };
@@ -288,7 +290,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         };
         setDocumentNonBlocking(doc(firestore, 'users', result.user.uid), newUser, { merge: false });
     }
-    router.push('/dashboard');
+    router.push('/dashboard/my-listings');
   };
 
   const logout = async () => {
