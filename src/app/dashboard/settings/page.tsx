@@ -164,7 +164,7 @@ export default function SettingsPage() {
       toast({ title: 'Profile Picture Updated', description: 'Your new picture has been saved.' });
       setPfpFile(null);
       setPfpPreview(null);
-    } catch (error: any) => {
+    } catch (error: any) {
       console.error('PFP upload failed:', error);
       toast({ variant: 'destructive', title: 'Upload Failed', description: error.message });
     } finally {
