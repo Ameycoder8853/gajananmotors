@@ -33,6 +33,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, Upload, CheckCircle2, Copy, RefreshCw } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { nanoid } from 'nanoid';
+import { Badge } from '@/components/ui/badge';
 
 
 const profileFormSchema = z.object({
@@ -372,6 +373,5 @@ export default function SettingsPage() {
       </Card>
     </div>
   );
-}
 
     
