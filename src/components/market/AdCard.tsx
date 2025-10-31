@@ -100,7 +100,7 @@ export function AdCard({ ad }: AdCardProps) {
 
   return (
     <>
-    <Card className="overflow-hidden h-full flex flex-col group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-fade-in-up relative">
+    <Card className="overflow-hidden h-full flex flex-col group transition-all duration-300 hover:shadow-lg hover:-translate-y-1 relative">
       <div className="relative aspect-video overflow-hidden">
         <Link href={`/market/${ad.id}`}>
           <Image

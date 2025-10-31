@@ -41,35 +41,35 @@ export function Testimonials() {
           {testimonials.map((testimonial, index) => {
             const image = PlaceHolderImages.find(p => p.id === testimonial.imageId);
             return (
-              <Card 
-                key={testimonial.name}
-                className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 animate-fade-in-up max-w-sm mx-auto"
-                style={{ animationDelay: `${index * 150}ms` }}
-              >
-                <CardContent className="p-6 text-center">
-                  <div className="flex justify-center text-yellow-400 mb-4">
-                      {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
-                  </div>
-                  <blockquote className="text-muted-foreground italic">"{testimonial.quote}"</blockquote>
-                  <div className="mt-6 flex items-center justify-center">
-                    {image && (
-                      <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                        <Image
-                          src={image.imageUrl}
-                          alt={testimonial.name}
-                          fill
-                          className="object-cover"
-                          data-ai-hint={image.imageHint}
-                        />
-                      </div>
-                    )}
-                    <div className="ml-4 text-left">
-                      <p className="font-semibold">{testimonial.name}</p>
-                      <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+              <div className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }} key={testimonial.name}>
+                <Card 
+                  className="overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1 max-w-sm mx-auto h-full"
+                >
+                  <CardContent className="p-6 text-center">
+                    <div className="flex justify-center text-yellow-400 mb-4">
+                        {[...Array(5)].map((_, i) => <Star key={i} className="w-5 h-5 fill-current" />)}
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    <blockquote className="text-muted-foreground italic">"{testimonial.quote}"</blockquote>
+                    <div className="mt-6 flex items-center justify-center">
+                      {image && (
+                        <div className="relative w-16 h-16 rounded-full overflow-hidden">
+                          <Image
+                            src={image.imageUrl}
+                            alt={testimonial.name}
+                            fill
+                            className="object-cover"
+                            data-ai-hint={image.imageHint}
+                          />
+                        </div>
+                      )}
+                      <div className="ml-4 text-left">
+                        <p className="font-semibold">{testimonial.name}</p>
+                        <p className="text-sm text-muted-foreground">{testimonial.role}</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             );
           })}
         </div>

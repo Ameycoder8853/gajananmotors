@@ -106,6 +106,7 @@ export default function SubscriptionPage() {
         return;
     }
 
+    if (!firestore) return;
     const usersRef = collection(firestore, 'users');
     const q = query(usersRef, where('referralCode', '==', referralCode));
     const querySnapshot = await getDocs(q);
@@ -177,7 +178,7 @@ export default function SubscriptionPage() {
       subscription_id: !isDiscountApplicable ? data.id : undefined,
 
       handler: async function (response: any) {
-        if (!user?.uid) { return; };
+        if (!user?.uid || !firestore) { return; };
 
         const userDocRef = doc(firestore, 'users', user.uid);
         const batch = writeBatch(firestore);
@@ -247,7 +248,7 @@ export default function SubscriptionPage() {
     const finalPrice = isDiscountApplicable ? tier.price / 2 : tier.price;
 
     return (
-      <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
+      <Card key={tier.name} className={cn("flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
           <div className="flex justify-between items-center">
              <CardTitle className="text-2xl">{tier.name.replace(' Yearly', '')}</CardTitle>
@@ -364,7 +365,7 @@ export default function SubscriptionPage() {
                         </div>
                         <div className="flex justify-between items-baseline">
                             <span className="text-muted-foreground">Plan Expires On</span>
-                            <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt).toLocaleDateString() : 'N/A'}</span>
+                            <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt as any).toLocaleDateString() : 'N/A'}</span>
                         </div>
                         {user.nextSubscriptionDiscount && (
                             <div className="flex justify-between items-baseline text-primary font-bold">

@@ -39,21 +39,22 @@ export function HowItWorks() {
         </div>
         <div className="mt-12 max-w-5xl mx-auto grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
             {steps.map((step, index) => (
-                 <Card 
-                    key={step.title}
-                    className="text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-fade-in-up"
-                    style={{ animationDelay: `${index * 150}ms` }}
-                >
-                    <CardHeader>
-                        <div className="mx-auto bg-primary/10 rounded-full p-4 w-fit">
-                            {step.icon}
-                        </div>
-                        <CardTitle className="mt-4">{step.title}</CardTitle>
-                        <CardDescription className="mt-2">
-                        {step.description}
-                        </CardDescription>
-                    </CardHeader>
-                </Card>
+                 <div className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+                    <Card 
+                        key={step.title}
+                        className="text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full"
+                    >
+                        <CardHeader>
+                            <div className="mx-auto bg-primary/10 rounded-full p-4 w-fit">
+                                {step.icon}
+                            </div>
+                            <CardTitle className="mt-4">{step.title}</CardTitle>
+                            <CardDescription className="mt-2">
+                            {step.description}
+                            </CardDescription>
+                        </CardHeader>
+                    </Card>
+                 </div>
             ))}
         </div>
       </div>

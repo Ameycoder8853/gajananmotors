@@ -49,21 +49,22 @@ export function Features() {
         </div>
         <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
-            <Card
-              key={feature.title}
-              className="text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 animate-fade-in-up"
-              style={{ animationDelay: `${index * 150}ms` }}
-            >
-              <CardHeader>
-                <div className="mx-auto bg-primary/10 rounded-full p-4 w-fit">
-                  {feature.icon}
-                </div>
-                <CardTitle className="mt-4">{feature.title}</CardTitle>
-                <CardDescription className="mt-2">
-                  {feature.description}
-                </CardDescription>
-              </CardHeader>
-            </Card>
+            <div className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+              <Card
+                key={feature.title}
+                className="text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full"
+              >
+                <CardHeader>
+                  <div className="mx-auto bg-primary/10 rounded-full p-4 w-fit">
+                    {feature.icon}
+                  </div>
+                  <CardTitle className="mt-4">{feature.title}</CardTitle>
+                  <CardDescription className="mt-2">
+                    {feature.description}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
           ))}
         </div>
       </div>

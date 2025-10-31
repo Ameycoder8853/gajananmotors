@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect } from 'react';
 import {
@@ -104,7 +105,7 @@ export default function DealersPage() {
     };
 
     async function onInfoSubmit(values: z.infer<typeof dealerFormSchema>) {
-      if (!selectedUser) return;
+      if (!selectedUser || !firestore) return;
       const userDocRef = doc(firestore, 'users', selectedUser.id);
       updateDocumentNonBlocking(userDocRef, values);
       toast({ title: 'Dealer Updated', description: "The dealer's information has been saved." });
@@ -128,7 +129,7 @@ export default function DealersPage() {
 
   return (
     <>
-    <Card>
+    <Card className="animate-fade-in-up">
       <CardHeader>
         <CardTitle>Dealers</CardTitle>
         <CardDescription>
@@ -269,11 +270,11 @@ export default function DealersPage() {
                        <div className="flex-1 flex justify-start gap-2">
                             {selectedUser?.verificationStatus !== 'verified' ? (
                                 <>
-                                    <Button type="button" variant="outline" onClick={() => handleReject(selectedUser.id)}>Reject</Button>
-                                    <Button type="button" onClick={() => handleApprove(selectedUser.id)}>Approve</Button>
+                                    <Button type="button" variant="outline" onClick={() => handleReject(selectedUser!.id)}>Reject</Button>
+                                    <Button type="button" onClick={() => handleApprove(selectedUser!.id)}>Approve</Button>
                                 </>
                             ) : (
-                                <Button type="button" variant="destructive" onClick={() => handleUnverify(selectedUser.id)}>Unverify</Button>
+                                <Button type="button" variant="destructive" onClick={() => handleUnverify(selectedUser!.id)}>Unverify</Button>
                             )}
                         </div>
                       <Button type="submit">Save Changes</Button>
@@ -299,7 +300,7 @@ export default function DealersPage() {
                       </div>
                       <div>
                         <Label>Subscription End</Label>
-                        <p className="font-semibold">{selectedUser.proExpiresAt ? new Date(selectedUser.proExpiresAt).toLocaleDateString() : 'N/A'}</p>
+                        <p className="font-semibold">{selectedUser.proExpiresAt ? new Date(selectedUser.proExpiresAt as any).toLocaleDateString() : 'N/A'}</p>
                       </div>
                     </>
                   ) : (
