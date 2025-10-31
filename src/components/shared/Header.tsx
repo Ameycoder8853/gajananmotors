@@ -117,8 +117,8 @@ export function Header() {
       : "bg-transparent"
   );
 
-  const linkColor = scrolled || !isMarketingPage ? "text-muted-foreground" : "text-primary-foreground/80";
-  const activeLinkColor = scrolled || !isMarketingPage ? "text-primary" : "text-primary-foreground";
+  const linkColor = scrolled || !isMarketingPage ? "text-muted-foreground" : "text-white";
+  const activeLinkColor = scrolled || !isMarketingPage ? "text-primary" : "text-white font-bold";
 
 
   const getNavLinkStyle = (path?: string) => {
@@ -216,7 +216,7 @@ export function Header() {
           </div>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className={cn("md:hidden", !scrolled && pathname === '/' && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
+              <Button variant="ghost" size="icon" className={cn("md:hidden", !scrolled && pathname === '/' && "text-white hover:text-white hover:bg-white/10")}>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
