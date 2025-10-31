@@ -113,7 +113,7 @@ export default function SubscriptionPage() {
 
       // Check if the referrer has already made a referral this month
       if (referrerUser.lastReferralDate) {
-        const lastRefDate = (referrerUser.lastReferralDate as Timestamp).toDate();
+        const lastRefDate = (referrerUser.lastReferralDate instanceof Timestamp) ? referrerUser.lastReferralDate.toDate() : new Date(referrerUser.lastReferralDate);
         const currentDate = new Date();
         if (
             lastRefDate.getMonth() === currentDate.getMonth() &&
@@ -142,17 +142,21 @@ export default function SubscriptionPage() {
       return;
     }
     
-    const finalAmount = discountApplied && !isYearly ? amount / 2 : amount;
+    // Determine if the discount is based on a referral code entered on this page, or an existing discount on the user's account
     const isReferralPurchase = discountApplied && !isYearly;
+    const isRenewalDiscount = user.nextSubscriptionDiscount && !isYearly && !isReferralPurchase;
+    const isDiscountApplicable = isReferralPurchase || isRenewalDiscount;
+    const finalAmount = isDiscountApplicable ? amount / 2 : amount;
+
 
     const res = await fetch('/api/razorpay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        planId, 
+        planId: isDiscountApplicable ? undefined : planId,
         isYearly,
-        amount: finalAmount, // Send final amount to create an order
-        isReferralPurchase,
+        amount: finalAmount, 
+        isReferralPurchase: isDiscountApplicable, // Use a generic flag for any one-time discounted purchase
       }),
     });
 
@@ -173,9 +177,9 @@ export default function SubscriptionPage() {
       amount: data.amount,
       currency: data.currency,
       name: 'Gajanan Motors',
-      description: `${planName} Purchase ${isReferralPurchase ? '(50% Off)' : ''}`,
-      order_id: isReferralPurchase ? data.id : undefined,
-      subscription_id: !isReferralPurchase ? data.id : undefined,
+      description: `${planName} Purchase ${isDiscountApplicable ? '(50% Off)' : ''}`,
+      order_id: isDiscountApplicable ? data.id : undefined,
+      subscription_id: !isDiscountApplicable ? data.id : undefined,
 
       handler: async function (response: any) {
         if (!user?.uid) { return; };
@@ -215,6 +219,10 @@ export default function SubscriptionPage() {
             });
         }
 
+        if (isRenewalDiscount) {
+            updateData.nextSubscriptionDiscount = false;
+        }
+
         batch.update(userDocRef, updateData);
         await batch.commit();
 
@@ -241,7 +249,8 @@ export default function SubscriptionPage() {
 
   const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
     const isMonthly = !isYearly;
-    const finalPrice = discountApplied && isMonthly ? tier.price / 2 : tier.price;
+    const isDiscountApplicable = (discountApplied || user?.nextSubscriptionDiscount) && isMonthly;
+    const finalPrice = isDiscountApplicable ? tier.price / 2 : tier.price;
 
     return (
       <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
@@ -256,7 +265,7 @@ export default function SubscriptionPage() {
              )}
           </div>
           <CardDescription>
-            {discountApplied && isMonthly && (
+            {isDiscountApplicable && (
                  <span className="text-xl font-bold text-muted-foreground line-through">₹{tier.price}</span>
             )}
             <span className="text-4xl font-bold">₹{finalPrice}</span>
@@ -271,10 +280,10 @@ export default function SubscriptionPage() {
                 <span>{feature}</span>
               </li>
             ))}
-             {discountApplied && isMonthly && (
+             {isDiscountApplicable && (
                 <li className="flex items-center font-bold text-primary">
                     <Ticket className="mr-2 h-5 w-5" />
-                    <span>50% Referral Discount!</span>
+                    <span>50% Discount Applied!</span>
                 </li>
              )}
           </ul>
@@ -409,7 +418,5 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-
-    
 
     
