@@ -49,9 +49,8 @@ export function Features() {
         </div>
         <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feature, index) => (
-            <div className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
+            <div key={feature.title} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
               <Card
-                key={feature.title}
                 className="text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full"
               >
                 <CardHeader>
