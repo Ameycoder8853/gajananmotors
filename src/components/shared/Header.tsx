@@ -184,7 +184,7 @@ export function Header() {
                     ((pathname === link.href && !link.href.includes('#')) || (isMarketingPage && link.href.includes('#') && activeHash === link.href.substring(1))) && activeLinkColor
                 )}
               >
-                {link.label}
+                <span>{link.label}</span>
                 {((pathname === link.href && !link.href.includes('#')) || (isMarketingPage && link.href.includes('#') && activeHash === link.href.substring(1))) && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>}
               </Link>
             )

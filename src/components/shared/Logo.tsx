@@ -23,10 +23,10 @@ export function Logo({ className }: { className?: string }) {
         <Image 
           src={src} 
           alt="Gajanan Motors Logo" 
-          width={40} 
-          height={40} 
+          width={80} 
+          height={60} 
           priority
-          className="h-7 w-auto"
+          className=""
         />
       ) : (
         <div style={{ width: '28px', height: '28px' }} /> // Placeholder to prevent layout shift
