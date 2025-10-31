@@ -210,7 +210,7 @@ export default function SubscriptionPage() {
       <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
           <div className="flex justify-between items-center">
-             <CardTitle className="text-2xl">{tier.name}</CardTitle>
+             <CardTitle className="text-2xl">{tier.name.replace(' Yearly', '')}</CardTitle>
              {isCurrent && (
                 <div className="flex items-center gap-1 text-primary">
                     <Star className="w-5 h-5 fill-current" />
@@ -238,7 +238,7 @@ export default function SubscriptionPage() {
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
                  <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, isUpgradeOption, isYearly)}>
-                    {isUpgradeOption ? `Switch to ${tier.name}` : 'Choose Plan'}
+                    {isUpgradeOption ? `Switch to ${tier.name.replace(' Yearly', '')}` : 'Choose Plan'}
                 </Button>
             )}
         </CardFooter>
@@ -250,7 +250,7 @@ export default function SubscriptionPage() {
     const currentTier = allTiers.find(t => t.name === user.subscriptionType);
     
     // Find possible upgrade tiers
-    const currentTierIndex = monthlyTiers.findIndex(t => t.name === currentTier?.name) ?? -1;
+    const currentTierIndex = monthlyTiers.findIndex(t => t.name === currentTier?.name.replace(' Yearly', '')) ?? -1;
     const upgradeTier = currentTierIndex !== -1 && currentTierIndex < monthlyTiers.length - 1 ? monthlyTiers[currentTierIndex + 1] : null;
 
     return (
@@ -264,7 +264,7 @@ export default function SubscriptionPage() {
                  <Card className="border-primary border-2 animate-fade-in-up">
                     <CardHeader>
                         <div className="flex justify-between items-center">
-                            <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
+                            <CardTitle className="text-2xl">{user.subscriptionType.replace(' Yearly', '')} Plan</CardTitle>
                             <div className="flex items-center gap-1 text-primary">
                                 <Star className="w-5 h-5 fill-current" />
                                 <span className="font-bold">Current Plan</span>
@@ -287,6 +287,12 @@ export default function SubscriptionPage() {
                 </Card>
                )}
                {upgradeTier && renderTierCard(upgradeTier, false, true, false)}
+            </div>
+             <div className="max-w-4xl mx-auto mt-8 text-center">
+                <p className="text-muted-foreground">Need a different plan?</p>
+                <Button variant="link" asChild>
+                    <Link href="/subscription">View All Plans</Link>
+                </Button>
             </div>
         </div>
     );

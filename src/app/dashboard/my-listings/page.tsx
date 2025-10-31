@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -48,7 +49,7 @@ export default function MyListingsPage() {
                     </CardHeader>
                     <CardContent>
                         <Button asChild>
-                             <Link href="/dashboard/subscription">View Subscription Plans</Link>
+                             <Link href="/subscription">View Subscription Plans</Link>
                         </Button>
                     </CardContent>
                 </Card>
@@ -68,7 +69,7 @@ export default function MyListingsPage() {
                 </Button>
             </div>
 
-            {(user?.adCredits ?? 0) <= 0 && (
+            {(user?.adCredits ?? 0) <= 0 && (myListings?.length ?? 0) > 0 && (
                 <Card className="mb-6 bg-amber-50 border-amber-200 animate-fade-in">
                     <CardContent className="p-4">
                         <div className="flex items-center gap-4">
@@ -77,7 +78,7 @@ export default function MyListingsPage() {
                                 <p className="text-sm text-muted-foreground">Please upgrade your subscription to post more ads.</p>
                             </div>
                             <Button asChild className="ml-auto">
-                                <Link href="/dashboard/subscription">Upgrade Plan</Link>
+                                <Link href="/subscription">Upgrade Plan</Link>
                             </Button>
                         </div>
                     </CardContent>
@@ -95,7 +96,7 @@ export default function MyListingsPage() {
                                     <p className="font-bold mt-2">Ad is Private</p>
                                     <p className="text-sm">This ad is not visible in the public marketplace because your subscription has expired or downgraded. Renew to make it public.</p>
                                     <Button asChild variant="secondary" className="mt-4">
-                                        <Link href="/dashboard/subscription">Manage Subscription</Link>
+                                        <Link href="/subscription">Manage Subscription</Link>
                                     </Button>
                                 </div>
                             )}
