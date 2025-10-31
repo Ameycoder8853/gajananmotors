@@ -30,7 +30,7 @@ import { initializeFirebase } from '@/firebase';
 import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, updateProfile } from 'firebase/auth';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState } from 'react';
-import { Eye, EyeOff, Upload, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Upload, CheckCircle2, Copy } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
@@ -173,6 +173,13 @@ export default function SettingsPage() {
     }
   };
 
+  const copyReferralCode = () => {
+    if (user?.referralCode) {
+      navigator.clipboard.writeText(user.referralCode);
+      toast({ title: 'Copied!', description: 'Referral code copied to clipboard.' });
+    }
+  };
+
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -259,6 +266,34 @@ export default function SettingsPage() {
               </div>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Referral Program</CardTitle>
+          <CardDescription>
+            Share your code with friends. They get 50% off their first monthly subscription, and you get 50% off your next one!
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <FormLabel>Your Referral Code</FormLabel>
+            <div className="flex items-center gap-2">
+                <Input value={user?.referralCode || 'Generating...'} readOnly />
+                <Button variant="outline" size="icon" onClick={copyReferralCode} disabled={!user?.referralCode}>
+                    <Copy className="h-4 w-4" />
+                    <span className="sr-only">Copy</span>
+                </Button>
+            </div>
+            {/* You can add referral tracking here in the future */}
+            {/*
+            <div>
+              <FormLabel>Successful Referrals</FormLabel>
+              <p className="text-2xl font-bold">0</p>
+            </div>
+            */}
+          </div>
         </CardContent>
       </Card>
 

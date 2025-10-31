@@ -1,6 +1,7 @@
 
 import type { StaticImageData } from "next/image";
 import { Timestamp } from "firebase/firestore";
+import { nanoid } from 'nanoid';
 
 export type User = {
   id: string;
@@ -20,6 +21,10 @@ export type User = {
   aadharUrl?: string;
   panUrl?: string;
   shopLicenseUrl?: string;
+  referralCode: string;
+  referredBy?: string;
+  hasUsedReferral: boolean;
+  nextSubscriptionDiscount: boolean;
 };
 
 export type FirebaseUser = import('firebase/auth').User & {
@@ -35,6 +40,7 @@ export type FirebaseUser = import('firebase/auth').User & {
     aadharUrl?: string;
     panUrl?: string;
     shopLicenseUrl?: string;
+    referralCode?: string;
 }
 
 export type Ad = {
@@ -75,5 +81,3 @@ export type Payment = {
   status: 'created' | 'paid' | 'failed';
   createdAt: Date;
 };
-
-    

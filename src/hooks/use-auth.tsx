@@ -20,6 +20,7 @@ import { initializeFirebase, errorEmitter, FirestorePermissionError, useFirebase
 import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
 import { useToast } from './use-toast';
+import { nanoid } from 'nanoid';
 
 interface AuthContextType {
   user: FirebaseUser | null;
@@ -73,6 +74,9 @@ const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
       verificationStatus: 'verified',
       emailVerified: true,
       isPhoneVerified: true,
+      referralCode: `ADMIN-${nanoid(6)}`,
+      hasUsedReferral: false,
+      nextSubscriptionDiscount: false,
     };
     await setDoc(doc(firestore, 'users', adminCred.user.uid), adminData);
     console.log('Admin user successfully created.');
@@ -170,7 +174,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     role: 'dealer',
                     phone: firebaseUser.phoneNumber || '',
                     createdAt: new Date(),
-                    verificationStatus: 'unverified'
+                    verificationStatus: 'unverified',
+                    referralCode: nanoid(10).toUpperCase(),
+                    hasUsedReferral: false,
+                    nextSubscriptionDiscount: false,
                 };
                 setDocumentNonBlocking(doc(firestore, 'users', firebaseUser.uid), newUser, { merge: false });
                 const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, photoURL: firebaseUser.photoURL, emailVerified: firebaseUser.emailVerified, isPhoneVerified: false };
@@ -232,7 +239,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email,
         role: 'dealer',
         createdAt: new Date(),
-        verificationStatus: 'unverified'
+        verificationStatus: 'unverified',
+        referralCode: nanoid(10).toUpperCase(),
+        hasUsedReferral: false,
+        nextSubscriptionDiscount: false,
       };
       
       setDocumentNonBlocking(userDocRef, userData, { merge: false });
@@ -269,7 +279,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             role: 'dealer',
             phone: result.user.phoneNumber || '',
             createdAt: new Date(),
-            verificationStatus: 'unverified'
+            verificationStatus: 'unverified',
+            referralCode: nanoid(10).toUpperCase(),
+            hasUsedReferral: false,
+            nextSubscriptionDiscount: false,
         };
         setDocumentNonBlocking(doc(firestore, 'users', result.user.uid), newUser, { merge: false });
     }
