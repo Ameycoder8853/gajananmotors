@@ -1,9 +1,9 @@
 export const firebaseConfig = {
-  apiKey: "AIzaSyD_7EAIeJ7PLiABKk0om-dISJxvCGMjhzM",
-  authDomain: "gajananmotors-2033e.firebaseapp.com",
-  projectId: "gajananmotors-2033e",
-  storageBucket: "videomatic-ai-5c2b2.appspot.com",
-  messagingSenderId: "465027127739",
-  appId: "1:465027127739:web:6e0f1350d4cbc3fe594c9e",
-  measurementId: "G-6RTZ9RGMQK"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };

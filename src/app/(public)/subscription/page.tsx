@@ -7,7 +7,7 @@ import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase } from '@/firebase';
-import { doc, increment, writeBatch, Timestamp, collection } from 'firebase/firestore';
+import { doc, increment, writeBatch, Timestamp, collection, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -90,8 +90,8 @@ export default function SubscriptionPage() {
       return;
     }
     
-    if (!planId) {
-       toast({ variant: 'destructive', title: 'Configuration Error', description: 'This plan is not configured correctly. Please contact support.' });
+    if (!planId && isYearly) {
+       toast({ variant: 'destructive', title: 'Configuration Error', description: 'This yearly plan is not configured correctly. Please contact support.' });
        return;
     }
 
@@ -104,7 +104,7 @@ export default function SubscriptionPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        planId,
+        planId: isYearly ? planId : undefined,
         isYearly,
         amount
       }),
@@ -249,6 +249,17 @@ export default function SubscriptionPage() {
     );
   }
 
+  const getProExpiresDate = () => {
+    if (!user?.proExpiresAt) return 'N/A';
+    // Handle both Timestamp and Date objects
+    if (user.proExpiresAt instanceof Timestamp) {
+      return user.proExpiresAt.toDate().toLocaleDateString();
+    }
+    // It's likely already a Date object from the auth hook conversion
+    return new Date(user.proExpiresAt as any).toLocaleDateString();
+  };
+
+
   // Common layout for all subscription views
   return (
     <div className="py-12 animate-fade-in-up">
@@ -281,7 +292,7 @@ export default function SubscriptionPage() {
                         </div>
                         <div className="flex justify-between items-baseline">
                             <span className="text-muted-foreground">Plan Expires On</span>
-                            <span className="font-semibold">{user.proExpiresAt ? (user.proExpiresAt instanceof Timestamp ? user.proExpiresAt.toDate() : new Date(user.proExpiresAt as any)).toLocaleDateString() : 'N/A'}</span>
+                            <span className="font-semibold">{getProExpiresDate()}</span>
                         </div>
                     </CardContent>
                 </Card>
