@@ -117,7 +117,7 @@ export function Header() {
       : "bg-transparent"
   );
 
-  const linkColor = scrolled || !isMarketingPage ? "text-muted-foreground" : "text-white";
+  const linkColor = scrolled || !isMarketingPage ? "text-foreground" : "text-white";
   const activeLinkColor = scrolled || !isMarketingPage ? "text-primary" : "text-white font-bold";
 
 
