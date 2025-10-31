@@ -270,6 +270,7 @@ export default function EditListingPage() {
           description: 'Your car listing has been successfully updated.',
         });
     
+        setUploadProgress(null); // Reset progress after success
         router.push('/dashboard/my-listings');
 
     } catch (error) {
@@ -581,16 +582,16 @@ export default function EditListingPage() {
                     )}
                     />
 
-                {uploadProgress !== null && (
+                {uploadProgress !== null && uploadProgress < 100 && (
                     <div className="lg:col-span-3">
                         <Progress value={uploadProgress} className="w-full" />
-                        <p className="text-sm text-center mt-2 text-muted-foreground">{uploadProgress < 100 ? `Uploading images... ${Math.round(uploadProgress)}%` : 'Upload complete!'}</p>
+                        <p className="text-sm text-center mt-2 text-muted-foreground">Uploading images... {Math.round(uploadProgress)}%</p>
                     </div>
                 )}
 
                 <div className="lg:col-span-3 flex justify-end">
-                    <Button type="submit" size="lg" disabled={form.formState.isSubmitting || uploadProgress !== null}>
-                        {form.formState.isSubmitting || uploadProgress !== null ? 'Saving Changes...' : 'Save Changes'}
+                    <Button type="submit" size="lg" disabled={form.formState.isSubmitting || (uploadProgress !== null && uploadProgress < 100)}>
+                        {form.formState.isSubmitting || (uploadProgress !== null && uploadProgress < 100) ? 'Saving Changes...' : 'Save Changes'}
                     </Button>
                 </div>
             </form>
@@ -599,3 +600,5 @@ export default function EditListingPage() {
     </Card>
   );
 }
+
+    
