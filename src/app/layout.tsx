@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import Script from 'next/script';
 import './globals.css';
@@ -50,10 +51,7 @@ export const metadata: Metadata = {
     creator: "@gajananmotors",
   },
   icons: {
-    icon: [
-        { url: "/favicon-light.ico", media: "(prefers-color-scheme: light)" },
-        { url: "/favicon-dark.ico", media: "(prefers-color-scheme: dark)" },
-    ],
+    icon: "/favicon-light.ico",
   },
   manifest: `/site.webmanifest`,
 };
