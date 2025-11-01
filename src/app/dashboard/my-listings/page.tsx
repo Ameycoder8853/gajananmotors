@@ -11,10 +11,12 @@ import { useCollection, useMemoFirebase } from "@/firebase";
 import { collection, query, where } from "firebase/firestore";
 import { useFirestore } from "@/firebase/provider";
 import type { Ad } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
 export default function MyListingsPage() {
     const { user, isUserLoading } = useAuth();
     const firestore = useFirestore();
+    const { toast } = useToast();
 
     const myListingsQuery = useMemoFirebase(() => {
         if (!firestore || !user) return null;
@@ -25,6 +27,14 @@ export default function MyListingsPage() {
     const { data: myListings, isLoading: areListingsLoading } = useCollection<Ad>(myListingsQuery);
 
     const isLoading = isUserLoading || areListingsLoading;
+    
+    const handleEditClick = () => {
+        toast({
+          title: "Feature Under Development",
+          description: "We are currently working on the edit ad functionality. For now, please delete and repost the ad. We apologize for the inconvenience.",
+          duration: 8000,
+        });
+    };
 
     if (isLoading) {
       return (
@@ -133,8 +143,8 @@ export default function MyListingsPage() {
                                         <>
                                             <p className="text-sm mt-2">This ad was made private by an admin.</p>
                                             <p className="text-xs italic mt-1 text-gray-300">Reason: {ad.moderationReason}</p>
-                                            <Button asChild variant="secondary" className="mt-4">
-                                                <Link href={`/dashboard/my-listings/edit/${ad.id}`}>Edit Ad</Link>
+                                            <Button onClick={handleEditClick} variant="secondary" className="mt-4">
+                                                Edit Ad
                                             </Button>
                                         </>
                                     ) : (

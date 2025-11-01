@@ -57,7 +57,14 @@ export function AdCard({ ad }: AdCardProps) {
   const isOwnerOnMyListings = user && user.uid === ad.dealerId && pathname.includes('/dashboard/my-listings');
   const isAdminOnAdminListings = user && user.role === 'admin' && pathname.includes('/admin/listings');
   const canShowControls = isOwnerOnMyListings || isAdminOnAdminListings;
-  const editUrl = isAdminOnAdminListings ? `/admin/listings/edit/${ad.id}` : `/dashboard/my-listings/edit/${ad.id}`;
+  
+  const handleEditClick = () => {
+    toast({
+      title: "Feature Under Development",
+      description: "We are currently working on the edit ad functionality. For now, please delete and repost the ad. We apologize for the inconvenience.",
+      duration: 8000,
+    });
+  };
 
 
   const handleDelete = async () => {
@@ -228,11 +235,9 @@ export function AdCard({ ad }: AdCardProps) {
         <div className="px-4 pb-3 pt-1 flex justify-between items-center">
              <span className="text-xs text-muted-foreground">{getFormattedDate()}</span>
              <div className="flex items-center gap-2">
-                <Button asChild variant="outline" size="icon" className="h-8 w-8">
-                    <Link href={editUrl}>
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit Ad</span>
-                    </Link>
+                <Button onClick={handleEditClick} variant="outline" size="icon" className="h-8 w-8">
+                  <Pencil className="h-4 w-4" />
+                  <span className="sr-only">Edit Ad</span>
                 </Button>
                 {isAdminOnAdminListings && (
                     ad.visibility === 'public' ? (
