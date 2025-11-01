@@ -19,6 +19,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { sendContactEmail } from "@/ai/flows/send-contact-email";
+import Head from "next/head";
 
 
 const contactFormSchema = z.object({
@@ -148,8 +149,34 @@ function ContactForm() {
     );
 }
 
+// Structured Data for SEO
+const structuredData = {
+    "@context": "https://schema.org",
+    "@type": "AutomobileDealer",
+    "name": "Gajanan Motors",
+    "url": "https://gajananmotors.com", // Replace with your actual domain
+    "logo": "https://gajananmotors.com/logo-dark.svg", // Replace with your actual logo URL
+    "description": "Gajanan Motors is your trusted partner for buying and selling quality used cars. Browse our verified listings from trusted dealers and find your dream car today.",
+    "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "VARDHAMAN PLAZA, SANGLI KOLHAPUR ROAD",
+        "addressLocality": "Sangli",
+        "addressRegion": "MAHARASHTRA",
+        "postalCode": "416416",
+        "addressCountry": "IN"
+    },
+    "telephone": "+91-8999809224"
+};
+
 export default function LandingPage() {
   return (
+    <>
+    <Head>
+        <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+        />
+    </Head>
     <div className="relative">
       <Hero />
       <div className="relative bg-background z-10">
@@ -163,5 +190,6 @@ export default function LandingPage() {
         <ContactForm />
       </div>
     </div>
+    </>
   );
 }

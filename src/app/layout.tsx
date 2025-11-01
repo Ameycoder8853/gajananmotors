@@ -6,12 +6,55 @@ import { AuthProvider } from '@/hooks/use-auth';
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
 
+const siteConfig = {
+  name: 'Gajanan Motors',
+  url: 'https://gajananmotors.com', // Replace with your actual domain
+  description: 'Gajanan Motors is your trusted partner for buying and selling quality used cars. Browse our verified listings from trusted dealers and find your dream car today.',
+  ogImage: 'https://gajananmotors.com/og-image.png', // Replace with your actual OG image URL
+  links: {
+    twitter: 'https://twitter.com/gajananmotors', // Replace with your Twitter handle
+  }
+}
+
 export const metadata: Metadata = {
   title: {
-    default: 'Gajanan Motors',
-    template: `%s | Gajanan Motors`,
+    default: `${siteConfig.name} - Trusted Used Car Dealership`,
+    template: `%s | ${siteConfig.name}`,
   },
-  description: 'Your trusted partner in buying and selling cars.',
+  description: siteConfig.description,
+  keywords: ["Gajanan Motors", "used cars", "second-hand cars", "car dealership", "buy used car", "sell used car", "verified dealers"],
+  authors: [{ name: "Gajanan Motors" }],
+  creator: "Gajanan Motors",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteConfig.url,
+    title: siteConfig.name,
+    description: siteConfig.description,
+    siteName: siteConfig.name,
+    images: [
+      {
+        url: siteConfig.ogImage,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: siteConfig.name,
+    description: siteConfig.description,
+    images: [siteConfig.ogImage],
+    creator: siteConfig.links.twitter,
+  },
+  icons: {
+    icon: [
+        { url: "/favicon-light.ico", media: "(prefers-color-scheme: light)" },
+        { url: "/favicon-dark.ico", media: "(prefers-color-scheme: dark)" },
+    ],
+  },
+  manifest: `${siteConfig.url}/site.webmanifest`,
 };
 
 export default function RootLayout({
@@ -22,8 +65,6 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="icon" href="/favicon-light.ico" media="(prefers-color-scheme: light)" />
-        <link rel="icon" href="/favicon-dark.ico" media="(prefers-color-scheme: dark)" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
