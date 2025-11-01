@@ -17,6 +17,7 @@ const siteConfig = {
 }
 
 export const metadata: Metadata = {
+  metadataBase: new URL(siteConfig.url),
   title: {
     default: `${siteConfig.name} - Trusted Used Car Dealership`,
     template: `%s | ${siteConfig.name}`,
