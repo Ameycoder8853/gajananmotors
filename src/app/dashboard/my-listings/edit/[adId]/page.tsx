@@ -53,6 +53,8 @@ const adFormSchema = z.object({
   make: z.string().min(2, 'Make is required.'),
   model: z.string().min(1, 'Model is required.'),
   variant: z.string().min(1, 'Variant is required.'),
+  numberPlate: z.string().min(6, 'Number plate is required.'),
+  registrationCity: z.string().min(2, 'Registration city is required.'),
   year: z.coerce.number().min(1980, 'Year must be after 1980.').max(new Date().getFullYear() + 1),
   kmDriven: z.coerce.number().min(0, 'Kilometers must be a positive number.'),
   fuelType: z.enum(['Petrol', 'Diesel', 'Electric', 'CNG', 'LPG']),
@@ -109,6 +111,8 @@ export default function EditListingPage() {
       make: '',
       model: '',
       variant: '',
+      numberPlate: '',
+      registrationCity: '',
       year: new Date().getFullYear(),
       kmDriven: 0,
       price: 10000,
@@ -134,7 +138,7 @@ export default function EditListingPage() {
       const state = locationParts.length > 0 ? locationParts[locationParts.length - 1] : '';
       const city = locationParts.length > 1 ? locationParts[locationParts.length - 2] : '';
       const subLocation = locationParts.length > 2 ? locationParts[locationParts.length - 3] : '';
-      const addressLine = locationParts.length > 3 ? locationParts.slice(0, -3).join(', ') : '';
+      const addressLine = ad.addressLine || (locationParts.length > 3 ? locationParts.slice(0, -3).join(', ') : '');
 
       form.reset({
         ...adDataToReset, // Use the ad data without the images field
@@ -390,6 +394,26 @@ export default function EditListingPage() {
                         <FormLabel>Variant</FormLabel>
                         <FormControl>
                             <Input placeholder="e.g., VXi, ZXi+" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+
+                 <FormField control={form.control} name="numberPlate" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Number Plate</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., MH12AB1234" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+
+                <FormField control={form.control} name="registrationCity" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Registration City</FormLabel>
+                        <FormControl>
+                            <Input placeholder="e.g., MH09 Kolhapur" {...field} />
                         </FormControl>
                         <FormMessage />
                     </FormItem>

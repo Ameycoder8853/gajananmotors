@@ -190,6 +190,14 @@
         "removalPaymentId": {
           "type": "string",
           "description": "Reference to Payment. (Relationship: Payment 1:1 Ad Removal). The payment id for the removal fee (can be null)."
+        },
+        "numberPlate": {
+          "type": "string",
+          "description": "The car's number plate."
+        },
+        "registrationCity": {
+          "type": "string",
+          "description": "The city where the car is registered (e.g., MH09 Kolhapur)."
         }
       },
       "required": [
@@ -209,7 +217,9 @@
         "images",
         "status",
         "visibility",
-        "createdAt"
+        "createdAt",
+        "numberPlate",
+        "registrationCity"
       ]
     },
     "Payment": {

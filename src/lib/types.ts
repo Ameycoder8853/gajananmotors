@@ -66,6 +66,8 @@ export type Ad = {
   dealer?: User;
   features?: string[];
   moderationReason?: string;
+  numberPlate: string;
+  registrationCity: string;
 };
 
 export type Payment = {

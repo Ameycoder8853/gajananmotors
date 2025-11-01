@@ -67,6 +67,7 @@ export default function AdDetailPage() {
     { label: "Kilometers driven", value: `${ad.kmDriven.toLocaleString("en-IN")} km` },
     { label: "Fuel Type", value: ad.fuelType },
     { label: "Transmission", value: ad.transmission },
+    { label: "Registration City", value: ad.registrationCity },
     { label: "Location", value: ad.location },
   ];
   

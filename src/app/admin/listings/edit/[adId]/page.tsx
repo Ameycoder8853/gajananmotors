@@ -31,10 +31,11 @@ import {
 } from '@/components/ui/select';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { useRouter } from 'next/navigation';
-import { collection, doc, serverTimestamp, increment } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { useFirestore, useStorage, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { useRouter, useParams, notFound } from 'next/navigation';
+import { serverTimestamp } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
+import { useFirestore, useStorage, useDoc, useMemoFirebase, updateDocumentNonBlocking } from '@/firebase';
+import { doc } from 'firebase/firestore';
 import { ArrowLeft, Upload, X } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useEffect, useRef } from 'react';
@@ -44,6 +45,7 @@ import { carData, makes } from '@/lib/car-data';
 import { states, citiesByState } from '@/lib/location-data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { carFeatures } from '@/lib/car-features';
+import type { Ad } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 
@@ -63,27 +65,47 @@ const adFormSchema = z.object({
   city: z.string().min(2, 'City is required.'),
   subLocation: z.string().min(2, 'Area/Sub-location is required.'),
   addressLine: z.string().optional(),
-  images: z.array(z.instanceof(File)).min(1, 'At least one image is required.').max(20, 'You can upload a maximum of 20 images.'),
+  newImages: z.array(z.instanceof(File)).max(20, 'You can upload a maximum of 20 images.').optional(),
   features: z.array(z.string()).optional(),
 });
 
-export default function NewListingPage() {
-  const { user } = useAuth();
+type AdFormValues = z.infer<typeof adFormSchema>;
+
+interface ImageObject {
+  id: string;
+  url: string;
+  type: 'existing' | 'new';
+  file?: File;
+}
+
+export default function AdminEditListingPage() {
+  const { user, isUserLoading } = useAuth();
   const { toast } = useToast();
   const router = useRouter();
+  const params = useParams();
+  const { adId } = params;
+
   const firestore = useFirestore();
   const storage = useStorage();
   
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const adRef = useMemoFirebase(() => {
+    if (!firestore || typeof adId !== 'string') return null;
+    return doc(firestore, 'cars', adId);
+  }, [firestore, adId]);
+
+  const { data: ad, isLoading: isAdLoading } = useDoc<Ad>(adRef);
+
+  const [images, setImages] = useState<ImageObject[]>([]);
+  const [imagesToRemove, setImagesToRemove] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [models, setModels] = useState<string[]>([]);
   const [cities, setCities] = useState<string[]>([]);
-  
+
   // Drag and drop state
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
-  const form = useForm<z.infer<typeof adFormSchema>>({
+  const form = useForm<AdFormValues>({
     resolver: zodResolver(adFormSchema),
     defaultValues: {
       make: '',
@@ -99,64 +121,110 @@ export default function NewListingPage() {
       city: '',
       subLocation: '',
       addressLine: '',
-      images: [],
+      newImages: [],
       features: [],
     },
   });
 
   const selectedMake = form.watch('make');
   const selectedState = form.watch('state');
-  const images = form.watch('images');
 
   useEffect(() => {
-    const previews = images.map(file => URL.createObjectURL(file));
-    setImagePreviews(previews);
+    if (ad) {
+        const { images: adImages, ...adDataToReset } = ad;
 
-    // Clean up object URLs on unmount
-    return () => {
-      previews.forEach(url => URL.revokeObjectURL(url));
-    };
-  }, [images]);
+        const locationParts = (ad.location || '').split(',').map(s => s.trim());
+        const state = locationParts.length > 0 ? locationParts[locationParts.length - 1] : '';
+        const city = locationParts.length > 1 ? locationParts[locationParts.length - 2] : '';
+        const subLocation = locationParts.length > 2 ? locationParts[locationParts.length - 3] : '';
+        const addressLine = ad.addressLine || (locationParts.length > 3 ? locationParts.slice(0, -3).join(', ') : '');
+
+        form.reset({
+            ...adDataToReset,
+            state: state || '',
+            city: city || '',
+            subLocation: subLocation || '',
+            addressLine: addressLine || '',
+            newImages: [],
+        });
+        
+        if (adImages && Array.isArray(adImages)) {
+          const existingImages: ImageObject[] = (adImages as string[]).map(url => ({
+            id: url,
+            url: url,
+            type: 'existing'
+          }));
+          setImages(existingImages);
+        }
+
+        if (ad.make && carData[ad.make]) {
+            setModels(carData[ad.make]);
+        }
+        if (state && citiesByState[state]) {
+            setCities(citiesByState[state]);
+        }
+    }
+  }, [ad, form]);
+
+  const isLoading = isAdLoading || isUserLoading;
+
+  // Admin check
+  if (!isLoading && user?.role !== 'admin') {
+    return notFound();
+  }
 
   useEffect(() => {
     if (selectedMake) {
       setModels(carData[selectedMake] || []);
-      form.setValue('model', '');
+      // Only reset model if the form has been touched, to avoid resetting on initial load
+      if (form.formState.isDirty) {
+        form.setValue('model', '');
+      }
     }
   }, [selectedMake, form]);
   
   useEffect(() => {
     if (selectedState) {
         setCities(citiesByState[selectedState] || []);
-        form.setValue('city', '');
+        if (form.formState.isDirty) {
+            form.setValue('city', '');
+        }
     }
   }, [selectedState, form]);
 
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const files = Array.from(e.target.files || []);
-      const currentImages = form.getValues('images') || [];
-      const combined = [...currentImages, ...files].slice(0, 20);
-      form.setValue('images', combined, { shouldValidate: true });
+      const newImageObjects: ImageObject[] = files.map(file => ({
+        id: URL.createObjectURL(file),
+        url: URL.createObjectURL(file),
+        type: 'new',
+        file: file,
+      }));
+      
+      const combined = [...images, ...newImageObjects].slice(0, 20);
+      setImages(combined);
   }
 
   const removeImage = (index: number) => {
-      const currentImages = form.getValues('images');
-      const newImages = currentImages.filter((_, i) => i !== index);
-      form.setValue('images', newImages, { shouldValidate: true });
+      const imageToRemove = images[index];
+      if (imageToRemove.type === 'existing') {
+          setImagesToRemove(prev => [...prev, imageToRemove.url]);
+      }
+      setImages(images.filter((_, i) => i !== index));
   }
 
   const handleDragEnd = () => {
     if (dragItem.current === null || dragOverItem.current === null) return;
 
-    const currentImages = [...form.getValues('images')];
-    const draggedItemContent = currentImages.splice(dragItem.current, 1)[0];
-    currentImages.splice(dragOverItem.current, 0, draggedItemContent);
+    const newImages = [...images];
+    const draggedItemContent = newImages.splice(dragItem.current, 1)[0];
+    newImages.splice(dragOverItem.current, 0, draggedItemContent);
     
     dragItem.current = null;
     dragOverItem.current = null;
     
-    form.setValue('images', currentImages);
+    setImages(newImages);
   };
 
   async function uploadImages(files: File[], adId: string): Promise<string[]> {
@@ -176,71 +244,88 @@ export default function NewListingPage() {
     return urls;
   }
 
-  async function onSubmit(values: z.infer<typeof adFormSchema>) {
-    if (!user || !firestore) {
-      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to post an ad.' });
+  async function deleteImages(urls: string[]) {
+    if (!storage) return;
+    for (const url of urls) {
+        try {
+            const imageRef = ref(storage, url);
+            await deleteObject(imageRef);
+        } catch (error: any) {
+            if (error.code !== 'storage/object-not-found') {
+                console.error("Failed to delete image:", url, error);
+            }
+        }
+    }
+  }
+
+  async function onSubmit(values: AdFormValues) {
+    if (!user || !adRef || !ad) {
+      toast({ variant: 'destructive', title: 'Error', description: 'Invalid session. Please try again.' });
       return;
     }
 
-    if ((user.adCredits ?? 0) <= 0) {
-        toast({ variant: 'destructive', title: 'No Credits', description: 'You have no ad credits left. Please purchase a subscription.' });
-        router.push('/dashboard/subscription');
-        return;
-    }
-
     setUploadProgress(0);
-    const carsCollectionRef = collection(firestore, 'cars');
-    const newCarDocRef = doc(carsCollectionRef); 
-    const adId = newCarDocRef.id;
 
     try {
-        const imageUrls = await uploadImages(values.images, adId);
+        await deleteImages(imagesToRemove);
+        
+        const newFilesToUpload = images.filter(img => img.type === 'new' && img.file).map(img => img.file!);
+        let newImageUrls: string[] = [];
+        if (newFilesToUpload.length > 0) {
+            newImageUrls = await uploadImages(newFilesToUpload, ad.id);
+        }
         setUploadProgress(100);
+        
+        const existingImageUrls = images.filter(img => img.type === 'existing').map(img => img.url);
+        const updatedImageUrls = [...existingImageUrls, ...newImageUrls];
+        if (updatedImageUrls.length === 0) {
+            toast({ variant: 'destructive', title: 'Image Required', description: 'You must have at least one image for the ad.' });
+            setUploadProgress(null);
+            return;
+        }
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
-        const locationParts = [values.addressLine, values.subLocation, values.city, values.state].filter(Boolean);
-        const location = locationParts.join(', ');
+        const location = `${values.addressLine ? values.addressLine + ', ' : ''}${values.subLocation}, ${values.city}, ${values.state}`;
         
-        const userDocRef = doc(firestore, 'users', user.uid);
-    
-        const { state, city, subLocation, ...adData } = values;
+        const { state, city, subLocation, newImages: _, ...adData } = values;
 
-        setDocumentNonBlocking(newCarDocRef, {
+        updateDocumentNonBlocking(adRef, {
           ...adData,
-          id: adId,
           title,
           location,
-          images: imageUrls,
-          dealerId: user.uid,
-          status: 'active',
-          visibility: 'public',
-          createdAt: serverTimestamp(),
-          soldAt: null,
-          removedAt: null,
-          removalPaid: false,
-          removalPaymentId: null,
-        }, { merge: false });
-        
-        updateDocumentNonBlocking(userDocRef, {
-            adCredits: increment(-1)
+          images: updatedImageUrls,
+          updatedAt: serverTimestamp(),
         });
         
         toast({
-          title: 'Ad Published!',
-          description: 'Your car is now listed in the marketplace.',
+          title: 'Ad Updated!',
+          description: 'The car listing has been successfully updated by admin.',
         });
     
-        router.push('/dashboard/my-listings');
+        setUploadProgress(null); // Reset progress after success
+        router.push('/admin/listings');
 
     } catch (error) {
-        console.error("Failed to publish ad:", error);
+        console.error("Failed to update ad:", error);
         toast({
             variant: 'destructive',
-            title: 'Upload Failed',
-            description: 'There was an error publishing your ad. Please try again.',
+            title: 'Update Failed',
+            description: 'There was an error updating your ad. Please try again.',
         });
         setUploadProgress(null);
     }
+  }
+
+  if (isLoading) {
+     return (
+        <div className="flex items-center justify-center min-h-[50vh]">
+            <div className="w-16 h-16 border-4 border-dashed rounded-full animate-spin border-primary"></div>
+        </div>
+    );
+  }
+
+  if (!ad) {
+      return notFound();
   }
 
   return (
@@ -248,14 +333,14 @@ export default function NewListingPage() {
         <CardHeader>
             <div className="flex items-center gap-4">
                 <Button variant="outline" size="icon" asChild>
-                    <Link href="/dashboard/my-listings">
+                    <Link href="/admin/listings">
                         <ArrowLeft className="h-4 w-4" />
                         <span className="sr-only">Back</span>
                     </Link>
                 </Button>
                 <div>
-                    <CardTitle>Post a New Ad</CardTitle>
-                    <CardDescription>Fill out the details of the car you want to sell.</CardDescription>
+                    <CardTitle>Edit Ad (Admin)</CardTitle>
+                    <CardDescription>Update the details of any car listing.</CardDescription>
                 </div>
             </div>
         </CardHeader>
@@ -266,7 +351,7 @@ export default function NewListingPage() {
                 <FormField control={form.control} name="make" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Make</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a car make" />
@@ -326,7 +411,7 @@ export default function NewListingPage() {
                         <FormMessage />
                     </FormItem>
                 )}/>
-                
+
                 <FormField control={form.control} name="year" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Year</FormLabel>
@@ -350,7 +435,7 @@ export default function NewListingPage() {
                 <FormField control={form.control} name="fuelType" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Fuel Type</FormLabel>
-                         <Select onValueChange={field.onChange} defaultValue={field.value}>
+                         <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select fuel type" />
@@ -371,7 +456,7 @@ export default function NewListingPage() {
                 <FormField control={form.control} name="transmission" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Transmission</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select transmission type" />
@@ -399,7 +484,7 @@ export default function NewListingPage() {
                 <FormField control={form.control} name="state" render={({ field }) => (
                     <FormItem>
                         <FormLabel>State</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select state" />
@@ -416,7 +501,7 @@ export default function NewListingPage() {
                 <FormField control={form.control} name="city" render={({ field }) => (
                     <FormItem>
                         <FormLabel>City</FormLabel>
-                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedState}>
+                        <Select onValueChange={field.onChange} value={field.value} disabled={!selectedState}>
                             <FormControl>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select a city" />
@@ -439,7 +524,7 @@ export default function NewListingPage() {
                         <FormMessage />
                     </FormItem>
                 )}/>
-
+                
                  <FormField control={form.control} name="addressLine" render={({ field }) => (
                     <FormItem>
                         <FormLabel>Street Address / Building</FormLabel>
@@ -471,19 +556,19 @@ export default function NewListingPage() {
 
                 <FormField
                   control={form.control}
-                  name="images"
+                  name="newImages"
                   render={({ field }) => (
                     <FormItem className="lg:col-span-3">
-                      <FormLabel>Car Images (up to 20)</FormLabel>
+                      <FormLabel>Car Images (up to 20 total)</FormLabel>
                       <FormControl>
                         <div className="flex items-center justify-center w-full">
                           <label htmlFor="dropzone-file" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed rounded-lg cursor-pointer bg-secondary hover:bg-muted">
                             <div className="flex flex-col items-center justify-center pt-5 pb-6">
                               <Upload className="w-8 h-8 mb-4 text-muted-foreground" />
                               <p className="mb-2 text-sm text-muted-foreground"><span className="font-semibold">Click to upload</span> or drag and drop</p>
-                              <p className="text-xs text-muted-foreground">PNG, JPG or WEBP (MAX. 20 images)</p>
+                              <p className="text-xs text-muted-foreground">You can add {20 - images.length} more images.</p>
                             </div>
-                            <Input id="dropzone-file" type="file" className="hidden" multiple accept="image/png, image/jpeg, image/webp" onChange={handleImageChange} disabled={imagePreviews.length >= 20} />
+                            <Input id="dropzone-file" type="file" className="hidden" multiple accept="image/png, image/jpeg, image/webp" onChange={handleImageChange} disabled={images.length >= 20} />
                           </label>
                         </div>
                       </FormControl>
@@ -492,13 +577,13 @@ export default function NewListingPage() {
                   )}
                 />
                 
-                {imagePreviews.length > 0 && (
+                {images.length > 0 && (
                     <div className="lg:col-span-3">
                         <FormLabel>Image Previews (Drag to reorder)</FormLabel>
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4 mt-2">
-                          {imagePreviews.map((src, index) => (
+                          {images.map((image, index) => (
                             <div
-                              key={src}
+                              key={image.id}
                               className={cn(
                                 "relative aspect-square cursor-grab",
                                 dragItem.current === index && "opacity-50"
@@ -509,7 +594,7 @@ export default function NewListingPage() {
                               onDragEnd={handleDragEnd}
                               onDragOver={(e) => e.preventDefault()}
                             >
-                              <Image src={src} alt={`Preview ${index}`} fill className="object-cover rounded-md pointer-events-none" />
+                              <Image src={image.url} alt={`Preview ${index}`} fill className="object-cover rounded-md pointer-events-none" />
                               <Button type="button" variant="destructive" size="icon" className="absolute -top-2 -right-2 h-6 w-6 rounded-full" onClick={() => removeImage(index)}>
                                   <X className="h-4 w-4" />
                               </Button>
@@ -567,16 +652,16 @@ export default function NewListingPage() {
                     )}
                     />
 
-                {uploadProgress !== null && (
+                {uploadProgress !== null && uploadProgress < 100 && (
                     <div className="lg:col-span-3">
                         <Progress value={uploadProgress} className="w-full" />
-                        <p className="text-sm text-center mt-2 text-muted-foreground">{uploadProgress < 100 ? `Uploading images... ${Math.round(uploadProgress)}%` : 'Upload complete!'}</p>
+                        <p className="text-sm text-center mt-2 text-muted-foreground">Uploading images... {Math.round(uploadProgress)}%</p>
                     </div>
                 )}
 
                 <div className="lg:col-span-3 flex justify-end">
-                    <Button type="submit" size="lg" disabled={form.formState.isSubmitting || uploadProgress !== null}>
-                        {form.formState.isSubmitting || uploadProgress !== null ? 'Publishing...' : 'Publish Ad'}
+                    <Button type="submit" size="lg" disabled={form.formState.isSubmitting || (uploadProgress !== null && uploadProgress < 100)}>
+                        {form.formState.isSubmitting || (uploadProgress !== null && uploadProgress < 100) ? 'Saving Changes...' : 'Save Changes'}
                     </Button>
                 </div>
             </form>
