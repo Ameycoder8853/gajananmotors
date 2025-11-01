@@ -65,6 +65,7 @@ export type Ad = {
   removalPaymentId: string | null;
   dealer?: User;
   features?: string[];
+  moderationReason?: string;
 };
 
 export type Payment = {

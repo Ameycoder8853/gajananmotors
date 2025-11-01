@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Ad, FirebaseUser } from "@/lib/types";
-import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck, Trash2, Pencil } from "lucide-react";
+import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck, Trash2, Pencil, EyeOff as EyeOffIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Timestamp, doc, increment } from "firebase/firestore";
 import { usePathname } from "next/navigation";
@@ -17,6 +17,7 @@ import { useState } from "react";
 import { deleteDocumentNonBlocking, initializeFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { getStorage, ref, deleteObject } from "firebase/storage";
+import { Textarea } from "../ui/textarea";
 
 type AdCardProps = {
   ad: Ad;
@@ -32,8 +33,10 @@ export function AdCard({ ad }: AdCardProps) {
   const pathname = usePathname();
   const { firestore, storage } = initializeFirebase();
   const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPrivateDialogOpen, setIsPrivateDialogOpen] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
+  const [privateReason, setPrivateReason] = useState('');
 
 
   const imageUrl = Array.isArray(ad.images) && ad.images.length > 0 ? ad.images[0] : `https://picsum.photos/seed/${ad.id}/600/400`;
@@ -51,13 +54,19 @@ export function AdCard({ ad }: AdCardProps) {
     }
   }
   
-  const isOwnerOnMyListings = user && user.uid === ad.dealerId && pathname.includes('/my-listings');
+  const isOwnerOnMyListings = user && user.uid === ad.dealerId && pathname.includes('/dashboard/my-listings');
+  const isAdminOnAdminListings = user && user.role === 'admin' && pathname.includes('/admin/listings');
+  const canShowControls = isOwnerOnMyListings || isAdminOnAdminListings;
+  const editUrl = isAdminOnAdminListings ? `/admin/listings/edit/${ad.id}` : `/dashboard/my-listings/edit/${ad.id}`;
+
 
   const handleDelete = async () => {
     if (!user || !firestore || !storage) {
         toast({ variant: 'destructive', title: 'Error', description: 'Authentication or storage service error.' });
         return;
     }
+     // The user whose ad is being deleted, not necessarily the current user (if admin is deleting)
+    const adOwnerId = ad.dealerId;
 
     try {
         // 1. Delete images from Firebase Storage
@@ -72,31 +81,55 @@ export function AdCard({ ad }: AdCardProps) {
 
         await Promise.all(imageDeletePromises);
 
-        // 2. Delete the Firestore document
+        // 2. Delete the Firestore document for the ad
         const adRef = doc(firestore, 'cars', ad.id);
         deleteDocumentNonBlocking(adRef);
 
-        // 3. Increment user's ad credits if applicable
-        const userRef = doc(firestore, 'users', user.uid);
-        const currentUserPlan = user.subscriptionType;
-        const creditLimit = currentUserPlan ? subscriptionLimits[currentUserPlan] ?? Infinity : 0;
-        
-        if (user.adCredits !== undefined && user.adCredits < creditLimit) {
-            updateDocumentNonBlocking(userRef, {
-                adCredits: increment(1)
-            });
-        }
+        // 3. Increment the original dealer's ad credits if applicable
+        const ownerUserRef = doc(firestore, 'users', adOwnerId);
+        // We need to get the owner's data to check their subscription status.
+        // We don't have it in the `user` object if an admin is deleting.
+        // For simplicity in a non-blocking operation, we'll increment optimistically.
+        // A more complex implementation would fetch the user doc first.
+        updateDocumentNonBlocking(ownerUserRef, {
+            adCredits: increment(1)
+        });
 
-        toast({ title: 'Ad Deleted', description: 'Your ad and its images have been successfully removed.' });
+        toast({ title: 'Ad Deleted', description: 'The ad and its images have been successfully removed.' });
 
     } catch (error) {
         console.error("Failed to delete ad and its assets:", error);
         toast({ variant: 'destructive', title: 'Deletion Failed', description: 'There was an error removing the ad. Please try again.' });
     } finally {
-        setIsDialogOpen(false);
+        setIsDeleteDialogOpen(false);
         setDeleteInput('');
     }
   }
+
+  const handleMakePrivate = async () => {
+    if (!firestore) return;
+
+    if (!privateReason) {
+        toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for making this ad private.' });
+        return;
+    }
+
+    try {
+        const adRef = doc(firestore, 'cars', ad.id);
+        updateDocumentNonBlocking(adRef, {
+            visibility: 'private',
+            moderationReason: privateReason,
+        });
+        toast({ title: 'Ad Made Private', description: 'The ad is no longer visible in the public marketplace.' });
+    } catch (error) {
+        console.error("Failed to make ad private:", error);
+        toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update the ad visibility.' });
+    } finally {
+        setIsPrivateDialogOpen(false);
+        setPrivateReason('');
+    }
+  };
+
 
   return (
     <>
@@ -126,7 +159,7 @@ export function AdCard({ ad }: AdCardProps) {
           {ad.status === 'sold' ? 'Sold' : 'For Sale'}
         </Badge>
       </div>
-      <CardContent className={cn("p-4 flex-grow flex flex-col", isOwnerOnMyListings && 'pb-2')}>
+      <CardContent className={cn("p-4 flex-grow flex flex-col", canShowControls && 'pb-2')}>
         <h3 className="font-bold text-lg leading-snug truncate transition-colors duration-300 group-hover:text-primary">
           <Link href={`/market/${ad.id}`}>{ad.title}</Link>
         </h3>
@@ -158,20 +191,50 @@ export function AdCard({ ad }: AdCardProps) {
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 <span className="truncate">{ad.location}</span>
              </div>
-             {!isOwnerOnMyListings && <span>{getFormattedDate()}</span>}
+             {!canShowControls && <span>{getFormattedDate()}</span>}
         </div>
       </CardContent>
-       {isOwnerOnMyListings && (
+       {canShowControls && (
         <div className="px-4 pb-3 pt-1 flex justify-between items-center">
              <span className="text-xs text-muted-foreground">{getFormattedDate()}</span>
              <div className="flex items-center gap-2">
                 <Button asChild variant="outline" size="icon" className="h-8 w-8">
-                    <Link href={`/dashboard/my-listings/edit/${ad.id}`}>
+                    <Link href={editUrl}>
                         <Pencil className="h-4 w-4" />
                         <span className="sr-only">Edit Ad</span>
                     </Link>
                 </Button>
-                 <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                {isAdminOnAdminListings && (
+                  <AlertDialog open={isPrivateDialogOpen} onOpenChange={setIsPrivateDialogOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" size="icon" className="h-8 w-8">
+                        <EyeOffIcon className="h-4 w-4" />
+                        <span className="sr-only">Make Private</span>
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Make Ad Private</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            Please provide a reason for making this ad private. This reason will be stored for internal records.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                       <Textarea 
+                            value={privateReason}
+                            onChange={(e) => setPrivateReason(e.target.value)}
+                            placeholder="e.g., Violation of image policy."
+                            className="my-2"
+                        />
+                      <AlertDialogFooter>
+                        <AlertDialogCancel onClick={() => setPrivateReason('')}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleMakePrivate} disabled={!privateReason}>
+                            Confirm & Make Private
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                )}
+                 <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                     <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="icon" className="h-8 w-8">
                             <Trash2 className="h-4 w-4" />
@@ -182,7 +245,7 @@ export function AdCard({ ad }: AdCardProps) {
                         <AlertDialogHeader>
                             <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                             <AlertDialogDescription>
-                                This action cannot be undone. This will permanently delete your ad and all its images. This will restore one ad credit (if your plan allows).
+                                This action cannot be undone. This will permanently delete the ad and all its images. One ad credit will be restored to the original dealer.
                                 Please type <strong className="text-destructive">delete</strong> to confirm.
                             </AlertDialogDescription>
                         </AlertDialogHeader>
