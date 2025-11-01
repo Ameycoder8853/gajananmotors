@@ -126,13 +126,25 @@ export default function MyListingsPage() {
                         <div key={ad.id} className="relative animate-fade-in-up" style={{ animationDelay: `${index * 100}ms` }}>
                             <AdCard ad={ad} />
                             {ad.visibility === 'private' && (
-                                 <div className="absolute top-0 left-0 w-full h-full bg-black/60 rounded-lg flex flex-col items-center justify-center text-white p-4 text-center animate-fade-in">
+                                <div className="absolute top-0 left-0 w-full h-full bg-black/60 rounded-lg flex flex-col items-center justify-center text-white p-4 text-center animate-fade-in">
                                     <EyeOff className="w-12 h-12" />
                                     <p className="font-bold mt-2">Ad is Private</p>
-                                    <p className="text-sm">This ad exceeds your plan's limit and is not public.</p>
-                                    <Button asChild variant="secondary" className="mt-4">
-                                        <Link href="/subscription">Upgrade Plan</Link>
-                                    </Button>
+                                    {ad.moderationReason ? (
+                                        <>
+                                            <p className="text-sm mt-2">This ad was made private by an admin.</p>
+                                            <p className="text-xs italic mt-1 text-gray-300">Reason: {ad.moderationReason}</p>
+                                            <Button asChild variant="secondary" className="mt-4">
+                                                <Link href={`/dashboard/my-listings/edit/${ad.id}`}>Edit Ad</Link>
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <p className="text-sm">This ad exceeds your plan's limit and is not public.</p>
+                                            <Button asChild variant="secondary" className="mt-4">
+                                                <Link href="/subscription">Upgrade Plan</Link>
+                                            </Button>
+                                        </>
+                                    )}
                                 </div>
                             )}
                         </div>
