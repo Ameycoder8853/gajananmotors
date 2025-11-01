@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -7,7 +6,7 @@ import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment, writeBatch, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, increment, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -90,7 +89,7 @@ export default function SubscriptionPage() {
   const [isCancelling, setIsCancelling] = useState(false);
 
   const handlePayment = async (tier: typeof allTiers[0], isYearly: boolean) => {
-    const { planId, credits, name, price } = tier;
+    const { planId, credits, name } = tier;
     
     if (!user) {
       toast({
@@ -123,11 +122,7 @@ export default function SubscriptionPage() {
     const res = await fetch('/api/razorpay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        isYearly,
-        planId: isYearly ? planId : undefined,
-        amount: isYearly ? undefined : price,
-      }),
+      body: JSON.stringify({ planId }),
     });
 
     if (!res.ok) {
@@ -135,7 +130,7 @@ export default function SubscriptionPage() {
         toast({
             variant: 'destructive',
             title: 'Payment Error',
-            description: errorData.error || 'Failed to create Razorpay order/subscription.',
+            description: errorData.error || 'Failed to create Razorpay subscription.',
         });
         return;
     }
@@ -154,7 +149,7 @@ export default function SubscriptionPage() {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       name: 'Gajanan Motors',
       description: `${name} Subscription Purchase`,
-      ...(isYearly ? { subscription_id: data.id } : { order_id: data.id }),
+      subscription_id: data.id,
       handler: async function (response: any) {
         if (!user?.uid) {
             toast({
@@ -179,12 +174,11 @@ export default function SubscriptionPage() {
           isPro: true,
           subscriptionType: name,
           proExpiresAt: expiryDate,
-          razorpaySubscriptionId: isYearly ? data.id : null,
+          razorpaySubscriptionId: data.id,
           adCredits: credits,
         };
         batch.update(userDocRef, updateData);
 
-        // Make user's ads public again up to the new credit limit
         const adsRef = collection(firestore, 'cars');
         const q = query(adsRef, where('dealerId', '==', user.uid), where('visibility', '==', 'private'));
         const privateAdsSnapshot = await getDocs(q);
@@ -235,7 +229,6 @@ export default function SubscriptionPage() {
     setIsCancelling(true);
 
     try {
-        // If there's a Razorpay subscription, cancel it
         if (user.razorpaySubscriptionId) {
             const res = await fetch('/api/razorpay/cancel', {
                 method: 'POST',
@@ -249,11 +242,9 @@ export default function SubscriptionPage() {
             }
         }
 
-        // Batch update Firestore
         const batch = writeBatch(firestore);
         const userDocRef = doc(firestore, 'users', user.uid);
         
-        // 1. Update user document
         batch.update(userDocRef, {
             isPro: false,
             subscriptionType: null,
@@ -262,7 +253,6 @@ export default function SubscriptionPage() {
             adCredits: 0,
         });
 
-        // 2. Set all user's ads to private
         const adsRef = collection(firestore, 'cars');
         const q = query(adsRef, where('dealerId', '==', user.uid));
         const adsSnapshot = await getDocs(q);
@@ -284,7 +274,7 @@ export default function SubscriptionPage() {
     }
   };
 
-  const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
+  const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isYearly: boolean) => {
     return (
       <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
@@ -317,7 +307,7 @@ export default function SubscriptionPage() {
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
                  <Button className="w-full" onClick={() => handlePayment(tier, isYearly)}>
-                    {isUpgradeOption ? `Switch to ${tier.name}` : 'Choose Plan'}
+                    Choose Plan
                 </Button>
             )}
         </CardFooter>
@@ -328,17 +318,13 @@ export default function SubscriptionPage() {
   if (user?.isPro && user.subscriptionType) {
     const currentTier = allTiers.find(t => t.name === user.subscriptionType);
     
-    // Find possible upgrade tiers
-    const currentTierIndex = monthlyTiers.findIndex(t => t.name === currentTier?.name.replace(' Yearly', '')) ?? -1;
-    const upgradeTier = currentTierIndex !== -1 && currentTierIndex < monthlyTiers.length - 1 ? monthlyTiers[currentTierIndex + 1] : null;
-
     return (
-        <div className="py-8 md:py-12 animate-fade-in-up">
+        <div className="py-12 md:py-16 animate-fade-in-up">
             <div className="text-center mb-12">
                 <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
                 <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
             </div>
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            <div className="max-w-md mx-auto">
                {currentTier && (
                  <Card className="border-primary border-2 animate-fade-in-up">
                     <CardHeader>
@@ -363,7 +349,7 @@ export default function SubscriptionPage() {
                             <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt as any).toLocaleDateString() : 'N/A'}</span>
                         </div>
                     </CardContent>
-                    <CardFooter className="flex-col gap-2">
+                     <CardFooter>
                         <AlertDialog>
                             <AlertDialogTrigger asChild>
                                 <Button variant="destructive" className="w-full" disabled={isCancelling}>
@@ -386,14 +372,13 @@ export default function SubscriptionPage() {
                     </CardFooter>
                  </Card>
                )}
-               {upgradeTier && renderTierCard(upgradeTier, false, true, false)}
             </div>
         </div>
     );
   }
 
   return (
-    <div className="py-8 md:py-12 animate-fade-in-up">
+    <div className="py-12 md:py-16 animate-fade-in-up">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
         <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
@@ -420,7 +405,7 @@ export default function SubscriptionPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {monthlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, false, false, false)}
+                        {renderTierCard(tier, user?.subscriptionType === tier.name, false)}
                     </div>
                 ))}
             </div>
@@ -429,7 +414,7 @@ export default function SubscriptionPage() {
              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {yearlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, false, false, true)}
+                        {renderTierCard(tier, user?.subscriptionType === tier.name, true)}
                     </div>
                 ))}
             </div>

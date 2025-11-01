@@ -7,11 +7,8 @@ import { config } from 'dotenv';
 config(); // Load environment variables from .env file
 
 const paymentSchema = z.object({
-  planId: z.string().optional(), // planId is only for yearly subscriptions
-  isYearly: z.boolean().optional().default(false),
-  amount: z.number(), // Amount in INR, required for all transactions
+  planId: z.string(),
 });
-
 
 export async function POST(req: Request) {
   try {
@@ -29,42 +26,23 @@ export async function POST(req: Request) {
     });
 
     const body = await req.json();
-    const validationResult = paymentSchema.safeParse(body);
+    const { planId } = paymentSchema.parse(body);
 
-    if (!validationResult.success) {
-      return NextResponse.json({ error: 'Invalid data provided. Please check your details and try again.' }, { status: 400 });
+    const options = {
+        plan_id: planId,
+        total_count: 12, // For a 1-year subscription with monthly billing
+        customer_notify: 1
+    };
+
+    const subscription = await razorpay.subscriptions.create(options);
+
+    return NextResponse.json(subscription, { status: 200 });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: error.errors }, { status: 400 });
     }
-    
-    const { planId, isYearly, amount } = validationResult.data;
-
-    if (isYearly) {
-      // Create a subscription for yearly plans
-      if (!planId) {
-        return NextResponse.json({ error: 'Plan ID is required for a yearly subscription.' }, { status: 400 });
-      }
-      const options = {
-          plan_id: planId,
-          total_count: 1, // Only 1 payment for a yearly plan
-          customer_notify: 1
-      };
-      const subscription = await razorpay.subscriptions.create(options);
-      return NextResponse.json(subscription, { status: 200 });
-
-    } else {
-      // Create a one-time order for monthly plans
-      const options = {
-        amount: amount * 100, // Amount in paise
-        currency: 'INR',
-        receipt: `receipt_order_${new Date().getTime()}`,
-      };
-      const order = await razorpay.orders.create(options);
-      return NextResponse.json(order, { status: 200 });
-    }
-    
-  } catch (error: any) {
     console.error('Razorpay API Error:', error);
-    // Create a safe, generic error message for any type of error
-    const errorMessage = error?.error?.description || 'An unexpected error occurred on the server. Please try again later.';
+    const errorMessage = (error instanceof Error && 'message' in error) ? (error as any).error?.description || 'Something went wrong' : 'Something went wrong';
     return NextResponse.json({ error: errorMessage }, { status: 500 });
   }
 }
