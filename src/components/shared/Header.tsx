@@ -118,11 +118,11 @@ export function Header() {
       : "bg-transparent"
   );
   
-  const linkColor = (isMarketingPage && !scrolled && resolvedTheme === 'dark') 
+  const linkColor = (isMarketingPage && !scrolled) 
       ? "text-white" 
       : "text-foreground";
   
-  const activeLinkColor = (isMarketingPage && !scrolled && resolvedTheme === 'dark')
+  const activeLinkColor = (isMarketingPage && !scrolled)
       ? "text-white font-bold"
       : "text-primary";
 
@@ -201,7 +201,7 @@ export function Header() {
               </>
             ) : !isUserLoading ? (
               <>
-                <Button asChild variant={(isMarketingPage && !scrolled) ? "outline" : "ghost"} className={cn((isMarketingPage && !scrolled && resolvedTheme === 'dark') && "text-white border-white/50 hover:bg-white/10 hover:text-white")}>
+                <Button asChild variant={(isMarketingPage && !scrolled) ? "secondary" : "ghost"}>
                   <Link href="/login">Log In</Link>
                 </Button>
                 <Button asChild>
@@ -212,7 +212,7 @@ export function Header() {
           </div>
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className={cn("md:hidden", (isMarketingPage && !scrolled && resolvedTheme === 'dark') && "text-white hover:text-white hover:bg-white/10")}>
+              <Button variant="ghost" size="icon" className={cn("md:hidden", (isMarketingPage && !scrolled) && "text-white hover:text-white hover:bg-white/10")}>
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>
@@ -254,7 +254,12 @@ export function Header() {
                             <span className="text-sm text-muted-foreground">{user.email}</span>
                           </div>
                        </div>
-                        <Button onClick={logout} variant="outline" size="lg">Logout</Button>
+                        <div className="grid grid-cols-2 gap-2">
+                           <Button asChild variant="outline" size="lg">
+                              <Link href="/dashboard/settings">Settings</Link>
+                           </Button>
+                           <Button onClick={logout} variant="outline" size="lg">Logout</Button>
+                        </div>
                      </div>
                   ) : !isUserLoading ? (
                     <div className="grid gap-4">
