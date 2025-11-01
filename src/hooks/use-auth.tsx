@@ -46,43 +46,6 @@ const convertTimestamps = (data: any) => {
   return data;
 }
 
-const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
-  const adminEmail = 'ameypatil261@gmail.com';
-  const adminPassword = 'gajananmotors';
-
-  try {
-    const adminCred = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
-    
-    const adminData: AppUser = {
-      id: adminCred.user.uid,
-      name: 'Admin',
-      email: adminEmail,
-      role: 'admin',
-      phone: 'N/A',
-      createdAt: new Date(),
-      isPro: true,
-      adCredits: Infinity,
-      verificationStatus: 'verified',
-      emailVerified: true,
-      isPhoneVerified: true,
-    };
-    await setDoc(doc(firestore, 'users', adminCred.user.uid), adminData);
-    console.log('Admin user successfully created.');
-
-    if (auth.currentUser?.email === adminEmail) {
-      await signOut(auth);
-      console.log('Admin signed out post-creation.');
-    }
-  } catch (error: any) {
-    if (error.code === 'auth/email-already-in-use') {
-      // This is expected and fine. The admin user already exists.
-    } else {
-      console.error('Critical error during admin user setup:', error);
-    }
-  }
-};
-
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [isUserLoading, setIsUserLoading] = useState(true);
@@ -95,8 +58,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       return;
     }
     
-    ensureAdminExists(auth, firestore);
-
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const userDocRef = doc(firestore, 'users', firebaseUser.uid);
