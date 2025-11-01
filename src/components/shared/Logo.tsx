@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from 'next/image';
@@ -23,14 +22,13 @@ export function Logo({ className }: { className?: string }) {
         <Image 
           src={src} 
           alt="Gajanan Motors Logo" 
-          width={80} 
-          height={60} 
+          width={60} 
+          height={50} 
           priority
-          className=""
-          style={{ width: '60', height: '50' }}
+          className="h-[50px] w-auto"
         />
       ) : (
-        <div style={{ width: '28px', height: '28px' }} /> // Placeholder to prevent layout shift
+        <div style={{ width: '60px', height: '50px' }} /> // Placeholder to prevent layout shift
       )}
       <span className="font-bold text-xl">Gajanan Motors</span>
     </Link>
