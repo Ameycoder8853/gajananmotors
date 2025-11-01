@@ -5,18 +5,19 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Ad, FirebaseUser } from "@/lib/types";
-import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck, Trash2, Pencil } from "lucide-react";
+import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck, Trash2, Pencil, EyeOff as EyeOffIcon, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Timestamp, doc, increment } from "firebase/firestore";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
-import { Button, buttonVariants } from "@components/ui/button";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@components/ui/alert-dialog";
-import { Input } from "@components/ui/input";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { deleteDocumentNonBlocking, initializeFirebase, updateDocumentNonBlocking } from "@/firebase";
 import { useToast } from "@/hooks/use-toast";
 import { getStorage, ref, deleteObject } from "firebase/storage";
+import { Textarea } from "@/components/ui/textarea";
 
 type AdCardProps = {
   ad: Ad;
@@ -32,8 +33,10 @@ export function AdCard({ ad }: AdCardProps) {
   const pathname = usePathname();
   const { firestore, storage } = initializeFirebase();
   const { toast } = useToast();
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isPrivateDialogOpen, setIsPrivateDialogOpen] = useState(false);
   const [deleteInput, setDeleteInput] = useState('');
+  const [privateReason, setPrivateReason] = useState('');
 
 
   const imageUrl = Array.isArray(ad.images) && ad.images.length > 0 ? ad.images[0] : `https://picsum.photos/seed/${ad.id}/600/400`;
@@ -54,7 +57,14 @@ export function AdCard({ ad }: AdCardProps) {
   const isOwnerOnMyListings = user && user.uid === ad.dealerId && pathname.includes('/dashboard/my-listings');
   const isAdminOnAdminListings = user && user.role === 'admin' && pathname.includes('/admin/listings');
   const canShowControls = isOwnerOnMyListings || isAdminOnAdminListings;
-  const editUrl = isAdminOnAdminListings ? `/admin/listings/edit/${ad.id}` : `/dashboard/my-listings/edit/${ad.id}`;
+  
+  const handleEditClick = () => {
+    toast({
+      title: "Feature Under Development",
+      description: "We are currently working on the edit ad functionality. For now, please delete and repost the ad. We apologize for the inconvenience.",
+      duration: 8000,
+    });
+  };
 
 
   const handleDelete = async () => {
@@ -98,10 +108,57 @@ export function AdCard({ ad }: AdCardProps) {
         console.error("Failed to delete ad and its assets:", error);
         toast({ variant: 'destructive', title: 'Deletion Failed', description: 'There was an error removing the ad. Please try again.' });
     } finally {
-        setIsDialogOpen(false);
+        setIsDeleteDialogOpen(false);
         setDeleteInput('');
     }
   }
+
+  const handleMakePrivate = async () => {
+    if (!firestore) return;
+
+    if (!privateReason) {
+        toast({ variant: 'destructive', title: 'Reason Required', description: 'Please provide a reason for making this ad private.' });
+        return;
+    }
+
+    try {
+        const adRef = doc(firestore, 'cars', ad.id);
+        updateDocumentNonBlocking(adRef, {
+            visibility: 'private',
+            moderationReason: privateReason,
+        });
+        toast({ title: 'Ad Made Private', description: 'The ad is no longer visible in the public marketplace.' });
+    } catch (error) {
+        console.error("Failed to make ad private:", error);
+        toast({ variant: 'destructive', title: 'Update Failed', description: 'Could not update the ad visibility.' });
+    } finally {
+        setIsPrivateDialogOpen(false);
+        setPrivateReason('');
+    }
+  };
+
+  const handleMakePublic = async () => {
+    if (!firestore) return;
+    try {
+      const adRef = doc(firestore, 'cars', ad.id);
+      updateDocumentNonBlocking(adRef, {
+        visibility: 'public',
+        moderationReason: null, // Clear the reason when making it public again
+      });
+      toast({
+        title: 'Ad Made Public',
+        description: 'The ad is now visible in the public marketplace.',
+      });
+    } catch (error) {
+      console.error('Failed to make ad public:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Update Failed',
+        description: 'Could not update the ad visibility.',
+      });
+    }
+  };
+
 
   return (
     <>
@@ -130,6 +187,14 @@ export function AdCard({ ad }: AdCardProps) {
         >
           {ad.status === 'sold' ? 'Sold' : 'For Sale'}
         </Badge>
+         {ad.visibility === 'private' && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+            <div className="text-center text-white">
+              <EyeOffIcon className="w-12 h-12 mx-auto" />
+              <p className="font-bold mt-2">Ad is Private</p>
+            </div>
+          </div>
+        )}
       </div>
       <CardContent className={cn("p-4 flex-grow flex flex-col", canShowControls && 'pb-2')}>
         <h3 className="font-bold text-lg leading-snug truncate transition-colors duration-300 group-hover:text-primary">
@@ -170,13 +235,48 @@ export function AdCard({ ad }: AdCardProps) {
         <div className="px-4 pb-3 pt-1 flex justify-between items-center">
              <span className="text-xs text-muted-foreground">{getFormattedDate()}</span>
              <div className="flex items-center gap-2">
-                <Button asChild variant="outline" size="icon" className="h-8 w-8">
-                    <Link href={editUrl}>
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit Ad</span>
-                    </Link>
+                <Button onClick={handleEditClick} variant="outline" size="icon" className="h-8 w-8">
+                  <Pencil className="h-4 w-4" />
+                  <span className="sr-only">Edit Ad</span>
                 </Button>
-                 <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                {isAdminOnAdminListings && (
+                    ad.visibility === 'public' ? (
+                    <AlertDialog open={isPrivateDialogOpen} onOpenChange={setIsPrivateDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-8 w-8">
+                            <EyeOffIcon className="h-4 w-4" />
+                            <span className="sr-only">Make Private</span>
+                        </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Make Ad Private</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Please provide a reason for making this ad private. This reason will be stored for internal records.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <Textarea 
+                                value={privateReason}
+                                onChange={(e) => setPrivateReason(e.target.value)}
+                                placeholder="e.g., Violation of image policy."
+                                className="my-2"
+                            />
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setPrivateReason('')}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleMakePrivate} disabled={!privateReason}>
+                                Confirm & Make Private
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    ) : (
+                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleMakePublic}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">Make Public</span>
+                        </Button>
+                    )
+                )}
+                 <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                     <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="icon" className="h-8 w-8">
                             <Trash2 className="h-4 w-4" />
