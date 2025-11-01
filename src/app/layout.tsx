@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: `%s | ${siteConfig.name}`,
   },
   description: siteConfig.description,
-  keywords: ["Gajanan Motors", "used cars", "second-hand cars", "car dealership", "buy used car", "sell used car", "verified dealers"],
+  keywords: ["Gajanan Motors", "used cars", "second-hand cars", "car dealership", "buy used car", "sell used car", "verified dealers", "used cars sangli", "used cars kolhapur"],
   authors: [{ name: "Gajanan Motors" }],
   creator: "Gajanan Motors",
   openGraph: {
@@ -46,7 +46,7 @@ export const metadata: Metadata = {
     title: siteConfig.name,
     description: siteConfig.description,
     images: [siteConfig.ogImage],
-    creator: siteConfig.links.twitter,
+    creator: "@gajananmotors",
   },
   icons: {
     icon: [
