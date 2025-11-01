@@ -311,5 +311,3 @@ export function AdCard({ ad }: AdCardProps) {
     </>
   );
 }
-
-    
