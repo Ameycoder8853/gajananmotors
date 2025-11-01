@@ -5,7 +5,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Ad, FirebaseUser } from "@/lib/types";
-import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck, Trash2, Pencil, EyeOff as EyeOffIcon } from "lucide-react";
+import { MapPin, Calendar, Gauge, GitCommitHorizontal, Fuel, ShieldCheck, Trash2, Pencil, EyeOff as EyeOffIcon, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Timestamp, doc, increment } from "firebase/firestore";
 import { usePathname } from "next/navigation";
@@ -130,6 +130,28 @@ export function AdCard({ ad }: AdCardProps) {
     }
   };
 
+  const handleMakePublic = async () => {
+    if (!firestore) return;
+    try {
+      const adRef = doc(firestore, 'cars', ad.id);
+      updateDocumentNonBlocking(adRef, {
+        visibility: 'public',
+        moderationReason: null, // Clear the reason when making it public again
+      });
+      toast({
+        title: 'Ad Made Public',
+        description: 'The ad is now visible in the public marketplace.',
+      });
+    } catch (error) {
+      console.error('Failed to make ad public:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Update Failed',
+        description: 'Could not update the ad visibility.',
+      });
+    }
+  };
+
 
   return (
     <>
@@ -158,6 +180,14 @@ export function AdCard({ ad }: AdCardProps) {
         >
           {ad.status === 'sold' ? 'Sold' : 'For Sale'}
         </Badge>
+         {ad.visibility === 'private' && (
+          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+            <div className="text-center text-white">
+              <EyeOffIcon className="w-12 h-12 mx-auto" />
+              <p className="font-bold mt-2">Ad is Private</p>
+            </div>
+          </div>
+        )}
       </div>
       <CardContent className={cn("p-4 flex-grow flex flex-col", canShowControls && 'pb-2')}>
         <h3 className="font-bold text-lg leading-snug truncate transition-colors duration-300 group-hover:text-primary">
@@ -205,34 +235,41 @@ export function AdCard({ ad }: AdCardProps) {
                     </Link>
                 </Button>
                 {isAdminOnAdminListings && (
-                  <AlertDialog open={isPrivateDialogOpen} onOpenChange={setIsPrivateDialogOpen}>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="icon" className="h-8 w-8">
-                        <EyeOffIcon className="h-4 w-4" />
-                        <span className="sr-only">Make Private</span>
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Make Ad Private</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Please provide a reason for making this ad private. This reason will be stored for internal records.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                       <Textarea 
-                            value={privateReason}
-                            onChange={(e) => setPrivateReason(e.target.value)}
-                            placeholder="e.g., Violation of image policy."
-                            className="my-2"
-                        />
-                      <AlertDialogFooter>
-                        <AlertDialogCancel onClick={() => setPrivateReason('')}>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleMakePrivate} disabled={!privateReason}>
-                            Confirm & Make Private
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                    ad.visibility === 'public' ? (
+                    <AlertDialog open={isPrivateDialogOpen} onOpenChange={setIsPrivateDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                        <Button variant="outline" size="icon" className="h-8 w-8">
+                            <EyeOffIcon className="h-4 w-4" />
+                            <span className="sr-only">Make Private</span>
+                        </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                        <AlertDialogHeader>
+                            <AlertDialogTitle>Make Ad Private</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Please provide a reason for making this ad private. This reason will be stored for internal records.
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <Textarea 
+                                value={privateReason}
+                                onChange={(e) => setPrivateReason(e.target.value)}
+                                placeholder="e.g., Violation of image policy."
+                                className="my-2"
+                            />
+                        <AlertDialogFooter>
+                            <AlertDialogCancel onClick={() => setPrivateReason('')}>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleMakePrivate} disabled={!privateReason}>
+                                Confirm & Make Private
+                            </AlertDialogAction>
+                        </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                    ) : (
+                         <Button variant="outline" size="icon" className="h-8 w-8" onClick={handleMakePublic}>
+                            <Eye className="h-4 w-4" />
+                            <span className="sr-only">Make Public</span>
+                        </Button>
+                    )
                 )}
                  <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
                     <AlertDialogTrigger asChild>
@@ -274,3 +311,5 @@ export function AdCard({ ad }: AdCardProps) {
     </>
   );
 }
+
+    
