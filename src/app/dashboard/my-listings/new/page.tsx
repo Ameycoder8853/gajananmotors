@@ -41,7 +41,7 @@ import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Progress } from '@/components/ui/progress';
 import { carData, makes } from '@/lib/car-data';
-import { states } from '@/lib/location-data';
+import { states, citiesByState } from '@/lib/location-data';
 import { Checkbox } from '@/components/ui/checkbox';
 import { carFeatures } from '@/lib/car-features';
 import { cn } from '@/lib/utils';
@@ -55,7 +55,7 @@ const adFormSchema = z.object({
   kmDriven: z.coerce.number().min(0, 'Kilometers must be a positive number.'),
   fuelType: z.enum(['Petrol', 'Diesel', 'Electric', 'CNG', 'LPG']),
   transmission: z.enum(['Automatic', 'Manual']),
-  price: z.coerce.number().min(10000, 'Price must be at least ₹10,000.'),
+  price: z.coerce.number().min(10000, 'Price must be at least ?10,000.'),
   description: z.string().min(20, 'Description must be at least 20 characters.'),
   state: z.string().min(1, 'State is required.'),
   city: z.string().min(2, 'City is required.'),
@@ -75,6 +75,7 @@ export default function NewListingPage() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [models, setModels] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>([]);
   
   // Drag and drop state
   const dragItem = useRef<number | null>(null);
@@ -100,6 +101,7 @@ export default function NewListingPage() {
   });
 
   const selectedMake = form.watch('make');
+  const selectedState = form.watch('state');
   const images = form.watch('images');
 
   useEffect(() => {
@@ -118,6 +120,13 @@ export default function NewListingPage() {
       form.setValue('model', '');
     }
   }, [selectedMake, form]);
+  
+  useEffect(() => {
+    if (selectedState) {
+        setCities(citiesByState[selectedState] || []);
+        form.setValue('city', '');
+    }
+  }, [selectedState, form]);
 
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -355,7 +364,7 @@ export default function NewListingPage() {
 
                  <FormField control={form.control} name="price" render={({ field }) => (
                     <FormItem>
-                        <FormLabel>Price (₹)</FormLabel>
+                        <FormLabel>Price (?)</FormLabel>
                         <FormControl>
                             <Input type="number" placeholder="e.g., 550000" {...field} />
                         </FormControl>
@@ -383,9 +392,16 @@ export default function NewListingPage() {
                 <FormField control={form.control} name="city" render={({ field }) => (
                     <FormItem>
                         <FormLabel>City</FormLabel>
-                        <FormControl>
-                            <Input placeholder="e.g., Pune" {...field} />
-                        </FormControl>
+                         <Select onValueChange={field.onChange} value={field.value} disabled={!selectedState}>
+                            <FormControl>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select a city" />
+                                </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                                {cities.map(city => <SelectItem key={city} value={city}>{city}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
                         <FormMessage />
                     </FormItem>
                 )}/>
