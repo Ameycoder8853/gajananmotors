@@ -62,6 +62,7 @@ const adFormSchema = z.object({
   state: z.string().min(1, 'State is required.'),
   city: z.string().min(2, 'City is required.'),
   subLocation: z.string().min(2, 'Area/Sub-location is required.'),
+  addressLine: z.string().optional(),
   newImages: z.array(z.instanceof(File)).max(20, 'You can upload a maximum of 20 images.').optional(),
   features: z.array(z.string()).optional(),
 });
@@ -115,6 +116,7 @@ export default function EditListingPage() {
       state: '',
       city: '',
       subLocation: '',
+      addressLine: '',
       newImages: [],
       features: [],
     },
@@ -125,12 +127,14 @@ export default function EditListingPage() {
 
   useEffect(() => {
     if (ad) {
-        const [subLocation, city, state] = ad.location.split(',').map(s => s.trim()).reverse();
+        const [addressLine, subLocation, city, state] = ad.location.split(',').map(s => s.trim()).reverse();
+
         form.reset({
             ...ad,
             state,
             city,
             subLocation,
+            addressLine,
             newImages: [],
         });
         
@@ -152,6 +156,7 @@ export default function EditListingPage() {
 
   const isLoading = isAdLoading || isUserLoading;
 
+  // Ownership check
   if (!isLoading && ad && user && ad.dealerId !== user.uid) {
     return notFound();
   }
@@ -268,7 +273,8 @@ export default function EditListingPage() {
         }
 
         const title = `${values.year} ${values.make} ${values.model} ${values.variant}`;
-        const location = `${values.subLocation}, ${values.city}, ${values.state}`;
+        const locationParts = [values.addressLine, values.subLocation, values.city, values.state].filter(Boolean);
+        const location = locationParts.join(', ');
         
         const { state, city, subLocation, newImages: _, ...adData } = values;
 
@@ -278,6 +284,10 @@ export default function EditListingPage() {
           location,
           images: updatedImageUrls,
           updatedAt: serverTimestamp(),
+          // When a dealer edits an ad that was private, assume it's to fix an issue.
+          // Make it public again for re-review.
+          visibility: 'public',
+          moderationReason: null,
         });
         
         toast({
@@ -322,7 +332,7 @@ export default function EditListingPage() {
                     </Link>
                 </Button>
                 <div>
-                    <CardTitle>Edit Ad</CardTitle>
+                    <CardTitle>Edit Your Ad</CardTitle>
                     <CardDescription>Update the details of your car listing.</CardDescription>
                 </div>
             </div>
@@ -487,6 +497,17 @@ export default function EditListingPage() {
                         <FormMessage />
                     </FormItem>
                 )}/>
+                
+                 <FormField control={form.control} name="addressLine" render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>Street Address / Building</FormLabel>
+                         <FormControl>
+                            <Input placeholder="" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                    </FormItem>
+                )}/>
+
 
                 <FormField
                     control={form.control}
