@@ -51,7 +51,7 @@ const yearlyTiers = [
         price: 5000,
         priceSuffix: '/year',
         credits: 10,
-        features: ['10 ad listings', 'Standard support', 'Save ₹1000'],
+        features: ['10 ad listings', 'Standard support', 'Save ?1000'],
     },
     {
         name: 'Premium Yearly' as const,
@@ -59,7 +59,7 @@ const yearlyTiers = [
         price: 10000,
         priceSuffix: '/year',
         credits: 20,
-        features: ['20 ad listings', 'Premium support', 'Featured listings', 'Save ₹2000'],
+        features: ['20 ad listings', 'Premium support', 'Featured listings', 'Save ?2000'],
     },
     {
         name: 'Pro Yearly' as const,
@@ -67,7 +67,7 @@ const yearlyTiers = [
         price: 20000,
         priceSuffix: '/year',
         credits: 50,
-        features: ['50 ad listings', 'Premium support', 'Featured listings', 'Save ₹4000'],
+        features: ['50 ad listings', 'Premium support', 'Featured listings', 'Save ?4000'],
     }
 ];
 
@@ -311,7 +311,7 @@ export default function SubscriptionPage() {
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
                  <Button className="w-full" onClick={() => handlePayment(tier, isYearly)}>
-                    Choose Plan
+                    {user?.isPro ? 'Switch Plan' : 'Choose Plan'}
                 </Button>
             )}
         </CardFooter>
