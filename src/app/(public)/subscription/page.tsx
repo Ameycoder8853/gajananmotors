@@ -6,7 +6,7 @@ import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -16,7 +16,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useState } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-
 
 const monthlyTiers = [
   {
@@ -179,6 +178,7 @@ export default function SubscriptionPage() {
         };
         batch.update(userDocRef, updateData);
 
+        // Make user's ads public again up to the new credit limit
         const adsRef = collection(firestore, 'cars');
         const q = query(adsRef, where('dealerId', '==', user.uid), where('visibility', '==', 'private'));
         const privateAdsSnapshot = await getDocs(q);
@@ -229,6 +229,7 @@ export default function SubscriptionPage() {
     setIsCancelling(true);
 
     try {
+        // If there's a Razorpay subscription, cancel it
         if (user.razorpaySubscriptionId) {
             const res = await fetch('/api/razorpay/cancel', {
                 method: 'POST',
@@ -242,9 +243,11 @@ export default function SubscriptionPage() {
             }
         }
 
+        // Batch update Firestore
         const batch = writeBatch(firestore);
         const userDocRef = doc(firestore, 'users', user.uid);
         
+        // 1. Update user document
         batch.update(userDocRef, {
             isPro: false,
             subscriptionType: null,
@@ -253,6 +256,7 @@ export default function SubscriptionPage() {
             adCredits: 0,
         });
 
+        // 2. Set all user's ads to private
         const adsRef = collection(firestore, 'cars');
         const q = query(adsRef, where('dealerId', '==', user.uid));
         const adsSnapshot = await getDocs(q);
@@ -274,7 +278,7 @@ export default function SubscriptionPage() {
     }
   };
 
-  const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isYearly: boolean) => {
+  const renderTierCard = (tier: typeof allTiers[0], isCurrent: boolean, isYearly: boolean) => {
     return (
       <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
@@ -315,74 +319,60 @@ export default function SubscriptionPage() {
     )
   }
 
-  if (user?.isPro && user.subscriptionType) {
-    const currentTier = allTiers.find(t => t.name === user.subscriptionType);
-    
-    return (
-        <div className="py-12 md:py-16 animate-fade-in-up">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
-                <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
-            </div>
-            <div className="max-w-md mx-auto">
-               {currentTier && (
-                 <Card className="border-primary border-2 animate-fade-in-up">
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
-                            <div className="flex items-center gap-1 text-primary">
-                                <Star className="w-5 h-5 fill-current" />
-                                <span className="font-bold">Current Plan</span>
-                            </div>
-                        </div>
-                        <CardDescription>
-                            Your plan is active and provides you with exclusive benefits.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex justify-between items-baseline">
-                            <span className="text-muted-foreground">Ad Credits</span>
-                            <span className="font-bold text-2xl">{user.adCredits ?? 0}</span>
-                        </div>
-                        <div className="flex justify-between items-baseline">
-                            <span className="text-muted-foreground">Plan Expires On</span>
-                            <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt as any).toLocaleDateString() : 'N/A'}</span>
-                        </div>
-                    </CardContent>
-                     <CardFooter>
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" className="w-full" disabled={isCancelling}>
-                                    {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This will immediately end your subscription, pause all your public ads, and set your ad credits to 0. You will be refunded 50% of your subscription amount. This cannot be undone.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>No, Keep Plan</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleCancelSubscription} className={cn(buttonVariants({ variant: 'destructive' }))}>Yes, Cancel Subscription</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </CardFooter>
-                 </Card>
-               )}
-            </div>
-        </div>
-    );
-  }
-
   return (
-    <div className="py-12 md:py-16 animate-fade-in-up">
-      <div className="text-center mb-12">
+    <div className="py-12 md:py-16">
+      <div className="text-center mb-12 animate-fade-in-up">
         <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
         <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
       </div>
+
+       {user && user.isPro && user.subscriptionType && (
+         <div className="max-w-md mx-auto mb-12">
+             <Card className="border-primary border-2 animate-fade-in-up">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
+                        <div className="flex items-center gap-1 text-primary">
+                            <Star className="w-5 h-5 fill-current" />
+                            <span className="font-bold">Current Plan</span>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-between items-baseline">
+                        <span className="text-muted-foreground">Ad Credits</span>
+                        <span className="font-bold text-2xl">{user.adCredits ?? 0}</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                        <span className="text-muted-foreground">Plan Expires On</span>
+                        <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt as any).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full" disabled={isCancelling}>
+                                {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will immediately end your subscription, pause all your public ads, and set your ad credits to 0. You will be refunded 50% of your subscription amount. This cannot be undone.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>No, Keep Plan</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleCancelSubscription} className={cn(buttonVariants({ variant: 'destructive' }))}>Yes, Cancel Subscription</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardFooter>
+            </Card>
+         </div>
+       )}
+
        {user && user.verificationStatus !== 'verified' && (
         <Alert className="max-w-4xl mx-auto mb-8 animate-fade-in">
           <AlertCircle className="h-4 w-4" />
