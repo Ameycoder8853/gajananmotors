@@ -6,7 +6,7 @@ import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase } from '@/firebase';
-import { doc, increment, writeBatch, Timestamp, collection, setDoc } from 'firebase/firestore';
+import { doc, writeBatch, Timestamp, collection, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -83,7 +83,7 @@ export default function SubscriptionPage() {
   const { firestore } = initializeFirebase();
   const router = useRouter();
   
-  const handlePayment = async (planId: string | undefined, credits: number, planName: string, amount: number, isUpgrade: boolean = false, isYearly: boolean = false) => {
+  const handlePayment = async (planId: string | undefined, credits: number, planName: string, amount: number, isYearly: boolean) => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Authentication Required', description: 'You must be logged in to purchase a subscription.', action: <Button onClick={() => router.push('/login')}>Login</Button> });
       return;
@@ -100,14 +100,13 @@ export default function SubscriptionPage() {
       return;
     }
     
-    // Call the backend to create a Razorpay Order or Subscription
     const res = await fetch('/api/razorpay', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        planId: isYearly ? planId : undefined, // Only send planId for yearly subscriptions
+        planId: isYearly ? planId : undefined,
         isYearly,
-        amount // Always send amount for both types
+        amount
       }),
     });
 
@@ -118,7 +117,7 @@ export default function SubscriptionPage() {
     }
 
     const data = await res.json();
-    if (!data || !data.id || (isYearly ? !data.entity : !data.amount)) {
+    if (!data || !data.id) {
       toast({ variant: 'destructive', title: 'Payment Error', description: 'Failed to parse Razorpay response from server.' });
       return;
     }
@@ -129,7 +128,6 @@ export default function SubscriptionPage() {
       currency: data.currency || 'INR',
       name: 'Gajanan Motors',
       description: `${planName} Purchase`,
-      // Dynamically set order_id or subscription_id based on what the backend created
       order_id: isYearly ? undefined : data.id, 
       subscription_id: isYearly ? data.id : undefined,
 
@@ -146,15 +144,12 @@ export default function SubscriptionPage() {
           } else {
               expiryDate.setMonth(expiryDate.getMonth() + 1);
           }
-
-          // In an upgrade scenario, credits are added. For a new subscription, they are set.
-          const finalCredits = isUpgrade ? increment(credits) : credits;
-
-          const updateUserPayload: any = {
+          
+          const updateUserPayload = {
             isPro: true,
             subscriptionType: planName,
             proExpiresAt: Timestamp.fromDate(expiryDate),
-            adCredits: finalCredits,
+            adCredits: credits, // Always set credits to the new plan's amount
           };
 
           batch.update(userDocRef, updateUserPayload);
@@ -165,16 +160,15 @@ export default function SubscriptionPage() {
           const paymentRecord: Payment = {
               id: newPaymentRef.id,
               dealerId: user.uid,
-              adId: null, // This is a subscription payment, not related to a single ad
+              adId: null,
               type: 'subscription',
               amount: amount,
               currency: 'INR',
               razorpayPaymentId: response.razorpay_payment_id,
               status: 'paid',
-              createdAt: Timestamp.now(),
+              createdAt: new Date(),
           };
 
-          // Only add subscription ID if it exists (for yearly plans)
           if (response.razorpay_subscription_id) {
               (paymentRecord as any).razorpaySubscriptionId = response.razorpay_subscription_id;
           }
@@ -185,7 +179,7 @@ export default function SubscriptionPage() {
 
           toast({
             title: 'Payment Successful',
-            description: `${credits} ad credits have been added.`,
+            description: `Your ${planName} plan is now active. ${credits} ad credits have been added.`,
           });
           router.push('/dashboard/my-listings');
 
@@ -221,12 +215,9 @@ export default function SubscriptionPage() {
     rzp.open();
   };
 
-  const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
-    // A yearly plan can't be chosen if the user is already on a yearly plan.
-    const isTierDisabled = isCurrent || (user?.subscriptionType?.includes('Yearly') && isUpgradeOption);
-
+  const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isYearly: boolean) => {
     return (
-      <Card key={tier.name} className={cn("flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2", isTierDisabled && "opacity-60")}>
+      <Card key={tier.name} className={cn("flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
           <div className="flex justify-between items-center">
              <CardTitle className="text-2xl">{tier.name.replace(' Yearly', '')}</CardTitle>
@@ -256,8 +247,8 @@ export default function SubscriptionPage() {
             {isCurrent ? (
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
-                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, tier.price, isUpgradeOption, isYearly)} disabled={isTierDisabled}>
-                    {isTierDisabled ? 'Plan Cannot Be Changed' : isUpgradeOption ? `Switch to ${tier.name.replace(' Yearly', '')}` : 'Choose Plan'}
+                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, tier.price, isYearly)}>
+                    Choose Plan
                 </Button>
             )}
         </CardFooter>
@@ -275,9 +266,11 @@ export default function SubscriptionPage() {
 
   const getProExpiresDate = () => {
     if (!user?.proExpiresAt) return 'N/A';
+    // Ensure proExpiresAt is a Date object before calling toLocaleDateString
     if (user.proExpiresAt instanceof Timestamp) {
       return user.proExpiresAt.toDate().toLocaleDateString();
     }
+    // If it's already a Date or a string that can be parsed
     return new Date(user.proExpiresAt as any).toLocaleDateString();
   };
 
@@ -341,7 +334,7 @@ export default function SubscriptionPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {monthlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, user?.subscriptionType === tier.name, !!user?.isPro, false)}
+                        {renderTierCard(tier, user?.subscriptionType === tier.name, false)}
                     </div>
                 ))}
             </div>
@@ -350,7 +343,7 @@ export default function SubscriptionPage() {
              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {yearlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                         {renderTierCard(tier, user?.subscriptionType === tier.name, !!user?.isPro, true)}
+                         {renderTierCard(tier, user?.subscriptionType === tier.name, true)}
                     </div>
                 ))}
             </div>
