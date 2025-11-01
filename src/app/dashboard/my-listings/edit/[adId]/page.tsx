@@ -127,23 +127,25 @@ export default function EditListingPage() {
 
   useEffect(() => {
     if (ad) {
-        const [addressLine, subLocation, city, state] = ad.location.split(',').map(s => s.trim()).reverse();
+        const [addressLine, subLocation, city, state] = (ad.location || '').split(',').map(s => s.trim()).reverse();
 
         form.reset({
             ...ad,
-            state,
-            city,
-            subLocation,
-            addressLine,
+            state: state || '',
+            city: city || '',
+            subLocation: subLocation || '',
+            addressLine: addressLine || '',
             newImages: [],
         });
         
-        const existingImages: ImageObject[] = (ad.images as string[]).map(url => ({
-          id: url,
-          url: url,
-          type: 'existing'
-        }));
-        setImages(existingImages);
+        if (ad.images && Array.isArray(ad.images)) {
+          const existingImages: ImageObject[] = (ad.images as string[]).map(url => ({
+            id: url,
+            url: url,
+            type: 'existing'
+          }));
+          setImages(existingImages);
+        }
 
         if (ad.make && carData[ad.make]) {
             setModels(carData[ad.make]);
@@ -643,3 +645,5 @@ export default function EditListingPage() {
     </Card>
   );
 }
+
+    
