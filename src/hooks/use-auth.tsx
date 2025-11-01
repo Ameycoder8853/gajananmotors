@@ -15,12 +15,11 @@ import {
   Auth,
   sendEmailVerification,
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore, collection, getDocs, writeBatch, query, orderBy, limit, where, increment } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, Timestamp, Firestore, collection, getDocs, writeBatch, query, where } from 'firebase/firestore';
 import { initializeFirebase, errorEmitter, FirestorePermissionError, useFirebase, setDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
 import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
 import { useToast } from './use-toast';
-import { nanoid } from 'nanoid';
 
 interface AuthContextType {
   user: FirebaseUser | null;
@@ -47,27 +46,13 @@ const convertTimestamps = (data: any) => {
   return data;
 }
 
-const subscriptionLimits: { [key: string]: number } = {
-    'Standard': 10,
-    'Premium': 20,
-    'Pro': 50,
-    'Standard Yearly': 10,
-    'Premium Yearly': 20,
-    'Pro Yearly': 50,
-};
-
-// This function will run once to ensure the admin user exists in Firebase Auth and Firestore.
-// It is designed to be run manually or as part of a deployment script, not on every app load.
 const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
   const adminEmail = 'ameypatil261@gmail.com';
   const adminPassword = 'gajananmotors';
 
   try {
-    // This will create the user if they don't exist.
-    // It throws 'auth/email-already-in-use' if they do, which we can safely ignore.
     const adminCred = await createUserWithEmailAndPassword(auth, adminEmail, adminPassword);
     
-    // If creation was successful, this is the first time. Let's create their Firestore doc.
     const adminData: AppUser = {
       id: adminCred.user.uid,
       name: 'Admin',
@@ -84,7 +69,6 @@ const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
     await setDoc(doc(firestore, 'users', adminCred.user.uid), adminData);
     console.log('Admin user successfully created.');
 
-    // Important: Sign out the admin immediately after creation so it doesn't affect the current user's session.
     if (auth.currentUser?.email === adminEmail) {
       await signOut(auth);
       console.log('Admin signed out post-creation.');
@@ -93,7 +77,6 @@ const ensureAdminExists = async (auth: Auth, firestore: Firestore) => {
     if (error.code === 'auth/email-already-in-use') {
       // This is expected and fine. The admin user already exists.
     } else {
-      // Log any other errors during this setup.
       console.error('Critical error during admin user setup:', error);
     }
   }
@@ -109,11 +92,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   useEffect(() => {
     if (isFirebaseLoading || !auth || !firestore) {
-      return; // Wait for firebase to be initialized
+      return;
     }
     
-    // On the first load of the app, ensure the admin user exists.
-    // This is safer than running it on every state change.
     ensureAdminExists(auth, firestore);
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
@@ -125,7 +106,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (userDoc.exists()) {
             let appUser = convertTimestamps(userDoc.data()) as AppUser;
 
-            // Explicitly set admin role if email matches
             if (appUser.email === 'ameypatil261@gmail.com') {
               appUser.role = 'admin';
             }
@@ -133,41 +113,27 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             // Check for subscription expiry
             if (appUser.role === 'dealer' && appUser.isPro && appUser.proExpiresAt && new Date() > appUser.proExpiresAt) {
               
-              // Subscription expired
               appUser.isPro = false;
               appUser.adCredits = 0;
               appUser.subscriptionType = undefined;
               
               const batch = writeBatch(firestore);
-              batch.update(userDocRef, { isPro: false, adCredits: 0, subscriptionType: null });
+              batch.update(userDocRef, { isPro: false, adCredits: 0, subscriptionType: null, razorpaySubscriptionId: null });
               
               const adsRef = collection(firestore, 'cars');
               const q = query(adsRef, where('dealerId', '==', firebaseUser.uid), where('visibility', '==', 'public'));
               const adsSnapshot = await getDocs(q);
               
-              if (!adsSnapshot.empty) {
-                const creditLimit = 0;
-                let publicAdsCount = adsSnapshot.size;
-
-                // Sort ads by creation date, oldest first
-                const sortedAds = adsSnapshot.docs.sort((a, b) => (a.data().createdAt as Timestamp).toMillis() - (b.data().createdAt as Timestamp).toMillis());
-                
-                // Set excess ads to private
-                for (const adDoc of sortedAds) {
-                    if (publicAdsCount > creditLimit) {
-                        batch.update(adDoc.ref, { visibility: 'private' });
-                        publicAdsCount--;
-                    } else {
-                        break;
-                    }
-                }
-              }
+              adsSnapshot.forEach((adDoc) => {
+                  batch.update(adDoc.ref, { visibility: 'private' });
+              });
 
               await batch.commit();
 
               toast({
+                  variant: "destructive",
                   title: "Subscription Expired",
-                  description: "Your Pro plan has expired. Your ads are now private. Please renew to make them public again."
+                  description: "Your Pro plan has expired. Your ads have been paused. Please renew to make them public again."
               });
             }
 
@@ -175,8 +141,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             setUser(enhancedUser);
 
           } else {
-             // New user from Google Sign in maybe, or something went wrong
-             // Let's create a basic user doc if they don't have one
             const displayName = firebaseUser.displayName || 'New User';
             const email = firebaseUser.email;
             if (email) {
@@ -219,7 +183,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     try {
       const creds = await signInWithEmailAndPassword(auth, email, pass);
       
-      // Redirect after successful login
       const userDocRef = doc(firestore, 'users', creds.user.uid);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
@@ -234,7 +197,37 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       return creds;
     } catch (error: any) {
-      // This is now the source of truth for the login form's errors
+       switch (error.code) {
+        case 'auth/user-not-found':
+        case 'auth/invalid-email':
+           toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: 'No account found with this email address.',
+          });
+          break;
+        case 'auth/wrong-password':
+           toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: 'Incorrect password. Please try again.',
+          });
+          break;
+        case 'auth/invalid-credential':
+             toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: 'Invalid credentials. Please check your email and password.',
+          });
+          break;
+        default:
+           toast({
+            variant: 'destructive',
+            title: 'Login Failed',
+            description: error.message,
+          });
+      }
+      console.error("Login failed:", error);
       throw error;
     }
   };
@@ -245,7 +238,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
       await updateProfile(userCredential.user, { displayName: name });
       
-      // Send verification email
       await sendEmailVerification(userCredential.user);
       
       const userDocRef = doc(firestore, 'users', userCredential.user.uid);

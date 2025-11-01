@@ -7,7 +7,7 @@ import { Check, Star } from 'lucide-react';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { initializeFirebase, updateDocumentNonBlocking } from '@/firebase';
-import { doc, increment } from 'firebase/firestore';
+import { doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useState } from 'react';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const monthlyTiers = [
   {
@@ -84,15 +85,17 @@ export default function SubscriptionPage() {
   const { toast } = useToast();
   const { firestore } = initializeFirebase();
   const router = useRouter();
+  const isMobile = useIsMobile();
   const [isCancelling, setIsCancelling] = useState(false);
 
-
-  const handlePayment = async (planId: string, credits: number, planName: string, isYearly: boolean = false) => {
+  const handlePayment = async (tier: typeof allTiers[0], isYearly: boolean) => {
+    const { planId, credits, name, price } = tier;
+    
     if (!user) {
       toast({
         variant: 'destructive',
         title: 'Authentication Required',
-        description: 'You must be logged in to purchase a subscription. Redirecting to login...',
+        description: 'You must be logged in to purchase a subscription.',
       });
       router.push('/login');
       return;
@@ -118,10 +121,12 @@ export default function SubscriptionPage() {
 
     const res = await fetch('/api/razorpay', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ planId }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        isYearly,
+        planId: isYearly ? planId : undefined,
+        amount: isYearly ? undefined : price,
+      }),
     });
 
     if (!res.ok) {
@@ -129,7 +134,7 @@ export default function SubscriptionPage() {
         toast({
             variant: 'destructive',
             title: 'Payment Error',
-            description: errorData.error || 'Failed to create Razorpay subscription.',
+            description: errorData.error || 'Failed to create Razorpay order/subscription.',
         });
         return;
     }
@@ -139,7 +144,7 @@ export default function SubscriptionPage() {
       toast({
         variant: 'destructive',
         title: 'Payment Error',
-        description: 'Failed to parse Razorpay subscription response.',
+        description: 'Failed to parse Razorpay response.',
       });
       return;
     }
@@ -147,9 +152,9 @@ export default function SubscriptionPage() {
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       name: 'Gajanan Motors',
-      description: `${planName} Subscription Purchase`,
-      subscription_id: data.id,
-      handler: function (response: any) {
+      description: `${name} Subscription Purchase`,
+      ...(isYearly ? { subscription_id: data.id } : { order_id: data.id }),
+      handler: async function (response: any) {
         if (!user?.uid) {
             toast({
                 variant: 'destructive',
@@ -159,6 +164,7 @@ export default function SubscriptionPage() {
             return;
         };
 
+        const batch = writeBatch(firestore);
         const userDocRef = doc(firestore, 'users', user.uid);
         
         const expiryDate = new Date();
@@ -170,17 +176,31 @@ export default function SubscriptionPage() {
 
         const updateData: any = {
           isPro: true,
-          subscriptionType: planName,
+          subscriptionType: name,
           proExpiresAt: expiryDate,
-          razorpaySubscriptionId: data.id,
+          razorpaySubscriptionId: isYearly ? data.id : null,
           adCredits: credits,
         };
+        batch.update(userDocRef, updateData);
 
-        updateDocumentNonBlocking(userDocRef, updateData);
+        // Make user's ads public again up to the new credit limit
+        const adsRef = collection(firestore, 'cars');
+        const q = query(adsRef, where('dealerId', '==', user.uid), where('visibility', '==', 'private'));
+        const privateAdsSnapshot = await getDocs(q);
+        
+        let reactivatedCount = 0;
+        privateAdsSnapshot.forEach(adDoc => {
+            if (reactivatedCount < credits) {
+                batch.update(adDoc.ref, { visibility: 'public' });
+                reactivatedCount++;
+            }
+        });
+        
+        await batch.commit();
 
         toast({
           title: 'Payment Successful',
-          description: `${credits} ad credits have been added to your account.`,
+          description: `${credits} ad credits have been added and your ads are now public.`,
         });
         router.push('/dashboard/my-listings');
       },
@@ -190,7 +210,7 @@ export default function SubscriptionPage() {
         contact: user.phone || '',
       },
       theme: {
-        color: '#F56565',
+        color: '#3F51B5',
       },
     };
 
@@ -199,34 +219,41 @@ export default function SubscriptionPage() {
         toast({
             variant: 'destructive',
             title: 'Payment Failed',
-            description: response.error.description || 'Something went wrong during payment.',
+            description: response?.error?.description || 'Something went wrong during payment. Please try again.',
         });
     });
     rzp.open();
   };
-
+  
   const handleCancelSubscription = async () => {
-    if (!user || !user.razorpaySubscriptionId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No active subscription found to cancel.' });
+    if (!user || !user.uid) {
+        toast({ variant: 'destructive', title: 'Error', description: 'User not found.' });
         return;
     }
 
     setIsCancelling(true);
 
     try {
-        const res = await fetch('/api/razorpay/cancel', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscriptionId: user.razorpaySubscriptionId }),
-        });
+        // If there's a Razorpay subscription, cancel it
+        if (user.razorpaySubscriptionId) {
+            const res = await fetch('/api/razorpay/cancel', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscriptionId: user.razorpaySubscriptionId }),
+            });
 
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || 'Failed to cancel subscription.');
+            if (!res.ok) {
+                const errorData = await res.json();
+                throw new Error(errorData.error || 'Failed to cancel Razorpay subscription.');
+            }
         }
 
+        // Batch update Firestore
+        const batch = writeBatch(firestore);
         const userDocRef = doc(firestore, 'users', user.uid);
-        updateDocumentNonBlocking(userDocRef, {
+        
+        // 1. Update user document
+        batch.update(userDocRef, {
             isPro: false,
             subscriptionType: null,
             proExpiresAt: null,
@@ -234,13 +261,20 @@ export default function SubscriptionPage() {
             adCredits: 0,
         });
 
+        // 2. Set all user's ads to private
+        const adsRef = collection(firestore, 'cars');
+        const q = query(adsRef, where('dealerId', '==', user.uid));
+        const adsSnapshot = await getDocs(q);
+        adsSnapshot.forEach((doc) => {
+            batch.update(doc.ref, { visibility: 'private' });
+        });
+        
+        await batch.commit();
+
         toast({
             title: 'Subscription Cancelled',
-            description: 'Your subscription has been cancelled and a refund has been initiated.',
+            description: 'Your subscription has been cancelled and your ads have been paused.',
         });
-
-        // Optimistically update UI
-        user.isPro = false;
 
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Cancellation Failed', description: error.message });
@@ -249,70 +283,101 @@ export default function SubscriptionPage() {
     }
 };
 
-  if (user?.isPro && user.subscriptionType) {
+  const renderTierCard = (tier: typeof allTiers[0], isCurrent: boolean, isYearly: boolean) => {
     return (
-        <div className="animate-fade-in-up py-8 md:py-12">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
-                <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
-            </div>
-            <div className="max-w-md mx-auto">
-                 <Card className="border-primary border-2 animate-fade-in-up">
-                    <CardHeader>
-                        <div className="flex justify-between items-center">
-                            <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
-                            <div className="flex items-center gap-1 text-primary">
-                                <Star className="w-5 h-5 fill-current" />
-                                <span className="font-bold">Current Plan</span>
-                            </div>
-                        </div>
-                        <CardDescription>
-                            Your plan is active and provides you with exclusive benefits.
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex justify-between items-baseline">
-                            <span className="text-muted-foreground">Ad Credits</span>
-                            <span className="font-bold text-2xl">{user.adCredits ?? 0}</span>
-                        </div>
-                        <div className="flex justify-between items-baseline">
-                            <span className="text-muted-foreground">Plan Expires On</span>
-                            <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt as any).toLocaleDateString() : 'N/A'}</span>
-                        </div>
-                    </CardContent>
-                    <CardFooter className="flex-col items-stretch gap-2">
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button variant="destructive" disabled={isCancelling}>
-                                    {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                    This action will cancel your subscription immediately. A refund will be processed according to our policy. This cannot be undone.
-                                </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                <AlertDialogCancel>No, Keep Plan</AlertDialogCancel>
-                                <AlertDialogAction onClick={handleCancelSubscription}>Yes, Cancel Subscription</AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    </CardFooter>
-                </Card>
-            </div>
-        </div>
-    );
+      <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
+        <CardHeader>
+          <div className="flex justify-between items-center">
+             <CardTitle className="text-2xl">{tier.name}</CardTitle>
+             {isCurrent && (
+                <div className="flex items-center gap-1 text-primary">
+                    <Star className="w-5 h-5 fill-current" />
+                    <span className="font-bold">Current Plan</span>
+                </div>
+             )}
+          </div>
+          <CardDescription>
+            <span className="text-4xl font-bold">?{tier.price}</span>
+            <span className="text-muted-foreground">{tier.priceSuffix}</span>
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <ul className="space-y-3">
+            {tier.features.map((feature) => (
+              <li key={feature} className="flex items-center">
+                <Check className="mr-2 h-5 w-5 text-green-500" />
+                <span>{feature}</span>
+              </li>
+            ))}
+          </ul>
+        </CardContent>
+        <CardFooter>
+            {isCurrent ? (
+                <Button className="w-full" disabled>Your Current Plan</Button>
+            ) : (
+                 <Button className="w-full" onClick={() => handlePayment(tier, isYearly)}>
+                    Choose Plan
+                </Button>
+            )}
+        </CardFooter>
+      </Card>
+    )
   }
 
   return (
-    <div className="py-8 md:py-12 animate-fade-in-up">
-      <div className="text-center mb-12">
+    <div className="py-8 md:py-12">
+      <div className="text-center mb-12 animate-fade-in-up">
         <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
         <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
       </div>
+
+       {user && user.isPro && user.subscriptionType && (
+         <div className="max-w-md mx-auto mb-12">
+             <Card className="border-primary border-2 animate-fade-in-up">
+                <CardHeader>
+                    <div className="flex justify-between items-center">
+                        <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
+                        <div className="flex items-center gap-1 text-primary">
+                            <Star className="w-5 h-5 fill-current" />
+                            <span className="font-bold">Current Plan</span>
+                        </div>
+                    </div>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex justify-between items-baseline">
+                        <span className="text-muted-foreground">Ad Credits</span>
+                        <span className="font-bold text-2xl">{user.adCredits ?? 0}</span>
+                    </div>
+                    <div className="flex justify-between items-baseline">
+                        <span className="text-muted-foreground">Plan Expires On</span>
+                        <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt as any).toLocaleDateString() : 'N/A'}</span>
+                    </div>
+                </CardContent>
+                <CardFooter>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="destructive" className="w-full" disabled={isCancelling}>
+                                {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                This will immediately end your subscription, pause all your public ads, and set your ad credits to 0. This cannot be undone.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>No, Keep Plan</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleCancelSubscription} className={cn(buttonVariants({ variant: 'destructive' }))}>Yes, Cancel Subscription</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardFooter>
+            </Card>
+         </div>
+       )}
+
        {user && user.verificationStatus !== 'verified' && (
         <Alert className="max-w-4xl mx-auto mb-8 animate-fade-in">
           <AlertCircle className="h-4 w-4" />
@@ -329,36 +394,13 @@ export default function SubscriptionPage() {
       <Tabs defaultValue="monthly" className="max-w-5xl mx-auto">
         <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="monthly">Monthly Plans</TabsTrigger>
-            <TabsTrigger value="yearly">Yearly Plans (Save up to 20%)</TabsTrigger>
+            <TabsTrigger value="yearly">{isMobile ? 'Yearly' : 'Yearly Plans (Save up to 20%)'}</TabsTrigger>
         </TabsList>
         <TabsContent value="monthly">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {monthlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        <Card className="flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                            <CardHeader>
-                                <CardTitle className="text-2xl">{tier.name}</CardTitle>
-                                <CardDescription>
-                                <span className="text-4xl font-bold">?{tier.price}</span>
-                                <span className="text-muted-foreground">{tier.priceSuffix}</span>
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-grow">
-                                <ul className="space-y-3">
-                                {tier.features.map((feature) => (
-                                    <li key={feature} className="flex items-center">
-                                    <Check className="mr-2 h-5 w-5 text-green-500" />
-                                    <span>{feature}</span>
-                                    </li>
-                                ))}
-                                </ul>
-                            </CardContent>
-                            <CardFooter>
-                                <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, false)}>
-                                    Choose Plan
-                                </Button>
-                            </CardFooter>
-                        </Card>
+                        {renderTierCard(tier, user?.subscriptionType === tier.name, false)}
                     </div>
                 ))}
             </div>
@@ -367,30 +409,7 @@ export default function SubscriptionPage() {
              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {yearlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        <Card className="flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
-                             <CardHeader>
-                                <CardTitle className="text-2xl">{tier.name}</CardTitle>
-                                <CardDescription>
-                                <span className="text-4xl font-bold">?{tier.price}</span>
-                                <span className="text-muted-foreground">{tier.priceSuffix}</span>
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="flex-grow">
-                                <ul className="space-y-3">
-                                {tier.features.map((feature) => (
-                                    <li key={feature} className="flex items-center">
-                                    <Check className="mr-2 h-5 w-5 text-green-500" />
-                                    <span>{feature}</span>
-                                    </li>
-                                ))}
-                                </ul>
-                            </CardContent>
-                            <CardFooter>
-                                <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, true)}>
-                                    Choose Plan
-                                </Button>
-                            </CardFooter>
-                        </Card>
+                        {renderTierCard(tier, user?.subscriptionType === tier.name, true)}
                     </div>
                 ))}
             </div>
