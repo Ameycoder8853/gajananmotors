@@ -15,6 +15,7 @@ export type User = {
   proExpiresAt?: Date | Timestamp | null;
   createdAt: Date | Timestamp;
   subscriptionType?: 'Standard' | 'Premium' | 'Pro' | 'Standard Yearly' | 'Premium Yearly' | 'Pro Yearly';
+  razorpaySubscriptionId?: string;
   adCredits?: number;
   isPhoneVerified?: boolean;
   verificationStatus?: 'unverified' | 'pending' | 'verified' | 'rejected';
@@ -28,6 +29,7 @@ export type FirebaseUser = import('firebase/auth').User & {
     phone?: string;
     photoURL?: string;
     subscriptionType?: 'Standard' | 'Premium' | 'Pro' | 'Standard Yearly' | 'Premium Yearly' | 'Pro Yearly';
+    razorpaySubscriptionId?: string;
     adCredits?: number;
     isPro?: boolean;
     proExpiresAt?: Date | Timestamp | null;

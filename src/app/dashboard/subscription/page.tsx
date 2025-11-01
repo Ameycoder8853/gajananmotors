@@ -14,6 +14,8 @@ import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useState } from 'react';
 
 const monthlyTiers = [
   {
@@ -49,7 +51,7 @@ const yearlyTiers = [
         price: 5000,
         priceSuffix: '/year',
         credits: 10,
-        features: ['10 ad listings', 'Standard support', 'Save ₹1000'],
+        features: ['10 ad listings', 'Standard support', 'Save ?1000'],
     },
     {
         name: 'Premium Yearly' as const,
@@ -57,7 +59,7 @@ const yearlyTiers = [
         price: 10000,
         priceSuffix: '/year',
         credits: 20,
-        features: ['20 ad listings', 'Premium support', 'Featured listings', 'Save ₹2000'],
+        features: ['20 ad listings', 'Premium support', 'Featured listings', 'Save ?2000'],
     },
     {
         name: 'Pro Yearly' as const,
@@ -65,7 +67,7 @@ const yearlyTiers = [
         price: 20000,
         priceSuffix: '/year',
         credits: 50,
-        features: ['50 ad listings', 'Premium support', 'Featured listings', 'Save ₹4000'],
+        features: ['50 ad listings', 'Premium support', 'Featured listings', 'Save ?4000'],
     }
 ];
 
@@ -82,8 +84,10 @@ export default function SubscriptionPage() {
   const { toast } = useToast();
   const { firestore } = initializeFirebase();
   const router = useRouter();
+  const [isCancelling, setIsCancelling] = useState(false);
 
-  const handlePayment = async (planId: string, credits: number, planName: string, isUpgrade: boolean = false, isYearly: boolean = false) => {
+
+  const handlePayment = async (planId: string, credits: number, planName: string, isYearly: boolean = false) => {
     if (!user) {
       toast({
         variant: 'destructive',
@@ -168,18 +172,14 @@ export default function SubscriptionPage() {
           isPro: true,
           subscriptionType: planName,
           proExpiresAt: expiryDate,
+          razorpaySubscriptionId: data.id,
+          adCredits: credits,
         };
-
-        if (isUpgrade) {
-            updateData.adCredits = increment(credits);
-        } else {
-            updateData.adCredits = credits;
-        }
 
         updateDocumentNonBlocking(userDocRef, updateData);
 
         toast({
-          title: isUpgrade ? 'Upgrade Successful!' : 'Payment Successful',
+          title: 'Payment Successful',
           description: `${credits} ad credits have been added to your account.`,
         });
         router.push('/dashboard/my-listings');
@@ -205,62 +205,58 @@ export default function SubscriptionPage() {
     rzp.open();
   };
 
-  const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
-    return (
-      <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-             <CardTitle className="text-2xl">{tier.name}</CardTitle>
-             {isCurrent && (
-                <div className="flex items-center gap-1 text-primary">
-                    <Star className="w-5 h-5 fill-current" />
-                    <span className="font-bold">Current Plan</span>
-                </div>
-             )}
-          </div>
-          <CardDescription>
-            <span className="text-4xl font-bold">₹{tier.price}</span>
-            <span className="text-muted-foreground">{tier.priceSuffix}</span>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-grow">
-          <ul className="space-y-3">
-            {tier.features.map((feature) => (
-              <li key={feature} className="flex items-center">
-                <Check className="mr-2 h-5 w-5 text-green-500" />
-                <span>{feature}</span>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-        <CardFooter>
-            {isCurrent ? (
-                <Button className="w-full" disabled>Your Current Plan</Button>
-            ) : (
-                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, isUpgradeOption, isYearly)}>
-                    {isUpgradeOption ? `Switch to ${tier.name}` : 'Choose Plan'}
-                </Button>
-            )}
-        </CardFooter>
-      </Card>
-    )
-  }
+  const handleCancelSubscription = async () => {
+    if (!user || !user.razorpaySubscriptionId) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No active subscription found to cancel.' });
+        return;
+    }
+
+    setIsCancelling(true);
+
+    try {
+        const res = await fetch('/api/razorpay/cancel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ subscriptionId: user.razorpaySubscriptionId }),
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.error || 'Failed to cancel subscription.');
+        }
+
+        const userDocRef = doc(firestore, 'users', user.uid);
+        updateDocumentNonBlocking(userDocRef, {
+            isPro: false,
+            subscriptionType: null,
+            proExpiresAt: null,
+            razorpaySubscriptionId: null,
+            adCredits: 0,
+        });
+
+        toast({
+            title: 'Subscription Cancelled',
+            description: 'Your subscription has been cancelled and a refund has been initiated.',
+        });
+
+        // Optimistically update UI
+        user.isPro = false;
+
+    } catch (error: any) {
+        toast({ variant: 'destructive', title: 'Cancellation Failed', description: error.message });
+    } finally {
+        setIsCancelling(false);
+    }
+};
 
   if (user?.isPro && user.subscriptionType) {
-    const currentTier = allTiers.find(t => t.name === user.subscriptionType);
-    
-    // Find possible upgrade tiers
-    const currentTierIndex = monthlyTiers.findIndex(t => t.name === currentTier?.name) ?? -1;
-    const upgradeTier = currentTierIndex !== -1 && currentTierIndex < monthlyTiers.length - 1 ? monthlyTiers[currentTierIndex + 1] : null;
-
     return (
-        <div className="animate-fade-in-up">
+        <div className="animate-fade-in-up py-8 md:py-12">
             <div className="text-center mb-12">
                 <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
                 <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
             </div>
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
-               {currentTier && (
+            <div className="max-w-md mx-auto">
                  <Card className="border-primary border-2 animate-fade-in-up">
                     <CardHeader>
                         <div className="flex justify-between items-center">
@@ -281,19 +277,38 @@ export default function SubscriptionPage() {
                         </div>
                         <div className="flex justify-between items-baseline">
                             <span className="text-muted-foreground">Plan Expires On</span>
-                            <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt).toLocaleDateString() : 'N/A'}</span>
+                            <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt as any).toLocaleDateString() : 'N/A'}</span>
                         </div>
                     </CardContent>
+                    <CardFooter className="flex-col items-stretch gap-2">
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button variant="destructive" disabled={isCancelling}>
+                                    {isCancelling ? 'Cancelling...' : 'Cancel Subscription'}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                    This action will cancel your subscription immediately. A refund will be processed according to our policy. This cannot be undone.
+                                </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                <AlertDialogCancel>No, Keep Plan</AlertDialogCancel>
+                                <AlertDialogAction onClick={handleCancelSubscription}>Yes, Cancel Subscription</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    </CardFooter>
                 </Card>
-               )}
-               {upgradeTier && renderTierCard(upgradeTier, false, true, false)}
             </div>
         </div>
     );
   }
 
   return (
-    <div className="animate-fade-in-up">
+    <div className="py-8 md:py-12 animate-fade-in-up">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
         <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
@@ -320,7 +335,30 @@ export default function SubscriptionPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {monthlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, false, false, false)}
+                        <Card className="flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                            <CardHeader>
+                                <CardTitle className="text-2xl">{tier.name}</CardTitle>
+                                <CardDescription>
+                                <span className="text-4xl font-bold">?{tier.price}</span>
+                                <span className="text-muted-foreground">{tier.priceSuffix}</span>
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-grow">
+                                <ul className="space-y-3">
+                                {tier.features.map((feature) => (
+                                    <li key={feature} className="flex items-center">
+                                    <Check className="mr-2 h-5 w-5 text-green-500" />
+                                    <span>{feature}</span>
+                                    </li>
+                                ))}
+                                </ul>
+                            </CardContent>
+                            <CardFooter>
+                                <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, false)}>
+                                    Choose Plan
+                                </Button>
+                            </CardFooter>
+                        </Card>
                     </div>
                 ))}
             </div>
@@ -329,7 +367,30 @@ export default function SubscriptionPage() {
              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {yearlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, false, false, true)}
+                        <Card className="flex flex-col transition-all duration-300 hover:shadow-lg hover:-translate-y-1">
+                             <CardHeader>
+                                <CardTitle className="text-2xl">{tier.name}</CardTitle>
+                                <CardDescription>
+                                <span className="text-4xl font-bold">?{tier.price}</span>
+                                <span className="text-muted-foreground">{tier.priceSuffix}</span>
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="flex-grow">
+                                <ul className="space-y-3">
+                                {tier.features.map((feature) => (
+                                    <li key={feature} className="flex items-center">
+                                    <Check className="mr-2 h-5 w-5 text-green-500" />
+                                    <span>{feature}</span>
+                                    </li>
+                                ))}
+                                </ul>
+                            </CardContent>
+                            <CardFooter>
+                                <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, true)}>
+                                    Choose Plan
+                                </Button>
+                            </CardFooter>
+                        </Card>
                     </div>
                 ))}
             </div>
@@ -338,5 +399,3 @@ export default function SubscriptionPage() {
     </div>
   );
 }
-
-    
