@@ -14,7 +14,6 @@ import { AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 const monthlyTiers = [
   {
@@ -83,16 +82,13 @@ export default function SubscriptionPage() {
   const { toast } = useToast();
   const { firestore } = initializeFirebase();
   const router = useRouter();
-  const isMobile = useIsMobile();
 
-  const handlePayment = async (tier: typeof allTiers[0], isYearly: boolean) => {
-    const { planId, credits, name, price } = tier;
-    
+  const handlePayment = async (planId: string, credits: number, planName: string, isUpgrade: boolean = false, isYearly: boolean = false) => {
     if (!user) {
       toast({
         variant: 'destructive',
         title: 'Authentication Required',
-        description: 'You must be logged in to purchase a subscription.',
+        description: 'You must be logged in to purchase a subscription. Redirecting to login...',
       });
       router.push('/login');
       return;
@@ -118,12 +114,10 @@ export default function SubscriptionPage() {
 
     const res = await fetch('/api/razorpay', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        isYearly,
-        planId: isYearly ? planId : undefined,
-        amount: isYearly ? undefined : price,
-      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ planId }),
     });
 
     if (!res.ok) {
@@ -131,7 +125,7 @@ export default function SubscriptionPage() {
         toast({
             variant: 'destructive',
             title: 'Payment Error',
-            description: errorData.error || 'Failed to create Razorpay order/subscription.',
+            description: errorData.error || 'Failed to create Razorpay subscription.',
         });
         return;
     }
@@ -141,7 +135,7 @@ export default function SubscriptionPage() {
       toast({
         variant: 'destructive',
         title: 'Payment Error',
-        description: 'Failed to parse Razorpay response.',
+        description: 'Failed to parse Razorpay subscription response.',
       });
       return;
     }
@@ -149,8 +143,8 @@ export default function SubscriptionPage() {
     const options = {
       key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
       name: 'Gajanan Motors',
-      description: `${name} Subscription Purchase`,
-      ...(isYearly ? { subscription_id: data.id } : { order_id: data.id }),
+      description: `${planName} Subscription Purchase`,
+      subscription_id: data.id,
       handler: function (response: any) {
         if (!user?.uid) {
             toast({
@@ -172,15 +166,20 @@ export default function SubscriptionPage() {
 
         const updateData: any = {
           isPro: true,
-          subscriptionType: name,
+          subscriptionType: planName,
           proExpiresAt: expiryDate,
-          adCredits: credits,
         };
+
+        if (isUpgrade) {
+            updateData.adCredits = increment(credits);
+        } else {
+            updateData.adCredits = credits;
+        }
 
         updateDocumentNonBlocking(userDocRef, updateData);
 
         toast({
-          title: 'Payment Successful',
+          title: isUpgrade ? 'Upgrade Successful!' : 'Payment Successful',
           description: `${credits} ad credits have been added to your account.`,
         });
         router.push('/dashboard/my-listings');
@@ -191,7 +190,7 @@ export default function SubscriptionPage() {
         contact: user.phone || '',
       },
       theme: {
-        color: '#3F51B5',
+        color: '#F56565',
       },
     };
 
@@ -200,13 +199,13 @@ export default function SubscriptionPage() {
         toast({
             variant: 'destructive',
             title: 'Payment Failed',
-            description: 'Something went wrong during payment. Please try again.',
+            description: response.error.description || 'Something went wrong during payment.',
         });
     });
     rzp.open();
   };
 
-  const renderTierCard = (tier: typeof allTiers[0], isCurrent: boolean, isYearly: boolean) => {
+  const renderTierCard = (tier: (typeof allTiers)[0], isCurrent: boolean, isUpgradeOption: boolean, isYearly: boolean) => {
     return (
       <Card key={tier.name} className={cn("flex flex-col animate-fade-in-up transition-all duration-300 hover:shadow-lg hover:-translate-y-1", isCurrent && "border-primary border-2")}>
         <CardHeader>
@@ -238,8 +237,8 @@ export default function SubscriptionPage() {
             {isCurrent ? (
                 <Button className="w-full" disabled>Your Current Plan</Button>
             ) : (
-                 <Button className="w-full" onClick={() => handlePayment(tier, isYearly)}>
-                    Choose Plan
+                 <Button className="w-full" onClick={() => handlePayment(tier.planId, tier.credits, tier.name, isUpgradeOption, isYearly)}>
+                    {isUpgradeOption ? `Switch to ${tier.name}` : 'Choose Plan'}
                 </Button>
             )}
         </CardFooter>
@@ -247,39 +246,58 @@ export default function SubscriptionPage() {
     )
   }
 
+  if (user?.isPro && user.subscriptionType) {
+    const currentTier = allTiers.find(t => t.name === user.subscriptionType);
+    
+    // Find possible upgrade tiers
+    const currentTierIndex = monthlyTiers.findIndex(t => t.name === currentTier?.name) ?? -1;
+    const upgradeTier = currentTierIndex !== -1 && currentTierIndex < monthlyTiers.length - 1 ? monthlyTiers[currentTierIndex + 1] : null;
+
+    return (
+        <div className="animate-fade-in-up">
+            <div className="text-center mb-12">
+                <h1 className="text-4xl font-extrabold tracking-tight">Your Subscription</h1>
+                <p className="mt-2 text-lg text-muted-foreground">Manage your current plan and benefits.</p>
+            </div>
+            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+               {currentTier && (
+                 <Card className="border-primary border-2 animate-fade-in-up">
+                    <CardHeader>
+                        <div className="flex justify-between items-center">
+                            <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
+                            <div className="flex items-center gap-1 text-primary">
+                                <Star className="w-5 h-5 fill-current" />
+                                <span className="font-bold">Current Plan</span>
+                            </div>
+                        </div>
+                        <CardDescription>
+                            Your plan is active and provides you with exclusive benefits.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="flex justify-between items-baseline">
+                            <span className="text-muted-foreground">Ad Credits</span>
+                            <span className="font-bold text-2xl">{user.adCredits ?? 0}</span>
+                        </div>
+                        <div className="flex justify-between items-baseline">
+                            <span className="text-muted-foreground">Plan Expires On</span>
+                            <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt).toLocaleDateString() : 'N/A'}</span>
+                        </div>
+                    </CardContent>
+                </Card>
+               )}
+               {upgradeTier && renderTierCard(upgradeTier, false, true, false)}
+            </div>
+        </div>
+    );
+  }
+
   return (
-    <div className="animate-fade-in-up py-8 md:py-12">
+    <div className="animate-fade-in-up">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-extrabold tracking-tight">Subscription Plans</h1>
         <p className="mt-2 text-lg text-muted-foreground">Choose a plan that fits your needs to start posting ads.</p>
       </div>
-
-       {user && user.isPro && user.subscriptionType && (
-         <div className="max-w-md mx-auto mb-12">
-             <Card className="border-primary border-2 animate-fade-in-up">
-                <CardHeader>
-                    <div className="flex justify-between items-center">
-                        <CardTitle className="text-2xl">{user.subscriptionType} Plan</CardTitle>
-                        <div className="flex items-center gap-1 text-primary">
-                            <Star className="w-5 h-5 fill-current" />
-                            <span className="font-bold">Current Plan</span>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="flex justify-between items-baseline">
-                        <span className="text-muted-foreground">Ad Credits</span>
-                        <span className="font-bold text-2xl">{user.adCredits ?? 0}</span>
-                    </div>
-                    <div className="flex justify-between items-baseline">
-                        <span className="text-muted-foreground">Plan Expires On</span>
-                        <span className="font-semibold">{user.proExpiresAt ? new Date(user.proExpiresAt as any).toLocaleDateString() : 'N/A'}</span>
-                    </div>
-                </CardContent>
-            </Card>
-         </div>
-       )}
-
        {user && user.verificationStatus !== 'verified' && (
         <Alert className="max-w-4xl mx-auto mb-8 animate-fade-in">
           <AlertCircle className="h-4 w-4" />
@@ -296,13 +314,13 @@ export default function SubscriptionPage() {
       <Tabs defaultValue="monthly" className="max-w-5xl mx-auto">
         <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="monthly">Monthly Plans</TabsTrigger>
-            <TabsTrigger value="yearly">{isMobile ? 'Yearly' : 'Yearly Plans (Save up to 20%)'}</TabsTrigger>
+            <TabsTrigger value="yearly">Yearly Plans (Save up to 20%)</TabsTrigger>
         </TabsList>
         <TabsContent value="monthly">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {monthlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, user?.subscriptionType === tier.name, false)}
+                        {renderTierCard(tier, false, false, false)}
                     </div>
                 ))}
             </div>
@@ -311,7 +329,7 @@ export default function SubscriptionPage() {
              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-8">
                 {yearlyTiers.map((tier, index) => (
                     <div key={tier.name} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
-                        {renderTierCard(tier, user?.subscriptionType === tier.name, true)}
+                        {renderTierCard(tier, false, false, true)}
                     </div>
                 ))}
             </div>
@@ -320,3 +338,5 @@ export default function SubscriptionPage() {
     </div>
   );
 }
+
+    
