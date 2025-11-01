@@ -27,6 +27,7 @@ export function Logo({ className }: { className?: string }) {
           height={60} 
           priority
           className=""
+          style={{ width: 'auto', height: 'auto' }}
         />
       ) : (
         <div style={{ width: '28px', height: '28px' }} /> // Placeholder to prevent layout shift
