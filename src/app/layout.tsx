@@ -8,9 +8,9 @@ import { ThemeProvider } from '@/components/shared/ThemeProvider';
 
 const siteConfig = {
   name: 'Gajanan Motors',
-  url: 'https://gajananmotors.com', // Replace with your actual domain
+  url: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
   description: 'Gajanan Motors is your trusted partner for buying and selling quality used cars. Browse our verified listings from trusted dealers and find your dream car today.',
-  ogImage: 'https://gajananmotors.com/og-image.png', // Replace with your actual OG image URL
+  ogImage: '/og-image.png',
   links: {
     twitter: 'https://twitter.com/gajananmotors', // Replace with your Twitter handle
   }
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
         { url: "/favicon-dark.ico", media: "(prefers-color-scheme: dark)" },
     ],
   },
-  manifest: `${siteConfig.url}/site.webmanifest`,
+  manifest: `/site.webmanifest`,
 };
 
 export default function RootLayout({

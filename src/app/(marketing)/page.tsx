@@ -154,8 +154,8 @@ const structuredData = {
     "@context": "https://schema.org",
     "@type": "AutomobileDealer",
     "name": "Gajanan Motors",
-    "url": "https://gajananmotors.com", // Replace with your actual domain
-    "logo": "https://gajananmotors.com/logo-dark.svg", // Replace with your actual logo URL
+    "url": process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+    "logo": `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/logo-dark.svg`,
     "description": "Gajanan Motors is your trusted partner for buying and selling quality used cars. Browse our verified listings from trusted dealers and find your dream car today.",
     "address": {
         "@type": "PostalAddress",

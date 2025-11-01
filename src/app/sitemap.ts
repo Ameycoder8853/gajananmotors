@@ -12,7 +12,7 @@ try {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://gajananmotors.com'; // Replace with your actual domain
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
 
   // 1. Static pages
   const staticRoutes = [
