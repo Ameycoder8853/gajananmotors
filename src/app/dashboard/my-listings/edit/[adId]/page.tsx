@@ -127,32 +127,40 @@ export default function EditListingPage() {
 
   useEffect(() => {
     if (ad) {
-        const [addressLine, subLocation, city, state] = (ad.location || '').split(',').map(s => s.trim()).reverse();
+      // Safely destructure ad, protecting the images field from being overwritten
+      const { images: adImages, ...adDataToReset } = ad;
 
-        form.reset({
-            ...ad,
-            state: state || '',
-            city: city || '',
-            subLocation: subLocation || '',
-            addressLine: addressLine || '',
-            newImages: [],
-        });
-        
-        if (ad.images && Array.isArray(ad.images)) {
-          const existingImages: ImageObject[] = (ad.images as string[]).map(url => ({
-            id: url,
-            url: url,
-            type: 'existing'
-          }));
-          setImages(existingImages);
-        }
+      const locationParts = (ad.location || '').split(',').map(s => s.trim());
+      const state = locationParts.length > 0 ? locationParts[locationParts.length - 1] : '';
+      const city = locationParts.length > 1 ? locationParts[locationParts.length - 2] : '';
+      const subLocation = locationParts.length > 2 ? locationParts[locationParts.length - 3] : '';
+      const addressLine = locationParts.length > 3 ? locationParts.slice(0, -3).join(', ') : '';
 
-        if (ad.make && carData[ad.make]) {
-            setModels(carData[ad.make]);
-        }
-        if (state && citiesByState[state]) {
-            setCities(citiesByState[state]);
-        }
+      form.reset({
+        ...adDataToReset, // Use the ad data without the images field
+        state: state || '',
+        city: city || '',
+        subLocation: subLocation || '',
+        addressLine: addressLine || '',
+        newImages: [],
+      });
+
+      // Handle images separately to avoid them being overwritten
+      if (adImages && Array.isArray(adImages)) {
+        const existingImages: ImageObject[] = (adImages as string[]).map(url => ({
+          id: url,
+          url: url,
+          type: 'existing'
+        }));
+        setImages(existingImages);
+      }
+
+      if (ad.make && carData[ad.make]) {
+        setModels(carData[ad.make]);
+      }
+      if (state && citiesByState[state]) {
+        setCities(citiesByState[state]);
+      }
     }
   }, [ad, form]);
 
@@ -645,5 +653,3 @@ export default function EditListingPage() {
     </Card>
   );
 }
-
-    
