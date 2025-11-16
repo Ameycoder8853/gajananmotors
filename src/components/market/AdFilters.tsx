@@ -19,8 +19,7 @@ type AdFiltersProps = {
 
 export function AdFilters({ filters, setFilters }: AdFiltersProps) {
   const [models, setModels] = useState<string[]>([]);
-  const isMobile = useIsMobile();
-  const [isOpen, setIsOpen] = useState(!isMobile);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -63,11 +62,6 @@ export function AdFilters({ filters, setFilters }: AdFiltersProps) {
     setModels([]);
   };
 
-  // Sync collapsible state with screen size changes
-  useEffect(() => {
-    setIsOpen(!isMobile);
-  }, [isMobile]);
-  
   return (
     <div className="space-y-4">
       {/* Standalone Search Bar */}
