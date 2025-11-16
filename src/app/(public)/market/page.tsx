@@ -1,3 +1,4 @@
+
 'use client';
 
 import { AdCard } from "@/components/market/AdCard";
@@ -16,12 +17,35 @@ import { useCollection, useMemoFirebase } from "@/firebase";
 import { useFirestore } from "@/firebase/provider";
 import { collection, query, where, getDoc, doc } from "firebase/firestore";
 import type { Ad, User } from "@/lib/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { carData } from "@/lib/car-data";
+
+export type Filters = {
+  searchQuery: string;
+  make: string;
+  model: string;
+  minYear: string;
+  maxYear: string;
+  minPrice: string;
+  maxPrice: string;
+  fuelType: string;
+  transmission: string;
+};
 
 export default function MarketPage() {
   const firestore = useFirestore();
   const [adsWithDealers, setAdsWithDealers] = useState<Ad[]>([]);
+  const [filters, setFilters] = useState<Filters>({
+    searchQuery: '',
+    make: '',
+    model: '',
+    minYear: '',
+    maxYear: '',
+    minPrice: '',
+    maxPrice: '',
+    fuelType: '',
+    transmission: '',
+  });
   
   const adsQuery = useMemoFirebase(() => {
     if (!firestore) return null;
@@ -33,7 +57,6 @@ export default function MarketPage() {
   useEffect(() => {
     if (ads && firestore) {
       const fetchDealers = async () => {
-        // Create a map of dealer IDs to fetch so we only fetch each dealer once
         const dealerIds = new Set(ads.map(ad => ad.dealerId));
         const dealerPromises = Array.from(dealerIds).map(id => getDoc(doc(firestore, 'users', id)));
         
@@ -54,10 +77,47 @@ export default function MarketPage() {
       };
       fetchDealers();
     } else if (!areAdsLoading) {
-      // If ads are loaded and empty, clear the lists
       setAdsWithDealers([]);
     }
   }, [ads, firestore, areAdsLoading]);
+
+  const filteredAds = useMemo(() => {
+    let filtered = adsWithDealers;
+
+    if (filters.searchQuery) {
+        filtered = filtered.filter(ad => 
+            ad.title.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+            ad.make.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
+            ad.model.toLowerCase().includes(filters.searchQuery.toLowerCase())
+        );
+    }
+    if (filters.make) {
+        filtered = filtered.filter(ad => ad.make === filters.make);
+    }
+    if (filters.model) {
+        filtered = filtered.filter(ad => ad.model === filters.model);
+    }
+    if (filters.minYear) {
+        filtered = filtered.filter(ad => ad.year >= parseInt(filters.minYear, 10));
+    }
+    if (filters.maxYear) {
+        filtered = filtered.filter(ad => ad.year <= parseInt(filters.maxYear, 10));
+    }
+    if (filters.minPrice) {
+        filtered = filtered.filter(ad => ad.price >= parseInt(filters.minPrice, 10));
+    }
+    if (filters.maxPrice) {
+        filtered = filtered.filter(ad => ad.price <= parseInt(filters.maxPrice, 10));
+    }
+    if (filters.fuelType) {
+        filtered = filtered.filter(ad => ad.fuelType === filters.fuelType);
+    }
+    if (filters.transmission) {
+        filtered = filtered.filter(ad => ad.transmission === filters.transmission);
+    }
+
+    return filtered;
+}, [adsWithDealers, filters]);
 
   const isLoading = areAdsLoading || (ads && ads.length > 0 && adsWithDealers.length === 0);
 
@@ -68,10 +128,10 @@ export default function MarketPage() {
         <p className="mt-2 text-lg text-muted-foreground">Browse and find your dream car from our trusted dealers.</p>
       </div>
 
-      <AdFilters />
+      <AdFilters filters={filters} setFilters={setFilters} />
 
       <div className="flex justify-between items-center my-6">
-        <p className="text-sm text-muted-foreground">Showing {adsWithDealers.length} results</p>
+        <p className="text-sm text-muted-foreground">Showing {filteredAds.length} results</p>
         <div className="flex items-center gap-2">
             <label className="text-sm font-medium">Sort by:</label>
             <Select defaultValue="newest">
@@ -94,7 +154,7 @@ export default function MarketPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {adsWithDealers.map((ad) => (
+          {filteredAds.map((ad) => (
             <AdCard key={ad.id} ad={ad} />
           ))}
         </div>
