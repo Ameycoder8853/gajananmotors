@@ -20,6 +20,13 @@ type AdFiltersProps = {
 export function AdFilters({ filters, setFilters }: AdFiltersProps) {
   const [models, setModels] = useState<string[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    // Determine the initial state based on screen size
+    if (isMobile === undefined) return; // Wait until screen size is determined
+    setIsOpen(!isMobile);
+  }, [isMobile]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -89,7 +96,7 @@ export function AdFilters({ filters, setFilters }: AdFiltersProps) {
         onOpenChange={setIsOpen}
         className="bg-card p-4 rounded-lg border shadow-sm"
       >
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Additional Filters</h3>
           <CollapsibleTrigger asChild>
             <Button variant="ghost" size="sm">
@@ -99,7 +106,7 @@ export function AdFilters({ filters, setFilters }: AdFiltersProps) {
           </CollapsibleTrigger>
         </div>
         <CollapsibleContent>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 items-end">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 items-end mt-4">
             <div>
               <Label className="text-sm font-medium" htmlFor="make">Make</Label>
               <Select value={filters.make} onValueChange={(v) => handleSelectChange('make', v)}>
