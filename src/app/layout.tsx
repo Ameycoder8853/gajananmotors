@@ -6,6 +6,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { AuthProvider } from '@/hooks/use-auth';
 import { FirebaseClientProvider } from '@/firebase';
 import { ThemeProvider } from '@/components/shared/ThemeProvider';
+import { LocationProvider } from '@/hooks/use-location';
 
 const siteConfig = {
   name: 'Gajanan Motors',
@@ -77,7 +78,9 @@ export default function RootLayout({
         >
           <FirebaseClientProvider>
             <AuthProvider>
-              {children}
+              <LocationProvider>
+                {children}
+              </LocationProvider>
               <Toaster />
             </AuthProvider>
           </FirebaseClientProvider>

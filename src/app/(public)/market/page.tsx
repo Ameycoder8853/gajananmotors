@@ -18,7 +18,7 @@ import { useFirestore } from "@/firebase/provider";
 import { collection, query, where, getDoc, doc } from "firebase/firestore";
 import type { Ad, User } from "@/lib/types";
 import { useEffect, useState, useMemo } from "react";
-import { carData } from "@/lib/car-data";
+import { useLocation } from '@/hooks/use-location';
 
 export type Filters = {
   searchQuery: string;
@@ -34,6 +34,7 @@ export type Filters = {
 
 export default function MarketPage() {
   const firestore = useFirestore();
+  const { location } = useLocation();
   const [adsWithDealers, setAdsWithDealers] = useState<Ad[]>([]);
   const [filters, setFilters] = useState<Filters>({
     searchQuery: '',
@@ -84,6 +85,10 @@ export default function MarketPage() {
   const filteredAds = useMemo(() => {
     let filtered = adsWithDealers;
 
+    if (location.city) {
+        filtered = filtered.filter(ad => ad.location.toLowerCase().includes(location.city.toLowerCase()));
+    }
+    
     if (filters.searchQuery) {
         filtered = filtered.filter(ad => 
             ad.title.toLowerCase().includes(filters.searchQuery.toLowerCase()) ||
@@ -117,7 +122,7 @@ export default function MarketPage() {
     }
 
     return filtered;
-}, [adsWithDealers, filters]);
+}, [adsWithDealers, filters, location]);
 
   const isLoading = areAdsLoading || (ads && ads.length > 0 && adsWithDealers.length === 0);
 

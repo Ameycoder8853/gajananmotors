@@ -1,9 +1,10 @@
+
 'use client';
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu, Moon, Sun } from 'lucide-react';
+import { Menu, Moon, Sun, MapPin } from 'lucide-react';
 import { Logo } from '@/components/shared/Logo';
 import { useAuth } from '@/hooks/use-auth';
 import {
@@ -19,6 +20,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
+import { useLocation } from '@/hooks/use-location';
+import { LocationSelector } from './LocationSelector';
+
 
 const getInitials = (name?: string | null) => {
   if (!name) return 'U';
@@ -52,8 +56,10 @@ export function Header() {
   const { resolvedTheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
+  const { location } = useLocation();
   const [scrolled, setScrolled] = useState(false);
   const [activeHash, setActiveHash] = useState('');
+  const [isLocationSelectorOpen, setIsLocationSelectorOpen] = useState(false);
   const [navLinks, setNavLinks] = useState([
     { href: '/market', label: 'Marketplace' },
     { href: '/#features', label: 'Features' },
@@ -117,11 +123,10 @@ export function Header() {
       : "bg-transparent"
   );
   
-  // This logic is simplified. We no longer apply 'text-white' when not scrolled on marketing page.
   const linkColor = "text-foreground";
   
   const activeLinkColor = (isMarketingPage && !scrolled)
-      ? "text-primary font-bold" // Active links can still be special
+      ? "text-primary font-bold"
       : "text-primary";
 
   
@@ -158,6 +163,7 @@ export function Header() {
 
 
   return (
+    <>
     <header className={headerClasses}>
       <div className="flex h-16 items-center px-4 md:px-8">
         <div className="flex-none mr-4">
@@ -186,6 +192,10 @@ export function Header() {
         </nav>
 
         <div className="flex flex-none items-center justify-end space-x-2 ml-auto">
+           <Button variant="ghost" onClick={() => setIsLocationSelectorOpen(true)}>
+             <MapPin className="mr-2 h-4 w-4" />
+             <span className="truncate max-w-[120px]">{location.city || 'Select Location'}</span>
+           </Button>
            <ThemeSwitcher />
           <div className="hidden md:flex items-center space-x-2">
             {!isUserLoading && user ? (
@@ -276,5 +286,7 @@ export function Header() {
         </div>
       </div>
     </header>
+    <LocationSelector open={isLocationSelectorOpen} onOpenChange={setIsLocationSelectorOpen} />
+    </>
   );
 }
