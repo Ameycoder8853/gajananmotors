@@ -1,4 +1,3 @@
-
 'use client';
 
 import Image from "next/image";
@@ -13,16 +12,18 @@ export function Hero() {
   return (
     <section className="relative w-full h-[calc(100vh-64px)] min-h-[600px] flex items-center justify-center text-white overflow-hidden bg-zinc-900">
       {heroImage && (
-        <Image
-          src={heroImage.imageUrl}
-          alt={heroImage.description}
-          fill
-          className="object-cover opacity-60"
-          priority
-          data-ai-hint={heroImage.imageHint}
-        />
+        <div className="absolute inset-0 z-0">
+          <Image
+            src={heroImage.imageUrl}
+            alt={heroImage.description}
+            fill
+            className="object-cover opacity-60"
+            priority
+            data-ai-hint={heroImage.imageHint}
+          />
+        </div>
       )}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-[1]" />
       <div className="relative z-10 px-4 md:px-8 text-center max-w-5xl mx-auto">
         <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs sm:text-sm backdrop-blur-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
           <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300 fill-yellow-300" />
@@ -48,7 +49,7 @@ export function Hero() {
           </Button>
         </div>
       </div>
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in-up" style={{ animationDelay: '1000ms' }}>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in-up z-10" style={{ animationDelay: '1000ms' }}>
         <a href="#features" aria-label="Scroll down">
           <ChevronDown className="w-8 h-8 sm:w-10 sm:h-10 text-white animate-bounce-slow" />
         </a>
