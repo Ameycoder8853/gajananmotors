@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -39,7 +38,7 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="py-16 sm:py-24 bg-background">
+    <section id="features" className="py-16 sm:py-24 bg-background overflow-hidden">
       <div className="px-4 md:px-8">
         <div className="text-center animate-fade-in-up">
           <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight md:text-4xl px-2">
@@ -59,7 +58,7 @@ export function Features() {
                   <div className="mx-auto bg-primary/10 rounded-full p-4 w-fit">
                     {feature.icon}
                   </div>
-                  <CardTitle className="mt-4 text-xl">{feature.title}</CardTitle>
+                  <CardTitle className="mt-4 text-lg sm:text-xl break-words">{feature.title}</CardTitle>
                   <CardDescription className="mt-2 text-sm">
                     {feature.description}
                   </CardDescription>

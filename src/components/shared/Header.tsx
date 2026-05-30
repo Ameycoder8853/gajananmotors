@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -41,6 +40,7 @@ function ThemeSwitcher() {
     <Button
       variant="ghost"
       size="icon"
+      className="w-9 h-9"
       onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
     >
       <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
@@ -164,63 +164,69 @@ export function Header() {
   return (
     <>
     <header className={headerClasses}>
-      <div className="flex h-16 items-center px-3 md:px-8">
-        <div className="flex-none mr-2 sm:mr-4">
+      <div className="flex h-16 items-center justify-between px-4 md:px-8">
+        <div className="flex items-center gap-4">
           <Logo className="scale-90 sm:scale-100" />
+          <nav className="hidden md:flex items-center space-x-4 lg:space-x-6">
+            {navLinks.map((link) => {
+              const isActive = (pathname === link.href) || (isMarketingPage && link.href.startsWith('/#') && activeHash === link.href.substring(1));
+              return (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                      "relative transition-colors text-sm font-medium whitespace-nowrap",
+                      linkColor,
+                      "hover:text-primary",
+                      isActive && activeLinkColor
+                  )}
+                >
+                  <span>{link.label}</span>
+                  {isActive && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>}
+                </Link>
+              )
+            })}
+          </nav>
         </div>
-        
-        <nav className="hidden md:flex flex-1 justify-center items-center space-x-4 lg:space-x-6">
-          {navLinks.map((link) => {
-             const isActive = (pathname === link.href) || (isMarketingPage && link.href.startsWith('/#') && activeHash === link.href.substring(1));
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                    "relative transition-colors text-sm font-medium",
-                    linkColor,
-                    "hover:text-primary",
-                    isActive && activeLinkColor
-                )}
-              >
-                <span>{link.label}</span>
-                {isActive && <span className="absolute -bottom-1 left-0 w-full h-0.5 bg-primary rounded-full animate-fade-in"></span>}
-              </Link>
-            )
-          })}
-        </nav>
 
-        <div className="flex flex-none items-center justify-end space-x-1 sm:space-x-2 ml-auto">
-           <Button variant="ghost" onClick={() => setIsLocationSelectorOpen(true)} className="px-2 sm:px-4">
+        <div className="flex items-center gap-1 sm:gap-2">
+           <Button 
+            variant="ghost" 
+            onClick={() => setIsLocationSelectorOpen(true)} 
+            className="h-9 px-2 sm:px-3 text-xs sm:text-sm font-medium"
+           >
              <MapPin className="h-4 w-4 sm:mr-2" />
-             <span className="hidden sm:inline truncate max-w-[120px]">{location.city || 'Select Location'}</span>
-             <span className="sm:hidden text-[10px] uppercase font-bold tracking-tight truncate max-w-[60px]">{location.city || 'Loc'}</span>
+             <span className="hidden sm:inline truncate max-w-[100px]">{location.city || 'Location'}</span>
+             <span className="sm:hidden">{location.city ? location.city.substring(0, 3) + '..' : 'Loc'}</span>
            </Button>
+           
            <ThemeSwitcher />
+           
           <div className="hidden md:flex items-center space-x-2">
             {!isUserLoading && user ? (
               <>
               {user.role === 'admin' && (
-                <Button asChild variant="outline">
-                  <Link href="/admin">Admin Panel</Link>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/admin">Admin</Link>
                 </Button>
               )}
               {userMenu}
               </>
             ) : !isUserLoading ? (
               <>
-                <Button asChild variant={(isMarketingPage && !scrolled) ? "outline" : "ghost"}>
+                <Button asChild variant={(isMarketingPage && !scrolled) ? "outline" : "ghost"} size="sm">
                   <Link href="/login">Log In</Link>
                 </Button>
-                <Button asChild>
+                <Button asChild size="sm">
                   <Link href="/signup">Sign Up</Link>
                 </Button>
               </>
             ) : <div className='h-8 w-8' />}
           </div>
+          
           <Sheet>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden">
+              <Button variant="ghost" size="icon" className="md:hidden w-9 h-9">
                 <Menu className="h-5 w-5" />
                 <span className="sr-only">Toggle navigation menu</span>
               </Button>

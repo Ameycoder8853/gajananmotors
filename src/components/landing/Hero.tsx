@@ -10,7 +10,7 @@ export function Hero() {
   const heroImage = PlaceHolderImages.find(p => p.id === "hero-background");
 
   return (
-    <section className="relative w-full h-[calc(100vh-64px)] min-h-[600px] flex items-center justify-center text-white overflow-hidden bg-zinc-900">
+    <section className="relative w-full h-[85vh] md:h-[calc(100vh-64px)] min-h-[500px] flex items-center justify-center text-white overflow-hidden bg-zinc-900">
       {heroImage && (
         <div className="absolute inset-0 z-0">
           <Image
@@ -49,7 +49,7 @@ export function Hero() {
           </Button>
         </div>
       </div>
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in-up z-10" style={{ animationDelay: '1000ms' }}>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-fade-in-up z-10 hidden sm:block" style={{ animationDelay: '1000ms' }}>
         <a href="#features" aria-label="Scroll down">
           <ChevronDown className="w-8 h-8 sm:w-10 sm:h-10 text-white animate-bounce-slow" />
         </a>
