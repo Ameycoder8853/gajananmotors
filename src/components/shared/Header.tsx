@@ -197,7 +197,6 @@ export function Header() {
            >
              <MapPin className="h-4 w-4 sm:mr-2" />
              <span className="hidden sm:inline truncate max-w-[100px]">{location.city || 'Location'}</span>
-             <span className="sm:hidden">{location.city ? location.city.substring(0, 3) + '..' : 'Loc'}</span>
            </Button>
            
            <ThemeSwitcher />
