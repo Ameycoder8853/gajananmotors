@@ -53,7 +53,6 @@ function ThemeSwitcher() {
 
 export function Header() {
   const { user, isUserLoading, logout } = useAuth();
-  const { resolvedTheme } = useTheme();
   const router = useRouter();
   const pathname = usePathname();
   const { location } = useLocation();
@@ -165,9 +164,9 @@ export function Header() {
   return (
     <>
     <header className={headerClasses}>
-      <div className="flex h-16 items-center px-4 md:px-8">
-        <div className="flex-none mr-4">
-          <Logo />
+      <div className="flex h-16 items-center px-3 md:px-8">
+        <div className="flex-none mr-2 sm:mr-4">
+          <Logo className="scale-90 sm:scale-100" />
         </div>
         
         <nav className="hidden md:flex flex-1 justify-center items-center space-x-4 lg:space-x-6">
@@ -191,10 +190,11 @@ export function Header() {
           })}
         </nav>
 
-        <div className="flex flex-none items-center justify-end space-x-2 ml-auto">
-           <Button variant="ghost" onClick={() => setIsLocationSelectorOpen(true)}>
-             <MapPin className="mr-2 h-4 w-4" />
-             <span className="truncate max-w-[120px]">{location.city || 'Select Location'}</span>
+        <div className="flex flex-none items-center justify-end space-x-1 sm:space-x-2 ml-auto">
+           <Button variant="ghost" onClick={() => setIsLocationSelectorOpen(true)} className="px-2 sm:px-4">
+             <MapPin className="h-4 w-4 sm:mr-2" />
+             <span className="hidden sm:inline truncate max-w-[120px]">{location.city || 'Select Location'}</span>
+             <span className="sm:hidden text-[10px] uppercase font-bold tracking-tight truncate max-w-[60px]">{location.city || 'Loc'}</span>
            </Button>
            <ThemeSwitcher />
           <div className="hidden md:flex items-center space-x-2">

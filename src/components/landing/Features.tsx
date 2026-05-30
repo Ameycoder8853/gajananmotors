@@ -1,4 +1,6 @@
 
+'use client';
+
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { DollarSign, ShieldCheck, Search, Users, Gem } from "lucide-react";
 
@@ -40,25 +42,25 @@ export function Features() {
     <section id="features" className="py-16 sm:py-24 bg-background">
       <div className="px-4 md:px-8">
         <div className="text-center animate-fade-in-up">
-          <h2 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight md:text-4xl px-2">
             Why Choose Gajanan Motors?
           </h2>
-          <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
+          <p className="mt-4 max-w-2xl mx-auto text-base sm:text-lg text-muted-foreground">
             We've built a platform that simplifies car buying and selling for everyone.
           </p>
         </div>
-        <div className="mt-12 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3 max-w-6xl mx-auto">
           {features.map((feature, index) => (
             <div key={feature.title} className="animate-fade-in-up" style={{ animationDelay: `${index * 150}ms` }}>
               <Card
                 className="text-center transition-all duration-300 hover:shadow-lg hover:-translate-y-1 h-full"
               >
-                <CardHeader>
+                <CardHeader className="p-6">
                   <div className="mx-auto bg-primary/10 rounded-full p-4 w-fit">
                     {feature.icon}
                   </div>
-                  <CardTitle className="mt-4">{feature.title}</CardTitle>
-                  <CardDescription className="mt-2">
+                  <CardTitle className="mt-4 text-xl">{feature.title}</CardTitle>
+                  <CardDescription className="mt-2 text-sm">
                     {feature.description}
                   </CardDescription>
                 </CardHeader>
