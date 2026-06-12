@@ -1,4 +1,3 @@
-
 'use client';
 
 import { Features } from "@/components/landing/Features";
@@ -8,9 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { FeaturedCars } from "@/components/landing/FeaturedCars";
 import { HowItWorks } from "@/components/landing/HowItWorks";
-import { Testimonials } from "@/components/landing/Testimonials";
 import { Cta } from "@/components/landing/Cta";
-import { Stats } from "@/components/landing/Stats";
 import { Faq } from "@/components/landing/Faq";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -182,9 +179,7 @@ export default function LandingPage() {
       <div className="relative bg-background z-10">
         <Features />
         <FeaturedCars />
-        <Stats />
         <HowItWorks />
-        <Testimonials />
         <Faq />
         <Cta />
         <ContactForm />

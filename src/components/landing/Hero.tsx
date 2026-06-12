@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Star, ChevronDown } from "lucide-react";
+import { ArrowRight, ChevronDown } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 
 export function Hero() {
@@ -25,11 +25,7 @@ export function Hero() {
       )}
       <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent z-[1]" />
       <div className="relative z-10 px-4 md:px-8 text-center max-w-5xl mx-auto">
-        <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-xs sm:text-sm backdrop-blur-sm animate-fade-in-up" style={{ animationDelay: '200ms' }}>
-          <Star className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300 fill-yellow-300" />
-          <span>Over 1,000+ happy customers</span>
-        </div>
-        <h1 className="mt-6 font-headline text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight animate-fade-in-up" style={{ animationDelay: '400ms' }}>
+        <h1 className="font-headline text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight animate-fade-in-up" style={{ animationDelay: '400ms' }}>
           Find Your Next Car, The Right Way
         </h1>
         <p className="mt-6 max-w-2xl mx-auto text-sm sm:text-lg text-gray-200 animate-fade-in-up" style={{ animationDelay: '600ms' }}>
