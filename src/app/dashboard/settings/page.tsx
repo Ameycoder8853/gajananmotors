@@ -24,16 +24,27 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
-import { updateDocumentNonBlocking } from '@/firebase';
-import { doc } from 'firebase/firestore';
+import { deleteDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { doc, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
-import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, updateProfile } from 'firebase/auth';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { updatePassword, EmailAuthProvider, reauthenticateWithCredential, updateProfile, deleteUser } from 'firebase/auth';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useState } from 'react';
-import { Eye, EyeOff, Upload, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Upload, CheckCircle2, AlertTriangle, Trash2 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useRouter } from 'next/navigation';
 
 
 const profileFormSchema = z.object({
@@ -55,6 +66,7 @@ const getInitials = (name?: string | null) => {
 export default function SettingsPage() {
   const { user, auth } = useAuth();
   const { toast } = useToast();
+  const router = useRouter();
   const { firestore, storage } = initializeFirebase();
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -62,6 +74,7 @@ export default function SettingsPage() {
   const [pfpFile, setPfpFile] = useState<File | null>(null);
   const [pfpPreview, setPfpPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
 
   const profileForm = useForm<z.infer<typeof profileFormSchema>>({
@@ -173,9 +186,59 @@ export default function SettingsPage() {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user || !auth.currentUser || !firestore) return;
+
+    setIsDeleting(true);
+    try {
+      const batch = writeBatch(firestore);
+      
+      // 1. Delete all user ads
+      const adsRef = collection(firestore, 'cars');
+      const q = query(adsRef, where('dealerId', '==', user.uid));
+      const adsSnap = await getDocs(q);
+      adsSnap.forEach((adDoc) => {
+        batch.delete(adDoc.ref);
+      });
+
+      // 2. Delete user document
+      const userDocRef = doc(firestore, 'users', user.uid);
+      batch.delete(userDocRef);
+
+      await batch.commit();
+
+      // 3. Delete Auth Account
+      await deleteUser(auth.currentUser);
+
+      toast({
+        title: 'Account Deleted',
+        description: 'Your account and data have been permanently removed.',
+      });
+      router.push('/');
+
+    } catch (error: any) {
+      console.error('Account deletion error:', error);
+      if (error.code === 'auth/requires-recent-login') {
+        toast({
+          variant: 'destructive',
+          title: 'Recent Login Required',
+          description: 'For security reasons, please log out and log back in to verify your identity before deleting your account.',
+        });
+      } else {
+        toast({
+          variant: 'destructive',
+          title: 'Deletion Failed',
+          description: error.message || 'An unexpected error occurred.',
+        });
+      }
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
 
   return (
-    <div className="space-y-8 animate-fade-in-up">
+    <div className="space-y-8 animate-fade-in-up pb-12">
       <Card>
         <CardHeader>
           <CardTitle>Profile Settings</CardTitle>
@@ -325,6 +388,56 @@ export default function SettingsPage() {
               </Button>
             </form>
           </Form>
+        </CardContent>
+      </Card>
+
+      <Card className="border-destructive/50 bg-destructive/5">
+        <CardHeader>
+          <CardTitle className="text-destructive flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" /> Danger Zone
+          </CardTitle>
+          <CardDescription>
+            Permanently delete your account and all associated data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Deleting your account will remove all your car listings, profile data, and identification documents from our servers.
+            </p>
+            {user?.isPro && (
+                <div className="bg-amber-100 dark:bg-amber-900/30 p-4 rounded-md border border-amber-200 dark:border-amber-800 text-sm">
+                    <p className="font-bold text-amber-800 dark:text-amber-200">Subscription Notice:</p>
+                    <p className="text-amber-700 dark:text-amber-300">
+                        You have an active <strong>{user.subscriptionType}</strong> plan. Please note that all subscription payments are <strong>non-refundable</strong>. If you delete your account, your remaining ad credits and pro access will be lost immediately.
+                    </p>
+                </div>
+            )}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" className="gap-2">
+                  <Trash2 className="h-4 w-4" /> Delete My Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription className="space-y-3">
+                    <p>This action <strong>cannot be undone</strong>. This will permanently delete your account and remove your data from our servers.</p>
+                    <p className="font-semibold text-destructive">
+                      All subscription payments are non-refundable.
+                    </p>
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteAccount} className="bg-destructive text-destructive-foreground hover:bg-destructive/90" disabled={isDeleting}>
+                    {isDeleting ? 'Deleting...' : 'Yes, Delete Account'}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </CardContent>
       </Card>
     </div>
