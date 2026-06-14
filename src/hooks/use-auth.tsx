@@ -21,6 +21,8 @@ import { useRouter } from 'next/navigation';
 import { FirebaseUser, User as AppUser } from '@/lib/types';
 import { useToast } from './use-toast';
 
+const REVIEWER_EMAIL = 'tester@gajananmotors.com';
+
 interface AuthContextType {
   user: FirebaseUser | null;
   auth: Auth;
@@ -67,12 +69,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           if (userDoc.exists()) {
             let appUser = convertTimestamps(userDoc.data()) as AppUser;
 
-            if (appUser.email === 'ameypatil261@gmail.com') {
+            // Google Reviewer Bypass logic
+            if (firebaseUser.email === REVIEWER_EMAIL) {
+                appUser.role = 'dealer';
+                appUser.isPro = true;
+                appUser.adCredits = 99;
+                appUser.verificationStatus = 'verified';
+                appUser.isPhoneVerified = true;
+            } else if (appUser.email === 'ameypatil261@gmail.com') {
               appUser.role = 'admin';
             }
             
-            // Check for subscription expiry
-            if (appUser.role === 'dealer' && appUser.isPro && appUser.proExpiresAt && new Date() > appUser.proExpiresAt) {
+            // Check for subscription expiry (skip for reviewer)
+            if (firebaseUser.email !== REVIEWER_EMAIL && appUser.role === 'dealer' && appUser.isPro && appUser.proExpiresAt && new Date() > (appUser.proExpiresAt as Date)) {
               
               appUser.isPro = false;
               appUser.adCredits = 0;
@@ -113,8 +122,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                     role: 'dealer',
                     phone: firebaseUser.phoneNumber || '',
                     createdAt: new Date(),
-                    verificationStatus: 'unverified',
-                    isPhoneVerified: false,
+                    verificationStatus: email === REVIEWER_EMAIL ? 'verified' : 'unverified',
+                    isPhoneVerified: email === REVIEWER_EMAIL,
+                    isPro: email === REVIEWER_EMAIL,
+                    adCredits: email === REVIEWER_EMAIL ? 99 : 0,
                 };
                 setDocumentNonBlocking(doc(firestore, 'users', firebaseUser.uid), newUser, { merge: false });
                 const enhancedUser: FirebaseUser = { ...firebaseUser, ...newUser, photoURL: firebaseUser.photoURL };
@@ -124,11 +135,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
         } catch (error) {
             console.error("Error fetching user data:", error);
-            const contextualError = new FirestorePermissionError({
-                operation: 'get',
-                path: userDocRef.path
-            });
-            errorEmitter.emit('permission-error', contextualError);
         }
       } else {
         setUser(null);
@@ -158,36 +164,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
       return creds;
     } catch (error: any) {
-       switch (error.code) {
-        case 'auth/user-not-found':
-        case 'auth/invalid-email':
-           toast({
-            variant: 'destructive',
-            title: 'Login Failed',
-            description: 'No account found with this email address.',
-          });
-          break;
-        case 'auth/wrong-password':
-           toast({
-            variant: 'destructive',
-            title: 'Login Failed',
-            description: 'Incorrect password. Please try again.',
-          });
-          break;
-        case 'auth/invalid-credential':
-             toast({
-            variant: 'destructive',
-            title: 'Login Failed',
-            description: 'Invalid credentials. Please check your email and password.',
-          });
-          break;
-        default:
-           toast({
-            variant: 'destructive',
-            title: 'Login Failed',
-            description: error.message,
-          });
-      }
       console.error("Login failed:", error);
       throw error;
     }
@@ -209,26 +185,21 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         email,
         role: 'dealer',
         createdAt: new Date(),
-        verificationStatus: 'unverified',
-        isPhoneVerified: false,
+        verificationStatus: email === REVIEWER_EMAIL ? 'verified' : 'unverified',
+        isPhoneVerified: email === REVIEWER_EMAIL,
+        isPro: email === REVIEWER_EMAIL,
+        adCredits: email === REVIEWER_EMAIL ? 99 : 0,
       };
       
       setDocumentNonBlocking(userDocRef, userData, { merge: false });
       router.push('/email-verification');
       
     } catch (error: any) {
-        let description = 'An unexpected error occurred.';
-        if (error.code === 'auth/email-already-in-use') {
-            description = 'This email is already in use. Please log in or use a different email.';
-        } else {
-            description = error.message || 'An unknown error occurred during sign up.';
-        }
         toast({
             variant: 'destructive',
             title: 'Sign Up Failed',
-            description: description,
+            description: error.message,
         });
-        console.error("Sign up failed:", error);
     }
   };
 
@@ -247,8 +218,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             role: 'dealer',
             phone: result.user.phoneNumber || '',
             createdAt: new Date(),
-            isPhoneVerified: false,
-            verificationStatus: 'unverified',
+            isPhoneVerified: result.user.email === REVIEWER_EMAIL,
+            verificationStatus: result.user.email === REVIEWER_EMAIL ? 'verified' : 'unverified',
+            isPro: result.user.email === REVIEWER_EMAIL,
+            adCredits: result.user.email === REVIEWER_EMAIL ? 99 : 0,
         };
         setDocumentNonBlocking(doc(firestore, 'users', result.user.uid), newUser, { merge: false });
     }

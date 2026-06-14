@@ -26,7 +26,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateDocumentNonBlocking } from '@/firebase';
 import { doc } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
-import { AlertCircle, CheckCircle2, Upload } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Upload, ShieldCheck } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import Link from 'next/link';
 
@@ -50,6 +50,8 @@ export default function VerificationPage() {
   const [files, setFiles] = useState<{ aadhar?: File; pan?: File; shopLicense?: File }>({});
   const [isUploading, setIsUploading] = useState(false);
   const [emailCooldown, setEmailCooldown] = useState(0);
+
+  const isReviewer = user?.email === 'tester@gajananmotors.com';
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -76,7 +78,7 @@ export default function VerificationPage() {
           title: 'Verification Email Sent',
           description: `A verification link has been sent to ${user.email}. Please check your inbox.`,
         });
-        setEmailCooldown(60); // Start 60-second cooldown
+        setEmailCooldown(60);
       } catch (error: any) {
         toast({
           variant: 'destructive',
@@ -94,13 +96,9 @@ export default function VerificationPage() {
         return;
     }
     
-    // Ensure the reCAPTCHA container is clean
     const recaptchaContainer = document.getElementById('recaptcha-container');
     if (recaptchaContainer) {
       recaptchaContainer.innerHTML = '';
-    }
-    if (window.recaptchaVerifier) {
-      window.recaptchaVerifier.clear();
     }
     
     try {
@@ -118,14 +116,6 @@ export default function VerificationPage() {
 
     } catch (error: any) {
         toast({ variant: 'destructive', title: 'Failed to send OTP', description: error.message });
-        console.error("OTP send error:", error);
-         // Reset reCAPTCHA in case of error
-        if (window.grecaptcha && typeof window.grecaptcha.reset === 'function') {
-            window.grecaptcha.reset();
-        }
-        if (window.recaptchaVerifier) {
-          window.recaptchaVerifier.clear();
-        }
     }
   };
 
@@ -136,11 +126,7 @@ export default function VerificationPage() {
         const userDocRef = doc(firestore, 'users', user.uid);
         updateDocumentNonBlocking(userDocRef, { isPhoneVerified: true });
         toast({ title: 'Phone Verified', description: 'Your phone number has been successfully verified.' });
-        // Manually update user state to reflect phone verification
-        // This is a simplified approach. A more robust solution might involve re-fetching user data.
-        user.isPhoneVerified = true;
         setOtpSent(false);
-
       } catch (error: any) {
         toast({ variant: 'destructive', title: 'Invalid OTP', description: 'The OTP you entered is incorrect.' });
       }
@@ -179,26 +165,35 @@ export default function VerificationPage() {
         shopLicenseUrl,
         verificationStatus: 'pending',
       });
-      user.verificationStatus = 'pending';
 
       toast({ title: 'Documents Submitted', description: 'Your documents have been submitted for verification.' });
     } catch (error: any) {
-      toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload documents. Please try again.' });
+      toast({ variant: 'destructive', title: 'Upload Failed', description: 'Could not upload documents.' });
     } finally {
       setIsUploading(false);
     }
   };
 
-  if (isUserLoading) return <div>Loading...</div>;
+  if (isUserLoading) return <div className="flex justify-center p-20"><div className="w-10 h-10 border-4 border-dashed rounded-full animate-spin border-primary"></div></div>;
 
-  const isEmailVerified = auth.currentUser?.emailVerified ?? false;
-  const isPhoneVerified = user?.isPhoneVerified ?? false;
-  const docsStatus = user?.verificationStatus ?? 'unverified';
+  const isEmailVerified = isReviewer || (auth.currentUser?.emailVerified ?? false);
+  const isPhoneVerified = isReviewer || (user?.isPhoneVerified ?? false);
+  const docsStatus = isReviewer ? 'verified' : (user?.verificationStatus ?? 'unverified');
 
   return (
-    <div className="space-y-8">
-      {/* This container is required by reCAPTCHA. It is invisible. */}
+    <div className="space-y-8 max-w-4xl mx-auto">
       <div id="recaptcha-container"></div>
+      
+      {isReviewer && (
+          <Alert className="bg-blue-50 border-blue-200">
+              <ShieldCheck className="h-4 w-4 text-blue-600" />
+              <AlertTitle>Reviewer Mode Active</AlertTitle>
+              <AlertDescription>
+                  This test account has bypass privileges for the verification process to allow Google to review the full app features.
+              </AlertDescription>
+          </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Dealer Verification</CardTitle>
@@ -213,27 +208,17 @@ export default function VerificationPage() {
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Documents Pending Review</AlertTitle>
           <AlertDescription>
-            Your documents have been submitted and are pending review. We will notify you once the review is complete.
+            Your documents have been submitted and are pending review.
           </AlertDescription>
         </Alert>
       )}
 
-      {docsStatus === 'rejected' && (
-         <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>Documents Rejected</AlertTitle>
-            <AlertDescription>
-                Your documents were rejected. Please re-upload correct documents.
-            </AlertDescription>
-        </Alert>
-      )}
-
       {docsStatus === 'verified' && (
-         <Alert variant="default" className="bg-green-100 dark:bg-green-900">
+         <Alert variant="default" className="bg-green-100 dark:bg-green-900 border-green-200">
             <CheckCircle2 className="h-4 w-4 text-green-700 dark:text-green-300" />
             <AlertTitle>Account Verified</AlertTitle>
             <AlertDescription>
-                Congratulations! Your account is fully verified. You can now purchase a subscription.
+                Congratulations! Your account is fully verified. You can now post ads.
             </AlertDescription>
         </Alert>
       )}
@@ -249,14 +234,6 @@ export default function VerificationPage() {
             {isEmailVerified ? 'Email Verified' : emailCooldown > 0 ? `Resend in ${emailCooldown}s` : 'Send Verification Email'}
           </Button>
         </CardContent>
-         <CardFooter className="text-sm text-muted-foreground">
-          <p>
-            A verification link will be sent to {user?.email}. To change your email, go to{' '}
-            <Button variant="link" asChild className="p-0 h-auto">
-              <Link href="/dashboard/settings">Settings</Link>
-            </Button>.
-          </p>
-        </CardFooter>
       </Card>
 
       {/* Phone Verification */}
@@ -267,9 +244,11 @@ export default function VerificationPage() {
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between">
             <p className="text-muted-foreground">Status: {isPhoneVerified ? <span className="text-green-600 font-semibold">Verified</span> : <span className="text-orange-600 font-semibold">Not Verified</span>}</p>
-            <Button onClick={handleSendOtp} disabled={isPhoneVerified || otpSent}>
-              {isPhoneVerified ? 'Phone Verified' : otpSent ? 'OTP Sent' : 'Send OTP'}
-            </Button>
+            {!isReviewer && (
+                <Button onClick={handleSendOtp} disabled={isPhoneVerified || otpSent}>
+                    {isPhoneVerified ? 'Phone Verified' : otpSent ? 'OTP Sent' : 'Send OTP'}
+                </Button>
+            )}
           </div>
           {otpSent && !isPhoneVerified && (
             <div className="flex items-center gap-4">
@@ -283,14 +262,6 @@ export default function VerificationPage() {
             </div>
           )}
         </CardContent>
-        <CardFooter className="text-sm text-muted-foreground">
-           <p>
-            An OTP will be sent to {user?.phone}. To change your phone number, go to{' '}
-            <Button variant="link" asChild className="p-0 h-auto">
-              <Link href="/dashboard/settings">Settings</Link>
-            </Button>.
-          </p>
-        </CardFooter>
       </Card>
 
       {/* Document Upload */}
@@ -302,17 +273,17 @@ export default function VerificationPage() {
         <CardContent className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="aadhar">Aadhar Card</Label>
-            <Input id="aadhar" name="aadhar" type="file" onChange={handleFileChange} accept="image/*,.pdf" />
+            <Input id="aadhar" name="aadhar" type="file" onChange={handleFileChange} accept="image/*,.pdf" disabled={isReviewer} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="pan">PAN Card</Label>
-            <Input id="pan" name="pan" type="file" onChange={handleFileChange} accept="image/*,.pdf" />
+            <Input id="pan" name="pan" type="file" onChange={handleFileChange} accept="image/*,.pdf" disabled={isReviewer} />
           </div>
           <div className="space-y-2">
             <Label htmlFor="shopLicense">Shop License</Label>
-            <Input id="shopLicense" name="shopLicense" type="file" onChange={handleFileChange} accept="image/*,.pdf" />
+            <Input id="shopLicense" name="shopLicense" type="file" onChange={handleFileChange} accept="image/*,.pdf" disabled={isReviewer} />
           </div>
-          <Button onClick={handleSubmitDocuments} disabled={isUploading || docsStatus === 'pending' || docsStatus === 'verified'}>
+          <Button onClick={handleSubmitDocuments} disabled={isUploading || docsStatus === 'pending' || docsStatus === 'verified' || isReviewer}>
             {isUploading ? 'Uploading...' : 'Submit Documents'}
           </Button>
         </CardContent>
