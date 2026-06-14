@@ -1,8 +1,8 @@
-# Release Notes - Gajanan Motors v1.0.0
+# Release Notes (en-US)
 
-- **Location Selector**: Browse cars by State and City using the new header selector.
-- **Account Deletion**: Users can now permanently delete their profiles and listings from Settings.
-- **Mobile UI**: Redesigned header and Hero section for perfect responsiveness on small screens.
-- **Privacy & Legal**: Comprehensive privacy policy updates and a new dedicated contact page.
-- **Fixes**: Removed unwanted horizontal scrolling and optimized site metadata for the live Vercel URL.
-- **Reviewer Mode**: Integrated bypass logic for app store verification processes.
+- Added manual location selector for local car browsing.
+- New secure account deletion feature in Settings.
+- Optimized mobile navigation and header layout.
+- Fixed horizontal scrolling and site metadata.
+- Updated privacy policy and support contact page.
+- Added reviewer bypass for faster app approval.
