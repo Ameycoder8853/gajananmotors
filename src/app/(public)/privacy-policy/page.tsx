@@ -36,7 +36,7 @@ export default function PrivacyPolicyPage() {
                 <li><strong>Account Information:</strong> Name, email address, phone number, and password.</li>
                 <li><strong>Identification Documents:</strong> To verify dealers, we collect Aadhar Card, PAN Card, and Shop License images. These are used strictly for identity verification.</li>
                 <li><strong>Car Listing Data:</strong> Vehicle details, photos, and registration information.</li>
-                <li><strong>Location Data:</strong> Approximate location for filtering nearby cars. Our mobile app may request location permissions to "Detect My Location".</li>
+                <li><strong>Location Data:</strong> Approximate location for filtering nearby cars based on your manual selection of City and State.</li>
                 <li><strong>Media Access:</strong> Our mobile app requests access to your Gallery/Camera to allow you to upload car photos and verification documents.</li>
               </ul>
             </section>

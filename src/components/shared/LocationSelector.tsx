@@ -19,7 +19,6 @@ import {
 } from '@/components/ui/select';
 import { states, citiesByState } from '@/lib/location-data';
 import { useLocation } from '@/hooks/use-location';
-import { MapPin } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface LocationSelectorProps {
@@ -28,7 +27,7 @@ interface LocationSelectorProps {
 }
 
 export function LocationSelector({ open, onOpenChange }: LocationSelectorProps) {
-  const { location, setLocation, isLocating, locateUser } = useLocation();
+  const { location, setLocation } = useLocation();
   const { toast } = useToast();
   const [selectedState, setSelectedState] = useState(location.state || '');
   const [selectedCity, setSelectedCity] = useState(location.city || '');
@@ -55,15 +54,6 @@ export function LocationSelector({ open, onOpenChange }: LocationSelectorProps) 
     }
   };
 
-  const handleDetectLocation = async () => {
-      const result = await locateUser();
-      if(result) {
-        setSelectedState(result.state);
-        setSelectedCity(result.city);
-        setAvailableCities(citiesByState[result.state] || []);
-      }
-  }
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -74,18 +64,6 @@ export function LocationSelector({ open, onOpenChange }: LocationSelectorProps) 
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          <Button variant="outline" className="w-full" onClick={handleDetectLocation} disabled={isLocating}>
-            <MapPin className="mr-2 h-4 w-4" />
-            {isLocating ? 'Detecting...' : 'Detect My Location'}
-          </Button>
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-background px-2 text-muted-foreground">OR</span>
-            </div>
-          </div>
           <div className="grid grid-cols-2 gap-4">
             <Select value={selectedState} onValueChange={handleStateChange}>
               <SelectTrigger>
