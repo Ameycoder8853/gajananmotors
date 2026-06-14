@@ -1,3 +1,4 @@
+
 import { MetadataRoute } from 'next';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { initializeFirebase } from '@/firebase';
@@ -12,7 +13,7 @@ try {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+  const baseUrl = 'https://gajananmotors.vercel.app';
 
   // 1. Static pages
   const staticRoutes = [
@@ -25,6 +26,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/privacy-policy',
     '/cancellation-refund-policy',
     '/shipping-delivery-policy',
+    '/contact',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
     lastModified: new Date(),

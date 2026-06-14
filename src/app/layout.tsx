@@ -10,11 +10,11 @@ import { LocationProvider } from '@/hooks/use-location';
 
 const siteConfig = {
   name: 'Gajanan Motors',
-  url: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+  url: 'https://gajananmotors.vercel.app',
   description: 'Gajanan Motors is your trusted partner for buying and selling quality used cars. Browse our verified listings from trusted dealers and find your dream car today.',
   ogImage: '/og-image.png',
   links: {
-    twitter: 'https://twitter.com/gajananmotors', // Replace with your Twitter handle
+    twitter: 'https://twitter.com/gajananmotors',
   }
 }
 
