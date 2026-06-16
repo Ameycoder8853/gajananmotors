@@ -1,5 +1,5 @@
 
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import Script from 'next/script';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -18,6 +18,14 @@ const siteConfig = {
   }
 }
 
+export const viewport: Viewport = {
+  themeColor: '#3F51B5',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteConfig.url),
   title: {
@@ -28,6 +36,14 @@ export const metadata: Metadata = {
   keywords: ["Gajanan Motors", "used cars", "second-hand cars", "car dealership", "buy used car", "sell used car", "verified dealers", "used cars sangli", "used cars kolhapur"],
   authors: [{ name: "Gajanan Motors" }],
   creator: "Gajanan Motors",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: siteConfig.name,
+  },
+  formatDetection: {
+    telephone: true,
+  },
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -68,6 +84,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className="font-body antialiased min-h-screen bg-background">
         <ThemeProvider

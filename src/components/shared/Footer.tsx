@@ -1,3 +1,4 @@
+
 import { Logo } from "@/components/shared/Logo";
 import { Facebook, Twitter, Instagram } from "lucide-react";
 import Link from "next/link";
@@ -18,9 +19,9 @@ export function Footer() {
               <h3 className="font-semibold text-foreground mb-4">Quick Links</h3>
               <ul className="space-y-2">
                 <li><Link href="/market" className="text-sm text-muted-foreground hover:text-primary">Marketplace</Link></li>
+                <li><Link href="/about" className="text-sm text-muted-foreground hover:text-primary">About Us</Link></li>
                 <li><Link href="/signup" className="text-sm text-muted-foreground hover:text-primary">Become a Dealer</Link></li>
-                <li><Link href="/#features" className="text-sm text-muted-foreground hover:text-primary">Features</Link></li>
-                <li><Link href="/#contact" className="text-sm text-muted-foreground hover:text-primary">Contact</Link></li>
+                <li><Link href="/contact" className="text-sm text-muted-foreground hover:text-primary">Contact Us</Link></li>
               </ul>
             </div>
             <div>
